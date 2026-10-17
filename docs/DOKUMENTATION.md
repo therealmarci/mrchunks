@@ -32,7 +32,8 @@ src/main/java/at/marcelr/mrchunks/
 ├─ command/               /chunkloader, /mrchunks
 ├─ gui/                   Menu, MenuListener, Items, Pages, LoaderIcons, PlayerIcons,
 │                         LoaderMenu, MyLoadersMenu, AdminMenu, PlayerLoadersMenu
-├─ web/WebMap.java        eingebaute Webkarte
+├─ map/                   MapHooks (ohne squaremap-Typen), SquaremapHook (Ebene, Marker, Icon)
+├─ web/WebMap.java        einfache eingebaute Webseite (ohne Gelände)
 └─ util/                  DurationUtil, Versions (mit Tests)
 src/main/resources/
 ├─ config.yml             UTF-8 mit BOM!
@@ -90,13 +91,20 @@ bans:
 - **`PlayerLoadersMenu`**: Limit (links +1, rechts −1, Shift zurücksetzen), alle löschen, Sperren und die Loader des Spielers.
 - Alle Aktionen laufen über `AdminActions`, das jeweils selbst die Permission prüft.
 
-## 8. Webkarte (`web/WebMap.java`)
+## 8. squaremap (`map/MapHooks.java`, `map/SquaremapHook.java`)
+- `compileOnly("xyz.jpenilla:squaremap-api:1.4.3")` und `softdepend: [squaremap]`. Dadurch startet squaremap vorher, ist aber nicht Pflicht.
+- **`MapHooks`** enthält keinen einzigen squaremap-Typ. Erst wenn `isPluginEnabled("squaremap")` gilt, wird `SquaremapHook` erzeugt (`LinkageError` wird abgefangen). So entsteht ohne squaremap kein `NoClassDefFoundError`.
+- **`SquaremapHook`** registriert pro Welt eine `SimpleLayerProvider`-Ebene `mrchunks_loaders` (Name aus `squaremap.layer-name`) und ein selbst gezeichnetes 16×16-Icon `mrchunks_loader`. Jeder Loader bekommt ein `Marker.rectangle` in Blockkoordinaten der vollen Chunks und optional `Marker.icon`. Tooltips sind HTML, die Werte werden escaped.
+- **Aktualisierung:** `LoaderManager` ruft nach jeder Änderung (setzen, löschen, an/aus) `maps().refreshSoon()` auf. Mehrere Änderungen in einem Tick führen zu einem einzigen Update. Zusätzlich gleicht ein Task alle `squaremap.update-seconds` ab. Fehlt die Ebene, etwa nach `/squaremap reload`, wird sie neu registriert. Bei jedem Update werden alle Marker der Welt neu aufgebaut, das ist einfach und driftet nie.
+- Getestet mit squaremap 1.4.3 für Paper 26.3: Die Ebene erscheint in `tiles/minecraft_overworld/markers.json` mit `"id":"mrchunks_loaders"`.
+
+## 9. Einfache Webseite (`web/WebMap.java`)
 - `HttpServer` auf `web.bind:web.port`, 2 Daemon-Threads. Routen: `/` (Seite), `/api/loaders` (JSON). Alles andere bekommt 404, andere Methoden als GET bekommen 405.
 - **Threading:** Der Main-Thread baut alle `refresh-seconds` einen JSON-Snapshot (`volatile String`). Die HTTP-Threads lesen nur diesen String.
 - **Zugriff:** `?key=` oder Header `X-Access-Key`, Vergleich mit `MessageDigest.isEqual` (zeitkonstant). Header: `no-store`, `nosniff`, `no-referrer`.
 - `index.html` ist eigenständig, ohne CDN oder externe Ressourcen. Es zeichnet die Chunk-Raster per Canvas, mit Verschieben, Zoom, Tooltip, Liste und automatischer Aktualisierung. `{{TITLE}}` wird beim Start ersetzt (HTML-escaped).
 
-## 9. Entwicklung
+## 10. Entwicklung
 ```text
 gradlew.bat build     Kompilieren + Tests + JAR  → build/libs/MRchunks-<version>.jar
 ```

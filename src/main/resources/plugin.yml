@@ -2,6 +2,7 @@ name: MRchunks
 version: '${version}'
 main: at.marcelr.mrchunks.MRChunks
 api-version: '26.3'
+softdepend: [squaremap]
 author: _therealmarci
 website: https://github.com/${githubRepository}
 description: Chunkloader-Blöcke mit Limits, Menüs, Admin-GUI, Webkarte und Discord-Logs.

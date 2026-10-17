@@ -143,6 +143,7 @@ public final class LoaderManager {
         index(loader);
         cover(loader);
         save();
+        plugin.maps().refreshSoon();
         return loader;
     }
 
@@ -161,6 +162,7 @@ public final class LoaderManager {
             }
         }
         save();
+        plugin.maps().refreshSoon();
     }
 
     /** @return number of deleted loaders */
@@ -181,6 +183,7 @@ public final class LoaderManager {
             uncover(loader);
         }
         save();
+        plugin.maps().refreshSoon();
     }
 
     // ------------------------------------------------------------- tickets

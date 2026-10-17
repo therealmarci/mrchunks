@@ -20,5 +20,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 - Menü per Rechtsklick auf den Block: Infos, Grenzanzeige mit Partikeln, an/aus, löschen (mit Bestätigung).
 - Admin-Menü (`/mrchunks gui`): alle Spieler mit Loadern, Limit +/−, Sperren, alle Loader löschen, Teleport.
 - Sperren (`/mrchunks ban`): löscht alle Loader des Spielers und verhindert neue.
-- Eingebaute Webkarte (`web.*`) mit Zugriffsschlüssel.
+- Anbindung an **squaremap**: Die Bereiche erscheinen als eigene Ebene „Chunkloader“ auf der echten Webkarte
+  (Fläche, Symbol, Tooltip). Die Ebene aktualisiert sich bei jeder Änderung sofort.
+- Einfache eigene Webseite ohne Gelände (`web.*`) mit Zugriffsschlüssel, für Server ohne Kartenplugin.
 - Discord-Logs, Update-Prüfung über GitHub Releases, `/mrchunks version`, Config-Migration (UTF-8 mit BOM).

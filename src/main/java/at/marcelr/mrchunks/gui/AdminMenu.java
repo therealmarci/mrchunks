@@ -120,9 +120,10 @@ public final class AdminMenu extends Menu {
             default -> messages.get("gui-update-unknown");
         };
         Component web = messages.get(plugin.webMap().running() ? "gui-web-on" : "gui-web-off");
+        Component squaremap = messages.get(plugin.maps().squaremapActive() ? "gui-web-on" : "gui-web-off");
         return Items.of(Material.KNOWLEDGE_BOOK)
                 .name(messages.item("gui-info-name", tag("version", updates.currentVersion())))
-                .lore(messages.lore("gui-info-lore", tag("update", update), tag("web", web)))
+                .lore(messages.lore("gui-info-lore", tag("update", update), tag("web", web), tag("squaremap", squaremap)))
                 .build();
     }
 

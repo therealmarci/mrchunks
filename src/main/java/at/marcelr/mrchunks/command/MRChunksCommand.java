@@ -193,6 +193,8 @@ public final class MRChunksCommand implements TabExecutor {
     // ---------------------------------------------------------------- misc
 
     private void web(CommandSender sender) {
+        messages().send(sender, plugin.maps().squaremapActive() ? "web-squaremap-on" : "web-squaremap-off",
+                tag("status", plugin.maps().squaremapStatus()));
         WebMap web = plugin.webMap();
         if (web.running()) {
             String url = web.url();

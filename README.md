@@ -10,7 +10,7 @@ Chunkloader-Plugin für **Paper 26.3** (Java 25).
 - **Unzerstörbar:** kein Abbauen, keine Explosionen, Kolben, Wither oder Endermen.
 - **Menü per Rechtsklick:** Infos, Grenze anzeigen, an/aus, löschen.
 - **Admin-Menü:** alle Spieler und ihre Chunkloader, mit Teleport, an/aus, löschen, Limit und Sperre.
-- **Eigene Webkarte** im Browser mit allen geladenen Bereichen.
+- **Webkarte mit echtem Gelände** über [squaremap](https://modrinth.com/plugin/squaremap): Alle geladenen Bereiche werden eingezeichnet. Ohne squaremap gibt es eine einfache eigene Webseite.
 - **Discord-Logs**, **Update-Prüfung**, alles einstellbar in einer `config.yml`, eine Permission für jede Funktion.
 
 ---
@@ -101,7 +101,18 @@ Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Perm
 ---
 
 ## Webkarte
-MRchunks bringt eine eigene Webseite mit. Sie zeigt alle Chunkloader pro Welt als Chunk-Raster, farbig nach Owner. Deaktivierte Loader sind gestrichelt. Die Karte lässt sich verschieben und zoomen, beim Darüberfahren erscheinen Infos, daneben steht eine Liste aller Loader.
+
+### Mit echter Minecraft-Karte: squaremap (empfohlen)
+Installiere zusätzlich **[squaremap](https://modrinth.com/plugin/squaremap)** (Paper, für 26.3 verfügbar). MRchunks erkennt es automatisch und zeichnet jeden Chunkloader auf der Karte ein:
+- den **7×7-Bereich als farbige Fläche**, eine eigene Farbe pro Owner, deaktivierte Loader grau
+- ein **Chunkloader-Symbol** an der Position des Blocks
+- **Tooltip** beim Darüberfahren und **Infos** beim Anklicken (Owner, Position, Bereich, Status)
+- eine eigene Ebene **„Chunkloader“**, die man in der Ebenen-Auswahl ein- und ausblenden kann
+
+Die Karte selbst liefert squaremap (Standard: `http://<server-ip>:8080`). Änderungen wie Setzen, Löschen oder An/Aus erscheinen sofort. Farbe, Deckkraft, Symbol und die Texte stellst du unter `squaremap:` in der Config ein. Ohne squaremap passiert einfach nichts. `/mrchunks web` zeigt den Status.
+
+### Ohne Kartenplugin: einfache Webseite
+MRchunks bringt außerdem eine eigene, schlichte Seite ohne Gelände mit. Sie zeigt ein Chunk-Raster pro Welt mit allen Chunkloadern, farbig nach Owner. Deaktivierte Loader sind gestrichelt. Die Seite lässt sich verschieben und zoomen, beim Darüberfahren erscheinen Infos, und daneben steht eine Liste aller Loader.
 
 ```yaml
 web:

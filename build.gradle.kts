@@ -18,6 +18,8 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.3.build.200-stable")
+    // Optional: echte Webkarte. Wird nur genutzt, wenn squaremap auf dem Server installiert ist.
+    compileOnly("xyz.jpenilla:squaremap-api:1.4.3")
 
     testImplementation(platform("org.junit:junit-bom:6.1.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")

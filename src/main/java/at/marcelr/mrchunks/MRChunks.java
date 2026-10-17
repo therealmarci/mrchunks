@@ -3,6 +3,7 @@ package at.marcelr.mrchunks;
 import at.marcelr.mrchunks.command.ChunkloaderCommand;
 import at.marcelr.mrchunks.command.MRChunksCommand;
 import at.marcelr.mrchunks.gui.MenuListener;
+import at.marcelr.mrchunks.map.MapHooks;
 import at.marcelr.mrchunks.web.WebMap;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
@@ -27,6 +28,7 @@ public final class MRChunks extends JavaPlugin {
     private UpdateChecker updateChecker;
     private MenuListener menuListener;
     private WebMap webMap;
+    private MapHooks maps;
     private BukkitTask validationTask;
 
     @Override
@@ -35,6 +37,7 @@ public final class MRChunks extends JavaPlugin {
         loadConfiguration();
 
         loaderItem = new LoaderItem(this);
+        maps = new MapHooks(this);
         border = new BorderDisplay(this);
         loaders = new LoaderManager(this);
         loaders.load();
@@ -47,6 +50,7 @@ public final class MRChunks extends JavaPlugin {
         menuListener.start();
         webMap = new WebMap(this);
         webMap.start();
+        maps.start();
 
         getServer().getPluginManager().registerEvents(new LoaderListener(this), this);
         getServer().getPluginManager().registerEvents(menuListener, this);
@@ -67,6 +71,9 @@ public final class MRChunks extends JavaPlugin {
         }
         if (webMap != null) {
             webMap.stop();
+        }
+        if (maps != null) {
+            maps.stop();
         }
         if (updateChecker != null) {
             updateChecker.stop();
@@ -91,6 +98,7 @@ public final class MRChunks extends JavaPlugin {
         updateChecker.start();
         menuListener.start();
         webMap.start();
+        maps.start();
     }
 
     private void loadConfiguration() {
@@ -173,5 +181,9 @@ public final class MRChunks extends JavaPlugin {
 
     public WebMap webMap() {
         return webMap;
+    }
+
+    public MapHooks maps() {
+        return maps;
     }
 }

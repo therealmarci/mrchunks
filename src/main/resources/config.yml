@@ -85,10 +85,38 @@ border:
 
 
 # ------------------------------------------------------------------------------
-#   4) WEBKARTE
+#   4) WEBKARTE MIT GELÄNDE (squaremap)
 # ------------------------------------------------------------------------------
-# Eingebaute Webseite mit allen Chunkloadern, z.B. http://<server-ip>:8130
-# Braucht einen freien Port, der beim Hoster freigegeben ist.
+# Ist das Plugin squaremap installiert (https://modrinth.com/plugin/squaremap), zeichnet MRchunks
+# die geladenen Bereiche als eigene Ebene "Chunkloader" auf die echte Minecraft-Karte ein.
+# Ohne squaremap wird dieser Abschnitt einfach ignoriert.
+squaremap:
+  enabled: true
+  # Name der Ebene in der Ebenen-Auswahl der Karte.
+  layer-name: "Chunkloader"
+  # true = Ebene ist beim Öffnen der Karte ausgeblendet (in der Ebenen-Auswahl einschaltbar).
+  default-hidden: false
+  # Deaktivierte Chunkloader (grau) ebenfalls anzeigen.
+  show-inactive: true
+  # Farbe der Bereiche: "owner" = eigene, gleichbleibende Farbe pro Spieler, oder ein fester Wert wie "#2ECC71".
+  color: owner
+  inactive-color: "#8A958E"
+  # Deckkraft der Fläche (0.0 - 1.0).
+  fill-opacity: 0.25
+  # Kleines Chunkloader-Symbol in der Mitte des Bereichs.
+  show-icon: true
+  # Texte auf der Karte (HTML erlaubt). Platzhalter: {id} {player} {world} {x} {y} {z} {size} {chunks} {state}
+  hover-tooltip: "Chunkloader #{id} - {player}"
+  click-tooltip: "<b>Chunkloader #{id}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br>Bereich: {size}x{size} Chunks<br>Status: {state}"
+  # Spätestens so oft werden die Markierungen neu abgeglichen (Änderungen erscheinen sonst sofort).
+  update-seconds: 60
+
+
+# ------------------------------------------------------------------------------
+#   5) EINFACHE WEBSEITE (ohne Kartenplugin)
+# ------------------------------------------------------------------------------
+# Eingebaute Übersicht ohne Gelände: Chunk-Raster mit allen Chunkloadern, z.B. http://<server-ip>:8130
+# Praktisch, wenn kein squaremap installiert ist. Braucht einen freien Port beim Hoster.
 web:
   enabled: false
   # Adresse, an die der Webserver gebunden wird. "0.0.0.0" = von überall erreichbar,
@@ -108,7 +136,7 @@ web:
 
 
 # ------------------------------------------------------------------------------
-#   5) DISCORD-LOGS
+#   6) DISCORD-LOGS
 # ------------------------------------------------------------------------------
 # Webhook anlegen: Discord-Kanal -> Kanal bearbeiten -> Integrationen -> Webhooks
 #                  -> Neuer Webhook -> Webhook-URL kopieren.
@@ -168,7 +196,7 @@ discord:
 
 
 # ------------------------------------------------------------------------------
-#   6) UPDATE-CHECK
+#   7) UPDATE-CHECK
 # ------------------------------------------------------------------------------
 update-checker:
   enabled: true
@@ -182,7 +210,7 @@ update-checker:
 
 
 # ------------------------------------------------------------------------------
-#   7) MENÜS
+#   8) MENÜS
 # ------------------------------------------------------------------------------
 gui:
   # Wie oft offene Menüs aktualisiert werden (in Ticks, 20 = 1 Sekunde).
@@ -196,7 +224,7 @@ gui:
 
 
 # ------------------------------------------------------------------------------
-#   8) NACHRICHTEN
+#   9) NACHRICHTEN
 # ------------------------------------------------------------------------------
 # Format: MiniMessage - https://docs.advntr.dev/minimessage/format.html
 # Leere Nachricht ("") = wird nicht gesendet.
@@ -268,7 +296,7 @@ messages:
     <green>/mrchunks ban <spieler> [dauer] [grund]</green> <dark_gray>- <gray>Sperren (löscht alle seine Loader)
     <green>/mrchunks unban <spieler></green> <dark_gray>- <gray>Sperre aufheben
     <green>/mrchunks bans</green> <dark_gray>- <gray>Alle Sperren
-    <green>/mrchunks web</green> <dark_gray>- <gray>Status/Link der Webkarte
+    <green>/mrchunks web</green> <dark_gray>- <gray>Status der Webkarten (squaremap / einfache Seite)
     <green>/mrchunks discord [test]</green> <dark_gray>- <gray>Discord-Status / Testnachricht
     <green>/mrchunks reload</green> <dark_gray>- <gray>Konfiguration neu laden
     <green>/mrchunks version</green> <dark_gray>- <gray>Version & Update-Status
@@ -287,9 +315,11 @@ messages:
   bans-header: "<prefix><gray>Gesperrte Spieler:"
   bans-entry: "<dark_gray> - <white><player></white> <gray>(<duration>, Grund: <reason>, von <by>)"
   bans-empty: "<prefix><gray>Niemand ist gesperrt."
-  web-status-on: "<prefix><green>Webkarte läuft: <link>"
-  web-status-off: "<prefix><gray>Webkarte ist aus <dark_gray>(web.enabled in der Config)."
-  web-status-error: "<prefix><red>Webkarte konnte nicht starten: <white><reason>"
+  web-squaremap-on: "<prefix><green>squaremap: Chunkloader werden auf der Karte eingezeichnet <gray>(Ebene \"Chunkloader\")."
+  web-squaremap-off: "<prefix><gray>squaremap: <white><status>"
+  web-status-on: "<prefix><green>Einfache Webseite läuft: <link>"
+  web-status-off: "<prefix><gray>Einfache Webseite ist aus <dark_gray>(web.enabled in der Config)."
+  web-status-error: "<prefix><red>Einfache Webseite konnte nicht starten: <white><reason>"
   web-link-label: "<aqua><u><url></u></aqua>"
 
   # --- Discord -----------------------------------------------------------------
@@ -374,7 +404,8 @@ messages:
   gui-info-name: "<green>MRchunks <white>v<version>"
   gui-info-lore:
     - "<gray>Version: <update>"
-    - "<gray>Webkarte: <web>"
+    - "<gray>squaremap-Karte: <squaremap>"
+    - "<gray>Einfache Webseite: <web>"
   gui-update-ok: "<green>Aktuell"
   gui-update-outdated: "<red>Veraltet <dark_gray>(neu: <latest>)"
   gui-update-unknown: "<gray>Unbekannt"

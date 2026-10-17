@@ -17,6 +17,7 @@ public record Settings(
         LoaderSettings loaders,
         ItemSettings item,
         BorderSettings border,
+        SquaremapSettings squaremap,
         WebSettings web,
         UpdateSettings update,
         GuiSettings gui
@@ -45,6 +46,12 @@ public record Settings(
 
     public record BorderSettings(boolean showOnOpen, int durationSeconds, Particle particle, int spacing,
                                  int below, int above) {
+    }
+
+    /** {@code color == null} means one colour per owner. */
+    public record SquaremapSettings(boolean enabled, String layerName, boolean defaultHidden, boolean showInactive,
+                                    java.awt.Color color, java.awt.Color inactiveColor, double fillOpacity,
+                                    boolean showIcon, String hoverTooltip, String clickTooltip, int updateSeconds) {
     }
 
     public record WebSettings(boolean enabled, String bind, int port, String accessKey, boolean showOwners,
@@ -94,6 +101,20 @@ public record Settings(
                 Math.clamp(c.getInt("border.below", 2), 0, 32),
                 Math.clamp(c.getInt("border.above", 6), 0, 64));
 
+        String rawColor = c.getString("squaremap.color", "owner");
+        SquaremapSettings squaremap = new SquaremapSettings(
+                c.getBoolean("squaremap.enabled", true),
+                c.getString("squaremap.layer-name", "Chunkloader"),
+                c.getBoolean("squaremap.default-hidden", false),
+                c.getBoolean("squaremap.show-inactive", true),
+                rawColor.equalsIgnoreCase("owner") ? null : parseColor(rawColor, "squaremap.color", log),
+                parseColor(c.getString("squaremap.inactive-color", "#8A958E"), "squaremap.inactive-color", log),
+                Math.clamp(c.getDouble("squaremap.fill-opacity", 0.25), 0.0, 1.0),
+                c.getBoolean("squaremap.show-icon", true),
+                c.getString("squaremap.hover-tooltip", "Chunkloader #{id} - {player}"),
+                c.getString("squaremap.click-tooltip", ""),
+                Math.clamp(c.getInt("squaremap.update-seconds", 60), 5, 3600));
+
         WebSettings web = new WebSettings(
                 c.getBoolean("web.enabled", false),
                 c.getString("web.bind", "0.0.0.0"),
@@ -123,7 +144,16 @@ public record Settings(
                 c.getString("gui.ban-reason", "über das Admin-Menü"),
                 c.getBoolean("gui.sounds", true));
 
-        return new Settings(loaders, item, border, web, update, gui);
+        return new Settings(loaders, item, border, squaremap, web, update, gui);
+    }
+
+    private static java.awt.Color parseColor(String raw, String path, Logger log) {
+        try {
+            return new java.awt.Color(Integer.parseInt(raw.replace("#", "").trim(), 16));
+        } catch (RuntimeException e) {
+            log.warning("Ungültige Farbe '" + raw + "' für " + path + ", verwende #8A958E.");
+            return new java.awt.Color(0x8A958E);
+        }
     }
 
     /** Case-insensitive enum value; falls back to {@code fallback} with a warning. */
