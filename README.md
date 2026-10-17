@@ -109,7 +109,17 @@ Installiere zusätzlich **[squaremap](https://modrinth.com/plugin/squaremap)** (
 - **Tooltip** beim Darüberfahren und **Infos** beim Anklicken (Owner, Position, Bereich, Status)
 - eine eigene Ebene **„Chunkloader“**, die man in der Ebenen-Auswahl ein- und ausblenden kann
 
-Die Karte selbst liefert squaremap (Standard: `http://<server-ip>:8080`). Änderungen wie Setzen, Löschen oder An/Aus erscheinen sofort. Farbe, Deckkraft, Symbol und die Texte stellst du unter `squaremap:` in der Config ein. Ohne squaremap passiert einfach nichts. `/mrchunks web` zeigt den Status.
+Die Karte selbst liefert squaremap (Standard: `http://<server-ip>:8080`).
+
+> **Wichtig nach der Installation von squaremap:** squaremap zeichnet bestehende Gebiete erst nach einem einmaligen Full-Render.
+> Ohne den siehst du anfangs nur ein paar Chunks:
+> ```text
+> /squaremap fullrender minecraft:overworld
+> /squaremap fullrender minecraft:the_nether
+> /squaremap fullrender minecraft:the_end
+> ```
+> Neu erkundete Gebiete rendert squaremap danach automatisch. Weiße Flächen sind Gebiete, die noch nie erzeugt wurden.
+> Für eine vorab gefüllte Karte die Welt z.B. mit [Chunky](https://modrinth.com/plugin/chunky) vorgenerieren und dann den Full-Render starten. Änderungen wie Setzen, Löschen oder An/Aus erscheinen sofort. Farbe, Deckkraft, Symbol und die Texte stellst du unter `squaremap:` in der Config ein. Ohne squaremap passiert einfach nichts. `/mrchunks web` zeigt den Status.
 
 ### Ohne Kartenplugin: einfache Webseite
 MRchunks bringt außerdem eine eigene, schlichte Seite ohne Gelände mit. Sie zeigt ein Chunk-Raster pro Welt mit allen Chunkloadern, farbig nach Owner. Deaktivierte Loader sind gestrichelt. Die Seite lässt sich verschieben und zoomen, beim Darüberfahren erscheinen Infos, und daneben steht eine Liste aller Loader.
