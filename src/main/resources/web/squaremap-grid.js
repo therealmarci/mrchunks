@@ -7,8 +7,10 @@
 (function () {
   "use strict";
   var CFG = __MRCHUNKS_CONFIG__;
-  var STORAGE_KEY = "mrchunks-grid-visible";
+  // squaremap remembers overlay visibility itself as localStorage "hide_<layer.id>" - we use the same key.
+  var LAYER_ID = "mrchunks_grid";
   var leaflet;
+  var layerControls = [];
 
   Object.defineProperty(window, "L", {
     configurable: true,
@@ -17,6 +19,8 @@
       leaflet = value;
       try {
         value.Map.addInitHook(function () { setup(this); });
+        // Catch squaremap's layer menu (top left) so the grid can be listed there.
+        value.Control.Layers.addInitHook(function () { layerControls.push(this); });
       } catch (e) {
         console.warn("MRchunks: Chunkraster konnte nicht eingebunden werden", e);
       }
@@ -25,15 +29,15 @@
 
   function remembered() {
     try {
-      var v = window.localStorage.getItem(STORAGE_KEY);
-      return v === null ? CFG.defaultVisible : v === "1";
+      var v = window.localStorage.getItem("hide_" + LAYER_ID);
+      return v === null ? CFG.defaultVisible : v !== "true";
     } catch (e) {
       return CFG.defaultVisible;
     }
   }
 
   function remember(visible) {
-    try { window.localStorage.setItem(STORAGE_KEY, visible ? "1" : "0"); } catch (e) { /* private mode */ }
+    try { window.localStorage.setItem("hide_" + LAYER_ID, visible ? "false" : "true"); } catch (e) { /* private mode */ }
   }
 
   /** maxNativeZoom of squaremap's tile layer = zoom level where 1 pixel is 1 block. */
@@ -108,8 +112,34 @@
     });
 
     var grid = new Grid({ pane: "mrchunksGrid", tileSize: 256, updateWhenZooming: false, maxZoom: 30 });
+    grid.id = LAYER_ID;   // squaremap stores the visibility under this id
+    grid.order = 1000;    // squaremap sorts its layer menu by "order": list the grid last
 
-    // Toggle button (bottom right), remembered per visitor.
+    if (remembered()) {
+      grid.addTo(map);
+    }
+
+    // Preferred: an entry in squaremap's layer menu (created right after the map). Fallback: own button.
+    var attempts = 0;
+    var waitForMenu = setInterval(function () {
+      attempts++;
+      for (var i = 0; i < layerControls.length; i++) {
+        if (layerControls[i]._map === map) {
+          clearInterval(waitForMenu);
+          layerControls[i].addOverlay(grid, CFG.label);
+          // squaremap saves overlayadd/overlayremove itself; this also covers older versions.
+          map.on("overlayadd", function (e) { if (e.layer === grid) { remember(true); } });
+          map.on("overlayremove", function (e) { if (e.layer === grid) { remember(false); } });
+          return;
+        }
+      }
+      if (attempts > 50) {   // ~10 s: squaremap changed its UI - show an own toggle instead
+        clearInterval(waitForMenu);
+        new Toggle().addTo(map);
+      }
+    }, 200);
+
+    // Fallback toggle button (bottom right), remembered per visitor.
     var Toggle = leaflet.Control.extend({
       options: { position: "bottomright" },
       onAdd: function () {
@@ -127,10 +157,6 @@
         return box;
       }
     });
-    new Toggle().addTo(map);
-    if (remembered()) {
-      grid.addTo(map);
-    }
 
     // squaremap swaps its tile layers regularly; only a world change with other zoom levels needs a redraw.
     var lastMax = nativeMaxZoom(map);

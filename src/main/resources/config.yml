@@ -117,7 +117,7 @@ squaremap:
   # Chunkraster auf der Karte (MRchunks ergänzt squaremap um ein eigenes Raster-Overlay).
   chunk-grid:
     enabled: true
-    # Beim Öffnen der Karte eingeblendet. Besucher können es unten rechts ein-/ausschalten.
+    # Beim Öffnen der Karte eingeblendet. Besucher können es im Ebenen-Menü (oben links) ein-/ausschalten.
     default-visible: true
     color: "#FFFFFF"
     opacity: 0.35
@@ -129,7 +129,7 @@ squaremap:
     region-color: "#FFD54F"
     # Chunk-Koordinaten bei starkem Zoom in jeden Chunk schreiben.
     labels: true
-    # Beschriftung des Schalters auf der Karte.
+    # Name im Ebenen-Menü der Karte.
     label: "Chunkraster"
 
 

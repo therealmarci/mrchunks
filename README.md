@@ -126,6 +126,9 @@ Die Karte selbst liefert squaremap (Standard: `http://<server-ip>:8080`).
 ```yaml
 settings:
   web-address: http://play.deinserver.de:8080   # Link für /chunkloader map
+  ui:
+    sidebar:
+      pinned: pinned               # Welt-Auswahl (Oberwelt/Nether/End) immer sichtbar
 world-settings:
   default:
     map:
@@ -134,7 +137,22 @@ world-settings:
           interval-seconds: 5      # Gebautes erscheint nach ca. 5-10 s (Standard 15)
     player-tracker:
       enabled: false               # keine Live-Standorte der Spieler
+  minecraft:the_nether:
+    map:
+      iterate-up: true             # Nether von innen zeigen statt der Bedrock-Decke
+      max-height: 127
 ```
+
+**Alle Dimensionen auf der Karte:** Zwischen Oberwelt, Nether und End wechselst du über die **Welt-Auswahl rechts** in der Seitenleiste. Eine Dimension erscheint aber erst auf der Karte, wenn dort Gelände existiert und gerendert ist. Damit sofort alles da ist:
+```text
+/chunky world world          → /chunky radius 2000 → /chunky start
+/chunky world world_nether   → /chunky radius 1000 → /chunky start
+/chunky world world_the_end  → /chunky radius 1000 → /chunky start
+/squaremap fullrender minecraft:overworld
+/squaremap fullrender minecraft:the_nether
+/squaremap fullrender minecraft:the_end
+```
+([Chunky](https://modrinth.com/plugin/chunky) erzeugt das Gelände vorab. Den Radius passt du an deine Welt an, größer heißt mehr Speicherplatz.)
 Die Karte ist damit **nahezu live**: squaremap rendert geänderte Chunks alle 5 Sekunden neu, und die geöffnete Webseite lädt sie im selben Takt nach, ohne dass man neu laden muss.
 
 > **Wichtig nach der Installation von squaremap:** squaremap zeichnet bestehende Gebiete erst nach einem einmaligen Full-Render.
