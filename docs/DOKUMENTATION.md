@@ -96,6 +96,12 @@ bans:
 - **`MapHooks`** enthält keinen einzigen squaremap-Typ. Erst wenn `isPluginEnabled("squaremap")` gilt, wird `SquaremapHook` erzeugt (`LinkageError` wird abgefangen). So entsteht ohne squaremap kein `NoClassDefFoundError`.
 - **`SquaremapHook`** registriert pro Welt eine `SimpleLayerProvider`-Ebene `mrchunks_loaders` (Name aus `squaremap.layer-name`) und ein selbst gezeichnetes 16×16-Icon `mrchunks_loader`. Jeder Loader bekommt ein `Marker.rectangle` in Blockkoordinaten der vollen Chunks und optional `Marker.icon`. Tooltips sind HTML, die Werte werden escaped.
 - **Aktualisierung:** `LoaderManager` ruft nach jeder Änderung (setzen, löschen, an/aus) `maps().refreshSoon()` auf. Mehrere Änderungen in einem Tick führen zu einem einzigen Update. Zusätzlich gleicht ein Task alle `squaremap.update-seconds` ab. Fehlt die Ebene, etwa nach `/squaremap reload`, wird sie neu registriert. Bei jedem Update werden alle Marker der Welt neu aufgebaut, das ist einfach und driftet nie.
+- **Chunkraster:** squaremap legt seine Leaflet-Karte nicht global ab, nur `window.L`. `SquaremapHook#installGrid` schreibt `web/squaremap-grid.js` (mit den Einstellungen als JSON von Gson, damit nichts aus der Config Skript einschleusen kann) als `mrchunks-grid.js` in `api.webDir()`. In `index.html` kommt eine Zeile mit `<!-- mrchunks-grid -->` **vor** dem Modul-Skript von squaremap.
+  - Das Skript fängt per `Object.defineProperty(window, "L")` die Zuweisung von Leaflet ab und registriert `L.Map.addInitHook`, noch bevor squaremap die Karte erzeugt.
+  - Das Raster ist ein `L.GridLayer` mit Canvas-Kacheln in einem eigenen Pane (z-index 350). Blöcke pro Pixel = `2^(maxNativeZoom − zoom)`, wobei `maxNativeZoom` aus squaremaps Kachel-Ebene kommt. Neu gezeichnet wird nur, wenn sich die Zoomstufe der Welt ändert.
+  - Die Einbindung ist idempotent und läuft bei jedem Abgleich, weil squaremap seine Web-Dateien beim (Re)Load neu schreibt. `remove()` entfernt Zeile und Datei wieder.
+  - Ein `?v=<hash>` am Skript-Link sorgt dafür, dass Browser nach Config-Änderungen die neue Version laden.
+- **Live:** Die Aktualität bestimmt squaremap selbst. `background.interval-seconds` setzt sowohl den Render-Takt als auch `tiles_update_interval` der Webseite. Empfohlen sind 5 s, siehe README.
 - Getestet mit squaremap 1.4.3 für Paper 26.3: Die Ebene erscheint in `tiles/minecraft_overworld/markers.json` mit `"id":"mrchunks_loaders"`.
 
 ## 9. Einfache Webseite (`web/WebMap.java`)

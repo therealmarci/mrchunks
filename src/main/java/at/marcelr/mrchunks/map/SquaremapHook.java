@@ -7,6 +7,8 @@ import at.marcelr.mrchunks.Settings;
 import at.marcelr.mrchunks.Texts;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.configuration.file.YamlConfiguration;
+import com.google.gson.JsonObject;
 import xyz.jpenilla.squaremap.api.BukkitAdapter;
 import xyz.jpenilla.squaremap.api.Key;
 import xyz.jpenilla.squaremap.api.MapWorld;
@@ -21,6 +23,11 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -49,7 +56,87 @@ final class SquaremapHook {
         }
     }
 
+    // ------------------------------------------------------------ chunk grid
+
+    private static final String GRID_FILE = "mrchunks-grid.js";
+    private static final String GRID_MARKER = "<!-- mrchunks-grid -->";
+
+    /**
+     * Copies the grid script into squaremap's web folder and includes it in index.html, before squaremap's own
+     * module script (the grid script must hook into Leaflet before squaremap creates the map). Idempotent; called
+     * on every update because squaremap rewrites its web files on (re)load.
+     */
+    void installGrid() {
+        Settings.GridSettings grid = plugin.settings().squaremap().grid();
+        Path web = api.webDir();
+        Path index = web.resolve("index.html");
+        try {
+            if (!grid.enabled()) {
+                removeGrid();
+                return;
+            }
+            String script = gridScript(grid);
+            Path target = web.resolve(GRID_FILE);
+            if (!Files.exists(target) || !Files.readString(target, StandardCharsets.UTF_8).equals(script)) {
+                Files.writeString(target, script, StandardCharsets.UTF_8);
+            }
+            if (!Files.exists(index)) {
+                return;
+            }
+            String html = Files.readString(index, StandardCharsets.UTF_8);
+            // Version parameter: browsers fetch the script again whenever the grid settings change.
+            String tag = GRID_MARKER + "<script src=\"" + GRID_FILE + "?v=" + Integer.toHexString(script.hashCode()) + "\"></script>";
+            String cleaned = html.replaceAll("(?m)^.*" + GRID_MARKER + ".*\\R?", "");
+            int module = cleaned.indexOf("<script type=\"module\"");
+            if (module < 0) {
+                return; // unknown squaremap layout - leave it alone
+            }
+            String patched = cleaned.substring(0, module) + tag + "\n      " + cleaned.substring(module);
+            if (!patched.equals(html)) {
+                Files.writeString(index, patched, StandardCharsets.UTF_8);
+            }
+        } catch (IOException e) {
+            plugin.getLogger().warning("squaremap: Chunkraster konnte nicht eingebunden werden: " + e.getMessage());
+        }
+    }
+
+    private void removeGrid() throws IOException {
+        Path web = api.webDir();
+        Path index = web.resolve("index.html");
+        if (Files.exists(index)) {
+            String html = Files.readString(index, StandardCharsets.UTF_8);
+            String cleaned = html.replaceAll("(?m)^.*" + GRID_MARKER + ".*\\R?", "");
+            if (!cleaned.equals(html)) {
+                Files.writeString(index, cleaned, StandardCharsets.UTF_8);
+            }
+        }
+        Files.deleteIfExists(web.resolve(GRID_FILE));
+    }
+
+    private String gridScript(Settings.GridSettings grid) throws IOException {
+        JsonObject config = new JsonObject();
+        config.addProperty("defaultVisible", grid.defaultVisible());
+        config.addProperty("color", grid.color());
+        config.addProperty("opacity", grid.opacity());
+        config.addProperty("minChunkPixels", grid.minChunkPixels());
+        config.addProperty("regionLines", grid.regionLines());
+        config.addProperty("regionColor", grid.regionColor());
+        config.addProperty("labels", grid.labels());
+        config.addProperty("label", grid.label());
+        try (InputStream in = plugin.getResource("web/squaremap-grid.js")) {
+            if (in == null) {
+                throw new IOException("web/squaremap-grid.js fehlt im Plugin");
+            }
+            // Gson output is valid JavaScript and escapes "<" etc., so config values cannot break out.
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8)
+                    .replace("__MRCHUNKS_CONFIG__", config.toString());
+        }
+    }
+
+    // ------------------------------------------------------------- markers
+
     void update() {
+        installGrid();
         Settings.SquaremapSettings settings = plugin.settings().squaremap();
         int radius = plugin.settings().loaders().radius();
         for (World world : Bukkit.getWorlds()) {
@@ -121,6 +208,27 @@ final class SquaremapHook {
         if (api.iconRegistry().hasEntry(ICON)) {
             api.iconRegistry().unregister(ICON);
         }
+        try {
+            removeGrid();
+        } catch (IOException e) {
+            plugin.getLogger().warning("squaremap: Chunkraster konnte nicht entfernt werden: " + e.getMessage());
+        }
+    }
+
+    /** Address of the map: squaremap.public-url, otherwise squaremap's own web-address setting. */
+    String publicUrl() {
+        String configured = plugin.settings().squaremap().publicUrl();
+        if (!configured.isEmpty()) {
+            return configured;
+        }
+        Path config = api.webDir().getParent().resolve("config.yml");
+        if (Files.exists(config)) {
+            String address = YamlConfiguration.loadConfiguration(config.toFile()).getString("settings.web-address", "");
+            if (!address.isBlank()) {
+                return address;
+            }
+        }
+        return "";
     }
 
     private Color colorOf(Loader loader, Settings.SquaremapSettings settings) {

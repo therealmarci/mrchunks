@@ -10,7 +10,7 @@ description: Chunkloader-Blöcke mit Limits, Menüs, Admin-GUI, Webkarte und Dis
 commands:
   chunkloader:
     description: Chunkloader holen, entfernen, auflisten und Infos anzeigen.
-    usage: /chunkloader <give|remove|list|info>
+    usage: /chunkloader <give|remove|list|info|map>
     aliases: [cl, chunkloaders]
   mrchunks:
     description: Verwaltung von MRchunks.
@@ -22,6 +22,9 @@ permissions:
     default: true
   mrchunks.info:
     description: /chunkloader info
+    default: true
+  mrchunks.map:
+    description: /chunkloader map - Link zur Webkarte.
     default: true
   mrchunks.view:
     description: Das Menü fremder Chunkloader öffnen (nur ansehen und Grenze anzeigen).

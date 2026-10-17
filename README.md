@@ -46,6 +46,7 @@ Nur Items aus `/chunkloader give` sind Chunkloader. Normale Emeraldblöcke bleib
 | `/chunkloader remove [anzahl\|all]` | Chunkloader-Items aus dem Inventar entfernen | `mrchunks.use` |
 | `/chunkloader list` | Menü mit deinen Chunkloadern | `mrchunks.use` |
 | `/chunkloader info` | So funktioniert's, dazu deine Chunkloader und dein Limit | `mrchunks.info` |
+| `/chunkloader map` | Link zur Webkarte | `mrchunks.map` |
 
 ### Admin: `/mrchunks`
 | Befehl | Beschreibung | Permission |
@@ -72,6 +73,7 @@ Owner können ihre eigenen Loader auch mit `toggle` und `delete` steuern.
 |---|---|---|
 | `mrchunks.use` | alle | Chunkloader holen, setzen und die eigenen verwalten |
 | `mrchunks.info` | alle | `/chunkloader info` |
+| `mrchunks.map` | alle | `/chunkloader map` |
 | `mrchunks.view` | alle | Menü fremder Chunkloader ansehen und deren Grenze anzeigen |
 | `mrchunks.limit.<anzahl>` | – | Höheres Limit, z.B. `mrchunks.limit.10`. Die höchste Zahl gilt. |
 | `mrchunks.limit.unlimited` | niemand | Beliebig viele Chunkloader |
@@ -110,6 +112,30 @@ Installiere zusätzlich **[squaremap](https://modrinth.com/plugin/squaremap)** (
 - eine eigene Ebene **„Chunkloader“**, die man in der Ebenen-Auswahl ein- und ausblenden kann
 
 Die Karte selbst liefert squaremap (Standard: `http://<server-ip>:8080`).
+
+**Chunkraster:** MRchunks ergänzt squaremap um ein Chunkraster.
+- Die Chunk-Linien erscheinen ab einer sinnvollen Zoomstufe.
+- Regionsgrenzen (32 × 32 Chunks) sind gelb hervorgehoben.
+- Bei starkem Zoom stehen die Chunk-Koordinaten in jedem Chunk.
+- Jeder Besucher kann das Raster unten rechts mit „Chunkraster“ ein- und ausschalten, der Browser merkt sich die Wahl.
+- Farben, Deckkraft, ab welcher Zoomstufe es erscheint und die Beschriftungen stellst du unter `squaremap.chunk-grid` ein.
+
+**Für alle Spieler:** `/chunkloader map` schickt einen anklickbaren Link zur Karte, auch `/chunkloader info` zeigt ihn. Trag den öffentlichen Link unter `squaremap.public-url` ein, z.B. `http://play.deinserver.de:8080`, oder setz ihn in der squaremap-Config als `web-address`. Der Port muss beim Hoster freigegeben sein.
+
+**Empfohlene squaremap-Einstellungen** (`plugins/squaremap/config.yml`, danach `/squaremap reload`):
+```yaml
+settings:
+  web-address: http://play.deinserver.de:8080   # Link für /chunkloader map
+world-settings:
+  default:
+    map:
+      render:
+        background:
+          interval-seconds: 5      # Gebautes erscheint nach ca. 5-10 s (Standard 15)
+    player-tracker:
+      enabled: false               # keine Live-Standorte der Spieler
+```
+Die Karte ist damit **nahezu live**: squaremap rendert geänderte Chunks alle 5 Sekunden neu, und die geöffnete Webseite lädt sie im selben Takt nach, ohne dass man neu laden muss.
 
 > **Wichtig nach der Installation von squaremap:** squaremap zeichnet bestehende Gebiete erst nach einem einmaligen Full-Render.
 > Ohne den siehst du anfangs nur ein paar Chunks:

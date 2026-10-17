@@ -51,7 +51,13 @@ public record Settings(
     /** {@code color == null} means one colour per owner. */
     public record SquaremapSettings(boolean enabled, String layerName, boolean defaultHidden, boolean showInactive,
                                     java.awt.Color color, java.awt.Color inactiveColor, double fillOpacity,
-                                    boolean showIcon, String hoverTooltip, String clickTooltip, int updateSeconds) {
+                                    boolean showIcon, String hoverTooltip, String clickTooltip, int updateSeconds,
+                                    String publicUrl, GridSettings grid) {
+    }
+
+    public record GridSettings(boolean enabled, boolean defaultVisible, String color, double opacity,
+                               int minChunkPixels, boolean regionLines, String regionColor, boolean labels,
+                               String label) {
     }
 
     public record WebSettings(boolean enabled, String bind, int port, String accessKey, boolean showOwners,
@@ -113,7 +119,18 @@ public record Settings(
                 c.getBoolean("squaremap.show-icon", true),
                 c.getString("squaremap.hover-tooltip", "Chunkloader #{id} - {player}"),
                 c.getString("squaremap.click-tooltip", ""),
-                Math.clamp(c.getInt("squaremap.update-seconds", 60), 5, 3600));
+                Math.clamp(c.getInt("squaremap.update-seconds", 60), 5, 3600),
+                c.getString("squaremap.public-url", "").trim(),
+                new GridSettings(
+                        c.getBoolean("squaremap.chunk-grid.enabled", true),
+                        c.getBoolean("squaremap.chunk-grid.default-visible", true),
+                        hexColor(c.getString("squaremap.chunk-grid.color", "#FFFFFF"), "#FFFFFF"),
+                        Math.clamp(c.getDouble("squaremap.chunk-grid.opacity", 0.35), 0.0, 1.0),
+                        Math.clamp(c.getInt("squaremap.chunk-grid.min-chunk-pixels", 8), 2, 64),
+                        c.getBoolean("squaremap.chunk-grid.region-lines", true),
+                        hexColor(c.getString("squaremap.chunk-grid.region-color", "#FFD54F"), "#FFD54F"),
+                        c.getBoolean("squaremap.chunk-grid.labels", true),
+                        c.getString("squaremap.chunk-grid.label", "Chunkraster")));
 
         WebSettings web = new WebSettings(
                 c.getBoolean("web.enabled", false),
@@ -145,6 +162,12 @@ public record Settings(
                 c.getBoolean("gui.sounds", true));
 
         return new Settings(loaders, item, border, squaremap, web, update, gui);
+    }
+
+    /** "#RRGGBB" as written to the web page; anything else becomes the fallback (no script injection). */
+    private static String hexColor(String raw, String fallback) {
+        String value = raw == null ? "" : raw.trim();
+        return value.matches("#[0-9a-fA-F]{6}") ? value : fallback;
     }
 
     private static java.awt.Color parseColor(String raw, String path, Logger log) {

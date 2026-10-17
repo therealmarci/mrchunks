@@ -7,6 +7,8 @@ import at.marcelr.mrchunks.MRChunks;
 import at.marcelr.mrchunks.Messages;
 import at.marcelr.mrchunks.Texts;
 import at.marcelr.mrchunks.gui.MyLoadersMenu;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
@@ -25,10 +27,12 @@ import static at.marcelr.mrchunks.Messages.tag;
  * /chunkloader remove [anzahl|all] - take loader items out of the inventory
  * /chunkloader list                - menu with the own loaders
  * /chunkloader info                - how it works + own loaders
+ * /chunkloader map                 - link to the web map
  */
 public final class ChunkloaderCommand implements TabExecutor {
 
     private static final String PERM_INFO = "mrchunks.info";
+    private static final String PERM_MAP = "mrchunks.map";
 
     private final MRChunks plugin;
 
@@ -55,6 +59,12 @@ public final class ChunkloaderCommand implements TabExecutor {
             case "info", "help" -> {
                 if (check(player, PERM_INFO)) {
                     info(player);
+                    sendMapLink(player, false);
+                }
+            }
+            case "map", "karte" -> {
+                if (check(player, PERM_MAP)) {
+                    sendMapLink(player, true);
                 }
             }
             default -> messages.send(player, "usage");
@@ -144,6 +154,22 @@ public final class ChunkloaderCommand implements TabExecutor {
         }
     }
 
+    /** Clickable link to the web map (squaremap, otherwise the simple page if it needs no access key). */
+    private void sendMapLink(Player player, boolean explicit) {
+        String url = plugin.maps().mapUrl();
+        if (url.isEmpty() && plugin.webMap().running() && plugin.settings().web().accessKey().isEmpty()) {
+            url = plugin.webMap().url();
+        }
+        if (url.isEmpty()) {
+            if (explicit) {
+                plugin.messages().send(player, "map-unavailable");
+            }
+            return;
+        }
+        Component link = plugin.messages().get("map-link-label", tag("url", url)).clickEvent(ClickEvent.openUrl(url));
+        plugin.messages().send(player, "map-link", tag("link", link));
+    }
+
     private boolean check(CommandSender sender, String permission) {
         if (sender.hasPermission(permission)) {
             return true;
@@ -161,6 +187,9 @@ public final class ChunkloaderCommand implements TabExecutor {
             }
             if (sender.hasPermission(PERM_INFO)) {
                 options.add("info");
+            }
+            if (sender.hasPermission(PERM_MAP)) {
+                options.add("map");
             }
         } else if (args.length == 2 && args[0].equalsIgnoreCase("remove")) {
             options.addAll(List.of("1", "all"));

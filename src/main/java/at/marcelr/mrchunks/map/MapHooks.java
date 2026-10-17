@@ -83,6 +83,18 @@ public final class MapHooks {
         }
     }
 
+    /** Public link to the web map, or empty if there is none. */
+    public String mapUrl() {
+        if (squaremap != null) {
+            try {
+                return squaremap.publicUrl();
+            } catch (LinkageError | RuntimeException e) {
+                return "";
+            }
+        }
+        return "";
+    }
+
     public boolean squaremapActive() {
         return squaremap != null;
     }

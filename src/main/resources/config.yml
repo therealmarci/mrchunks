@@ -110,6 +110,27 @@ squaremap:
   click-tooltip: "<b>Chunkloader #{id}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br>Bereich: {size}x{size} Chunks<br>Status: {state}"
   # Spätestens so oft werden die Markierungen neu abgeglichen (Änderungen erscheinen sonst sofort).
   update-seconds: 60
+  # Öffentlicher Link zur Karte für /chunkloader map, z.B. "http://play.deinserver.de:8080".
+  # Leer = die "web-address" aus der squaremap-Config wird verwendet.
+  public-url: ""
+
+  # Chunkraster auf der Karte (MRchunks ergänzt squaremap um ein eigenes Raster-Overlay).
+  chunk-grid:
+    enabled: true
+    # Beim Öffnen der Karte eingeblendet. Besucher können es unten rechts ein-/ausschalten.
+    default-visible: true
+    color: "#FFFFFF"
+    opacity: 0.35
+    # Chunk-Linien erst zeichnen, wenn ein Chunk mindestens so viele Pixel breit ist
+    # (weiter herausgezoomt wären die Linien nur noch eine graue Fläche).
+    min-chunk-pixels: 8
+    # Regionsgrenzen (32x32 Chunks = eine .mca-Datei) hervorheben.
+    region-lines: true
+    region-color: "#FFD54F"
+    # Chunk-Koordinaten bei starkem Zoom in jeden Chunk schreiben.
+    labels: true
+    # Beschriftung des Schalters auf der Karte.
+    label: "Chunkraster"
 
 
 # ------------------------------------------------------------------------------
@@ -251,6 +272,7 @@ messages:
     <green>/chunkloader remove [anzahl|all]</green> <dark_gray>- <gray>Chunkloader-Items aus dem Inventar entfernen
     <green>/chunkloader list</green> <dark_gray>- <gray>Menü mit deinen Chunkloadern
     <green>/chunkloader info</green> <dark_gray>- <gray>So funktioniert's + deine Chunkloader
+    <green>/chunkloader map</green> <dark_gray>- <gray>Link zur Webkarte
   give-ok: "<prefix><green>Du hast <white><count></white> Chunkloader bekommen. <gray>(<used>/<limit> belegt)"
   give-none-left: "<prefix><red>Du hast kein Chunkloader-Kontingent mehr frei <gray>(<placed> gesetzt, <held> im Inventar, Limit <limit>)."
   give-partial: "<prefix><yellow>Es war nur noch Platz für <white><count></white> Chunkloader."
@@ -268,6 +290,9 @@ messages:
     <dark_gray> » <gray>Chunkloader sind unzerstörbar - entfernen nur über das Menü.
     <prefix><gray>Deine Chunkloader: <white><placed></white>/<white><limit></white> <dark_gray>(<held> als Item im Inventar)
   info-entry: "<dark_gray>   #<id> <gray><world> <white><x> <y> <z></white> <dark_gray>- <state>"
+  map-link: "<prefix><gray>Webkarte mit allen Chunkloadern: <link>"
+  map-link-label: "<aqua><u><url></u></aqua>"
+  map-unavailable: "<prefix><gray>Für diesen Server gibt es gerade keine öffentliche Webkarte."
   info-none: "<dark_gray>   (noch keine gesetzt)"
 
   # --- Setzen / Block ----------------------------------------------------------
