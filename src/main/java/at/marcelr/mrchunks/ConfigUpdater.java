@@ -99,6 +99,13 @@ public final class ConfigUpdater {
                 YamlConfiguration defaults = new YamlConfiguration();
                 defaults.loadFromString(stripBom(new String(in.readAllBytes(), StandardCharsets.UTF_8)));
                 config.setDefaults(defaults);
+                // Fill in values missing from the file. Bukkit ignores the defaults whenever code passes its own
+                // fallback (getString(path, "...")), so missing keys would otherwise get those fallbacks.
+                for (String key : defaults.getKeys(true)) {
+                    if (!defaults.isConfigurationSection(key) && !config.isSet(key)) {
+                        config.set(key, defaults.get(key));
+                    }
+                }
             }
         } catch (IOException | InvalidConfigurationException e) {
             plugin.getLogger().log(Level.WARNING, "Standard-Config konnte nicht gelesen werden: " + e.getMessage());
