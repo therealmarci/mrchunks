@@ -1,0 +1,23 @@
+# Einheitliche Formatierung für alle Editoren (VS Code: Extension "EditorConfig for VS Code").
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{yml,yaml,json}]
+indent_size = 2
+
+# Die mitgelieferte Config MUSS ein UTF-8-BOM behalten, damit Server-Admins Umlaute korrekt sehen.
+[src/main/resources/config.yml]
+charset = utf-8-bom
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.bat]
+end_of_line = crlf

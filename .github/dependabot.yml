@@ -1,0 +1,9 @@
+# Hält die GitHub-Actions in den Workflows aktuell (einmal pro Monat ein Pull Request).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    # Updates landen im Entwicklungs-Branch, nicht direkt auf main.
+    target-branch: beta

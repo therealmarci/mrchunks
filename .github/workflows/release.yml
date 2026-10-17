@@ -1,0 +1,71 @@
+# Erstellt beim Pushen eines Tags "v<version>" ein GitHub-Release mit der JAR
+# und lädt die Version auf Modrinth hoch (wenn das Secret MODRINTH_TOKEN gesetzt ist).
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # nötig, um zu prüfen, auf welchem Branch der Tag liegt
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Tag mit gradle.properties abgleichen
+        run: |
+          VERSION=$(grep '^version=' gradle.properties | cut -d= -f2 | tr -d '[:space:]')
+          if [ "v$VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME passt nicht zu version=$VERSION in gradle.properties"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          # 0.x und Versionen mit Suffix (1.0.0-rc.1) sind Vorabversionen.
+          case "$VERSION" in
+            0.*|*-*) echo "PRERELEASE=true" >> "$GITHUB_ENV" ;;
+            *)       echo "PRERELEASE=false" >> "$GITHUB_ENV" ;;
+          esac
+
+      - name: Stabile Versionen nur von main
+        if: ${{ env.PRERELEASE == 'false' }}
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Stabile Version $VERSION muss auf main getaggt werden (Vorabversionen wie 1.0.0-rc.1 dürfen von beta kommen)."
+            exit 1
+          fi
+
+      - name: Bauen
+        run: chmod +x gradlew && ./gradlew build
+
+      - name: Changelog-Abschnitt auslesen
+        run: |
+          awk -v v="$VERSION" '/^## \[/ { p = index($0, "[" v "]") > 0; next } p' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "::error::Kein Abschnitt '## [$VERSION]' in CHANGELOG.md gefunden"
+            exit 1
+          fi
+          { echo 'CHANGELOG<<EOF_CHANGELOG'; cat release-notes.md; echo 'EOF_CHANGELOG'; } >> "$GITHUB_ENV"
+
+      - name: GitHub-Release erstellen
+        uses: softprops/action-gh-release@v2
+        with:
+          name: MRsleep ${{ env.VERSION }}
+          body_path: release-notes.md
+          files: build/libs/MRsleep-${{ env.VERSION }}.jar
+          prerelease: ${{ env.PRERELEASE == 'true' }}
+
+      - name: Auf Modrinth veröffentlichen
+        if: ${{ env.MODRINTH_TOKEN != '' }}
+        run: ./gradlew modrinth

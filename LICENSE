@@ -1,0 +1,97 @@
+MRchunks Lizenz (Version 1.0)
+Copyright (c) 2026 Marcel Reiter (_therealmarci). Alle Rechte vorbehalten.
+
+Diese Lizenz gilt für das Plugin "MRchunks" einschließlich Quellcode, kompilierter
+Dateien (JAR), Konfigurationsdateien und Dokumentation (zusammen "die Software").
+
+1. ERLAUBT
+   a) Nutzung: Du darfst die Software kostenlos auf beliebig vielen Minecraft-Servern
+      installieren und betreiben, die du selbst betreibst oder für die du verantwortlich
+      bist - auch auf Servern mit Spenden, Rängen oder sonstigen Einnahmen.
+   b) Veränderung: Du darfst die Software für deinen eigenen Gebrauch verändern,
+      erweitern und neu kompilieren.
+   c) Interne Weitergabe: Du darfst die Software (auch verändert) an Mitglieder deines
+      eigenen Server-Teams oder an deinen Hosting-Anbieter weitergeben, soweit dies
+      ausschließlich dem Betrieb deines Servers dient.
+   d) Beiträge: Du darfst Änderungen als Pull Request an das offizielle Repository
+      (https://github.com/therealmarci/mrchunks) senden. Mit dem Einreichen räumst du
+      dem Rechteinhaber das Recht ein, deinen Beitrag unter dieser Lizenz zu nutzen
+      und zu veröffentlichen.
+   e) Forks auf GitHub sind erlaubt, soweit sie durch die Nutzungsbedingungen von
+      GitHub vorgesehen sind und ausschließlich der Entwicklung von Beiträgen nach d)
+      dienen.
+
+2. NICHT ERLAUBT
+   a) Die Software - unverändert oder verändert, als Quellcode oder kompiliert, ganz
+      oder in wesentlichen Teilen - öffentlich oder an Dritte zu veröffentlichen,
+      zu verbreiten oder zum Download anzubieten, insbesondere auf Plattformen wie
+      Modrinth, SpigotMC, Hangar, CurseForge, BuiltByBit, GitHub-Releases oder
+      eigenen Websites.
+   b) Die Software oder veränderte Versionen davon zu verkaufen, zu vermieten oder
+      gegen Entgelt anzubieten.
+   c) Die Software als eigenes Werk auszugeben oder diesen Lizenz- und Copyright-
+      Hinweis zu entfernen oder zu verändern.
+
+3. HINWEISE
+   Dieser Lizenztext und der Copyright-Hinweis müssen in allen Kopien und veränderten
+   Versionen der Software erhalten bleiben.
+
+4. GEWÄHRLEISTUNG UND HAFTUNG
+   Die Software wird "wie besehen" ohne jede Gewährleistung bereitgestellt. Soweit
+   gesetzlich zulässig, haftet der Rechteinhaber nicht für Schäden, die aus der
+   Nutzung der Software entstehen; dies gilt nicht bei Vorsatz oder grober
+   Fahrlässigkeit sowie bei Verletzung von Leben, Körper oder Gesundheit.
+
+5. SONSTIGES
+   Rechte, die in dieser Lizenz nicht ausdrücklich eingeräumt werden, bleiben
+   vorbehalten. Andere Nutzungen (z.B. eine Weiterveröffentlichung) sind nur mit
+   vorheriger schriftlicher Erlaubnis des Rechteinhabers zulässig. Bei Verstößen
+   erlöschen die eingeräumten Rechte automatisch. Es gilt österreichisches Recht.
+   Sollte eine Bestimmung unwirksam sein, bleibt der Rest dieser Lizenz wirksam.
+
+--------------------------------------------------------------------------------
+
+MRchunks License (Version 1.0) - English translation
+In case of doubt, the German version above prevails.
+
+Copyright (c) 2026 Marcel Reiter (_therealmarci). All rights reserved.
+
+1. PERMITTED
+   a) Use: You may install and run the software free of charge on any number of
+      Minecraft servers you operate or are responsible for, including servers with
+      donations, ranks or other income.
+   b) Modification: You may modify, extend and recompile the software for your own use.
+   c) Internal sharing: You may share the software (including modified versions) with
+      members of your own server team or your hosting provider, solely for operating
+      your server.
+   d) Contributions: You may submit changes as a pull request to the official
+      repository (https://github.com/therealmarci/mrchunks). By submitting, you grant
+      the copyright holder the right to use and publish your contribution under this
+      license.
+   e) Forks on GitHub are allowed as far as provided for by GitHub's Terms of Service
+      and solely for preparing contributions under d).
+
+2. NOT PERMITTED
+   a) Publishing, distributing or offering the software for download - modified or
+      unmodified, as source code or compiled, in whole or in substantial parts - to
+      the public or to third parties, in particular on platforms such as Modrinth,
+      SpigotMC, Hangar, CurseForge, BuiltByBit, GitHub Releases or your own websites.
+   b) Selling, renting or offering the software or modified versions for a fee.
+   c) Passing the software off as your own work or removing or altering this license
+      and copyright notice.
+
+3. NOTICES
+   This license text and the copyright notice must be retained in all copies and
+   modified versions of the software.
+
+4. WARRANTY AND LIABILITY
+   The software is provided "as is" without warranty of any kind. To the extent
+   permitted by law, the copyright holder is not liable for damages arising from the
+   use of the software; this does not apply in cases of intent or gross negligence or
+   injury to life, body or health.
+
+5. MISCELLANEOUS
+   All rights not expressly granted are reserved. Any other use (e.g. republishing)
+   requires prior written permission from the copyright holder. Rights granted under
+   this license terminate automatically upon violation. Austrian law applies. If any
+   provision is invalid, the remainder of this license remains in effect.

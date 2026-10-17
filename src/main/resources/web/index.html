@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{{TITLE}}</title>
+<style>
+  /* Layout: header bar, chunk grid on the left, loader list on the right (stacked on phones). */
+  :root {
+    --bg: #eef2ef;
+    --panel: #ffffff;
+    --fg: #17221b;
+    --muted: #5c6d62;
+    --line: #d3ddd6;
+    --grid: rgba(23, 34, 27, 0.07);
+    --region: rgba(23, 34, 27, 0.18);
+    --accent: #138a4a;
+    --inactive: #8a958e;
+    --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1512; --panel: #161e19; --fg: #e3ece6; --muted: #92a399; --line: #26332b;
+      --grid: rgba(227, 236, 230, 0.06); --region: rgba(227, 236, 230, 0.16);
+      --accent: #3fd17f; --inactive: #6c7a72; color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--fg); font: 14px/1.45 var(--font); display: flex; flex-direction: column; }
+  header {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px;
+    padding: 12px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  header h1 { font-size: 17px; margin: 0; display: flex; align-items: center; gap: 8px; }
+  header h1::before { content: ""; width: 14px; height: 14px; background: var(--accent); border-radius: 2px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tabs button {
+    font: inherit; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line);
+    background: transparent; color: var(--fg); cursor: pointer;
+  }
+  .tabs button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+  .tabs button:focus-visible, .tools button:focus-visible, li:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .stats { display: flex; gap: 16px; color: var(--muted); font-variant-numeric: tabular-nums; margin-left: auto; flex-wrap: wrap; }
+  .stats b { color: var(--fg); font-weight: 600; }
+  main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 300px; min-height: 0; }
+  .map { position: relative; min-width: 0; min-height: 320px; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+  canvas.dragging { cursor: grabbing; }
+  .tools { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 6px; }
+  .tools button {
+    width: 34px; height: 34px; font: 600 16px var(--font); border-radius: 6px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--fg); cursor: pointer;
+  }
+  .coords { position: absolute; left: 12px; bottom: 12px; font: 12px var(--mono); color: var(--muted);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+  .tip {
+    position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 6px; padding: 8px 10px; font-size: 13px; max-width: 260px; box-shadow: 0 4px 16px rgba(0,0,0,.15);
+  }
+  .tip strong { display: block; margin-bottom: 2px; }
+  .tip span { color: var(--muted); font-family: var(--mono); font-size: 12px; }
+  aside { background: var(--panel); border-left: 1px solid var(--line); overflow: auto; min-width: 0; }
+  aside h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 14px 16px 6px; }
+  ul { list-style: none; margin: 0; padding: 0 8px 12px; }
+  li { display: grid; grid-template-columns: 12px 1fr auto; gap: 4px 10px; align-items: center;
+    padding: 8px; border-radius: 6px; cursor: pointer; }
+  li:hover { background: var(--bg); }
+  li .dot { width: 12px; height: 12px; border-radius: 3px; }
+  li .owner { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  li .id { color: var(--muted); font: 12px var(--mono); }
+  li .pos { grid-column: 2 / 4; color: var(--muted); font: 12px var(--mono); }
+  li.inactive .owner { color: var(--inactive); }
+  .empty { color: var(--muted); padding: 12px 16px; }
+  footer { padding: 6px 16px; color: var(--muted); font-size: 12px; background: var(--panel); border-top: 1px solid var(--line); }
+  @media (max-width: 760px) {
+    main { grid-template-columns: 1fr; grid-template-rows: minmax(360px, 60vh) auto; }
+    aside { border-left: 0; border-top: 1px solid var(--line); }
+    .stats { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">{{TITLE}}</h1>
+  <nav class="tabs" id="tabs" aria-label="Welten"></nav>
+  <div class="stats" id="stats"></div>
+</header>
+<main>
+  <div class="map" id="map">
+    <canvas id="canvas" aria-label="Karte der geladenen Chunks"></canvas>
+    <div class="coords" id="coords">–</div>
+    <div class="tools">
+      <button type="button" id="zoomIn" title="Hineinzoomen">+</button>
+      <button type="button" id="zoomOut" title="Herauszoomen">−</button>
+      <button type="button" id="fit" title="Alle Chunkloader zeigen">⌖</button>
+    </div>
+    <div class="tip" id="tip" hidden></div>
+  </div>
+  <aside>
+    <h2 id="listTitle">Chunkloader</h2>
+    <ul id="list"></ul>
+  </aside>
+</main>
+<footer id="footer">Lade Daten …</footer>
+<script>
+(() => {
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const tip = document.getElementById('tip');
+  const state = { data: null, world: null, scale: 12, offX: 0, offZ: 0, fitted: {}, hover: null };
+
+  // ---------- helpers
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const hue = text => { let h = 0; for (const c of String(text)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 360; };
+  const colorOf = l => l.active ? `hsl(${hue(l.owner ?? l.id)} 62% 48%)` : css('--inactive');
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const worldLabel = w => ({ NORMAL: 'Oberwelt', NETHER: 'Nether', THE_END: 'End' }[w.environment] || w.environment) + ' · ' + w.name;
+  const currentWorld = () => state.data?.worlds.find(w => w.name === state.world);
+
+  // ---------- data
+  async function load() {
+    try {
+      const res = await fetch('api/loaders' + location.search, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      state.data = await res.json();
+      if (!state.data.worlds) throw new Error('noch keine Daten');
+      if (!state.world || !currentWorld()) {
+        const withLoaders = state.data.worlds.find(w => w.loaders.length);
+        state.world = (withLoaders || state.data.worlds[0])?.name;
+      }
+      renderUi();
+      document.getElementById('footer').textContent =
+        'Stand: ' + new Date(state.data.generated).toLocaleTimeString() +
+        ' · aktualisiert alle ' + state.data.refreshSeconds + ' s · Ziehen zum Verschieben, Mausrad zum Zoomen';
+      setTimeout(load, Math.max(5, state.data.refreshSeconds) * 1000);
+    } catch (e) {
+      document.getElementById('footer').textContent = 'Daten konnten nicht geladen werden (' + e.message + '). Neuer Versuch in 15 s.';
+      setTimeout(load, 15000);
+    }
+  }
+
+  function renderUi() {
+    const tabs = document.getElementById('tabs');
+    tabs.innerHTML = '';
+    for (const w of state.data.worlds) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = worldLabel(w) + ' (' + w.loaders.length + ')';
+      b.setAttribute('aria-pressed', w.name === state.world);
+      b.onclick = () => { state.world = w.name; renderUi(); };
+      tabs.appendChild(b);
+    }
+    const w = currentWorld();
+    const loaders = w ? w.loaders : [];
+    const active = loaders.filter(l => l.active);
+    const chunks = new Set();
+    const r = state.data.radius;
+    for (const l of active) for (let x = -r; x <= r; x++) for (let z = -r; z <= r; z++) chunks.add((l.cx + x) + ',' + (l.cz + z));
+    document.getElementById('stats').innerHTML =
+      `<span><b>${loaders.length}</b> Loader</span><span><b>${active.length}</b> aktiv</span><span><b>${chunks.size}</b> geladene Chunks</span>`;
+
+    const list = document.getElementById('list');
+    list.innerHTML = '';
+    if (!loaders.length) list.innerHTML = '<li class="empty" tabindex="-1">In dieser Welt gibt es keine Chunkloader.</li>';
+    for (const l of [...loaders].sort((a, b) => (b.active - a.active) || a.id - b.id)) {
+      const li = document.createElement('li');
+      li.tabIndex = 0;
+      if (!l.active) li.classList.add('inactive');
+      const pos = l.x !== undefined ? `${l.x} ${l.y} ${l.z}` : `Chunk ${l.cx}, ${l.cz}`;
+      li.innerHTML = `<span class="dot" style="background:${colorOf(l)}"></span>
+        <span class="owner">${esc(l.owner ?? 'Chunkloader')}</span><span class="id">#${l.id}</span>
+        <span class="pos">${esc(pos)}${l.active ? '' : ' · deaktiviert'}</span>`;
+      const focus = () => { centerOn(l.cx, l.cz, Math.max(state.scale, 10)); };
+      li.onclick = focus;
+      li.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); focus(); } };
+      list.appendChild(li);
+    }
+    if (!state.fitted[state.world]) { fit(); state.fitted[state.world] = true; }
+    draw();
+  }
+
+  // ---------- view
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+  const view = () => canvas.getBoundingClientRect();
+  // chunk coordinate -> screen pixel
+  const sx = cx => (cx - state.offX) * state.scale + view().width / 2;
+  const sz = cz => (cz - state.offZ) * state.scale + view().height / 2;
+  const toChunk = (px, pz) => [Math.floor((px - view().width / 2) / state.scale + state.offX),
+                               Math.floor((pz - view().height / 2) / state.scale + state.offZ)];
+
+  function centerOn(cx, cz, scale) {
+    state.offX = cx + 0.5; state.offZ = cz + 0.5;
+    if (scale) state.scale = scale;
+    draw();
+  }
+
+  function fit() {
+    const w = currentWorld();
+    const r = state.data?.radius ?? 3;
+    if (!w || !w.loaders.length) { centerOn(0, 0, 12); return; }
+    const xs = w.loaders.map(l => l.cx), zs = w.loaders.map(l => l.cz);
+    const minX = Math.min(...xs) - r - 2, maxX = Math.max(...xs) + r + 3;
+    const minZ = Math.min(...zs) - r - 2, maxZ = Math.max(...zs) + r + 3;
+    const v = view();
+    state.scale = Math.max(1.5, Math.min(40, Math.min(v.width / (maxX - minX), v.height / (maxZ - minZ))));
+    state.offX = (minX + maxX) / 2; state.offZ = (minZ + maxZ) / 2;
+    draw();
+  }
+
+  function draw() {
+    const v = view();
+    ctx.clearRect(0, 0, v.width, v.height);
+    const w = currentWorld();
+    if (!w) return;
+    const s = state.scale;
+    const [x0, z0] = toChunk(0, 0);
+    const [x1, z1] = toChunk(v.width, v.height);
+
+    // grid: chunks when zoomed in, regions (32x32 chunks) always
+    if (s >= 6) {
+      ctx.strokeStyle = css('--grid'); ctx.lineWidth = 1; ctx.beginPath();
+      for (let x = x0; x <= x1 + 1; x++) { const p = Math.round(sx(x)) + .5; ctx.moveTo(p, 0); ctx.lineTo(p, v.height); }
+      for (let z = z0; z <= z1 + 1; z++) { const p = Math.round(sz(z)) + .5; ctx.moveTo(0, p); ctx.lineTo(v.width, p); }
+      ctx.stroke();
+    }
+    ctx.strokeStyle = css('--region'); ctx.beginPath();
+    for (let x = Math.floor(x0 / 32) * 32; x <= x1 + 32; x += 32) { const p = Math.round(sx(x)) + .5; ctx.moveTo(p, 0); ctx.lineTo(p, v.height); }
+    for (let z = Math.floor(z0 / 32) * 32; z <= z1 + 32; z += 32) { const p = Math.round(sz(z)) + .5; ctx.moveTo(0, p); ctx.lineTo(v.width, p); }
+    ctx.stroke();
+
+    // origin cross
+    ctx.strokeStyle = css('--muted'); ctx.lineWidth = 1.5; ctx.beginPath();
+    ctx.moveTo(sx(0) - 6, sz(0)); ctx.lineTo(sx(0) + 6, sz(0)); ctx.moveTo(sx(0), sz(0) - 6); ctx.lineTo(sx(0), sz(0) + 6);
+    ctx.stroke();
+
+    const r = state.data.radius;
+    const ordered = [...w.loaders].sort((a, b) => a.active - b.active);
+    for (const l of ordered) {
+      const left = sx(l.cx - r), top = sz(l.cz - r), size = (2 * r + 1) * s;
+      const color = colorOf(l);
+      ctx.globalAlpha = l.active ? 0.28 : 0.12; ctx.fillStyle = color; ctx.fillRect(left, top, size, size);
+      ctx.globalAlpha = 1; ctx.strokeStyle = color; ctx.lineWidth = state.hover === l ? 3 : 1.5;
+      ctx.setLineDash(l.active ? [] : [6, 4]); ctx.strokeRect(left + .5, top + .5, size - 1, size - 1); ctx.setLineDash([]);
+      // the loader's own chunk
+      ctx.fillStyle = color; ctx.globalAlpha = l.active ? 0.9 : 0.5;
+      ctx.fillRect(sx(l.cx), sz(l.cz), Math.max(s, 3), Math.max(s, 3)); ctx.globalAlpha = 1;
+      if (s >= 8) {
+        ctx.fillStyle = css('--fg'); ctx.font = `600 ${Math.min(14, 9 + s / 6)}px ${css('--font')}`;
+        ctx.fillText('#' + l.id + (l.owner ? ' ' + l.owner : ''), left + 6, top + 16);
+      }
+    }
+  }
+
+  // ---------- interaction
+  let drag = null;
+  canvas.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, ox: state.offX, oz: state.offZ }; canvas.setPointerCapture(e.pointerId); canvas.classList.add('dragging'); });
+  canvas.addEventListener('pointerup', () => { drag = null; canvas.classList.remove('dragging'); });
+  canvas.addEventListener('pointermove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const px = e.clientX - rect.left, pz = e.clientY - rect.top;
+    if (drag) {
+      state.offX = drag.ox - (e.clientX - drag.x) / state.scale;
+      state.offZ = drag.oz - (e.clientY - drag.y) / state.scale;
+      draw();
+    }
+    const [cx, cz] = toChunk(px, pz);
+    document.getElementById('coords').textContent = `Chunk ${cx}, ${cz} · Block ${cx * 16}, ${cz * 16}`;
+    hoverAt(cx, cz, px, pz);
+  });
+  canvas.addEventListener('pointerleave', () => { tip.hidden = true; state.hover = null; draw(); });
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    zoom(e.deltaY < 0 ? 1.2 : 1 / 1.2, e.clientX - rect.left, e.clientY - rect.top);
+  }, { passive: false });
+
+  function zoom(factor, px, pz) {
+    const v = view();
+    px ??= v.width / 2; pz ??= v.height / 2;
+    const beforeX = (px - v.width / 2) / state.scale + state.offX;
+    const beforeZ = (pz - v.height / 2) / state.scale + state.offZ;
+    state.scale = Math.max(1, Math.min(60, state.scale * factor));
+    state.offX = beforeX - (px - v.width / 2) / state.scale;
+    state.offZ = beforeZ - (pz - v.height / 2) / state.scale;
+    draw();
+  }
+
+  function hoverAt(cx, cz, px, pz) {
+    const w = currentWorld();
+    if (!w) return;
+    const r = state.data.radius;
+    const hit = w.loaders.filter(l => Math.abs(l.cx - cx) <= r && Math.abs(l.cz - cz) <= r)
+      .sort((a, b) => b.active - a.active)[0] || null;
+    if (hit !== state.hover) { state.hover = hit; draw(); }
+    if (!hit) { tip.hidden = true; return; }
+    const pos = hit.x !== undefined ? `${hit.x} ${hit.y} ${hit.z}` : `Chunk ${hit.cx}, ${hit.cz}`;
+    tip.innerHTML = `<strong>Chunkloader #${hit.id}${hit.owner ? ' · ' + esc(hit.owner) : ''}</strong>
+      <span>${esc(pos)}</span><br><span>${2 * r + 1}×${2 * r + 1} Chunks · ${hit.active ? 'aktiv' : 'deaktiviert'}</span>`;
+    tip.hidden = false;
+    const rect = canvas.getBoundingClientRect();
+    tip.style.left = Math.min(px + 14, rect.width - tip.offsetWidth - 8) + 'px';
+    tip.style.top = Math.min(pz + 14, rect.height - tip.offsetHeight - 8) + 'px';
+  }
+
+  document.getElementById('zoomIn').onclick = () => zoom(1.4);
+  document.getElementById('zoomOut').onclick = () => zoom(1 / 1.4);
+  document.getElementById('fit').onclick = fit;
+  window.addEventListener('resize', resize);
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+  resize();
+  load();
+})();
+</script>
+</body>
+</html>
