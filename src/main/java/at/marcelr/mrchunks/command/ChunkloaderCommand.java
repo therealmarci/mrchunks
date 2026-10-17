@@ -154,12 +154,9 @@ public final class ChunkloaderCommand implements TabExecutor {
         }
     }
 
-    /** Clickable link to the web map (squaremap, otherwise the simple page if it needs no access key). */
+    /** Clickable link to the squaremap web map (only if squaremap is installed and its address is known). */
     private void sendMapLink(Player player, boolean explicit) {
         String url = plugin.maps().mapUrl();
-        if (url.isEmpty() && plugin.webMap().running() && plugin.settings().web().accessKey().isEmpty()) {
-            url = plugin.webMap().url();
-        }
         if (url.isEmpty()) {
             if (explicit) {
                 plugin.messages().send(player, "map-unavailable");

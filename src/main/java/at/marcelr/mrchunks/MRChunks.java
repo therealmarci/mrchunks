@@ -4,7 +4,6 @@ import at.marcelr.mrchunks.command.ChunkloaderCommand;
 import at.marcelr.mrchunks.command.MRChunksCommand;
 import at.marcelr.mrchunks.gui.MenuListener;
 import at.marcelr.mrchunks.map.MapHooks;
-import at.marcelr.mrchunks.web.WebMap;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.command.TabExecutor;
@@ -27,7 +26,6 @@ public final class MRChunks extends JavaPlugin {
     private BorderDisplay border;
     private UpdateChecker updateChecker;
     private MenuListener menuListener;
-    private WebMap webMap;
     private MapHooks maps;
     private BukkitTask validationTask;
 
@@ -48,8 +46,6 @@ public final class MRChunks extends JavaPlugin {
         updateChecker.start();
         menuListener = new MenuListener(this);
         menuListener.start();
-        webMap = new WebMap(this);
-        webMap.start();
         maps.start();
 
         getServer().getPluginManager().registerEvents(new LoaderListener(this), this);
@@ -68,9 +64,6 @@ public final class MRChunks extends JavaPlugin {
         }
         if (border != null) {
             border.stopAll();
-        }
-        if (webMap != null) {
-            webMap.stop();
         }
         if (maps != null) {
             maps.stop();
@@ -97,7 +90,6 @@ public final class MRChunks extends JavaPlugin {
         startValidation();
         updateChecker.start();
         menuListener.start();
-        webMap.start();
         maps.start();
     }
 
@@ -177,10 +169,6 @@ public final class MRChunks extends JavaPlugin {
 
     public UpdateChecker updateChecker() {
         return updateChecker;
-    }
-
-    public WebMap webMap() {
-        return webMap;
     }
 
     public MapHooks maps() {

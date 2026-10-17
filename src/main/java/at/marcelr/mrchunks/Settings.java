@@ -18,7 +18,6 @@ public record Settings(
         ItemSettings item,
         BorderSettings border,
         SquaremapSettings squaremap,
-        WebSettings web,
         UpdateSettings update,
         GuiSettings gui
 ) {
@@ -49,7 +48,8 @@ public record Settings(
     }
 
     /** {@code color == null} means one colour per owner. */
-    public record SquaremapSettings(boolean enabled, String layerName, boolean defaultHidden, boolean showInactive,
+    public record SquaremapSettings(boolean enabled, boolean autoConfigure, String overworldName, String netherName,
+                                    String endName, boolean hidePlayers, String layerName, boolean defaultHidden, boolean showInactive,
                                     java.awt.Color color, java.awt.Color inactiveColor, double fillOpacity,
                                     boolean showIcon, String hoverTooltip, String clickTooltip, int updateSeconds,
                                     String publicUrl, GridSettings grid) {
@@ -58,10 +58,6 @@ public record Settings(
     public record GridSettings(boolean enabled, boolean defaultVisible, String color, double opacity,
                                int minChunkPixels, boolean regionLines, String regionColor, boolean labels,
                                String label) {
-    }
-
-    public record WebSettings(boolean enabled, String bind, int port, String accessKey, boolean showOwners,
-                              boolean showCoordinates, String title, int refreshSeconds) {
     }
 
     public record UpdateSettings(boolean enabled, String source, boolean includePrereleases,
@@ -110,6 +106,11 @@ public record Settings(
         String rawColor = c.getString("squaremap.color", "owner");
         SquaremapSettings squaremap = new SquaremapSettings(
                 c.getBoolean("squaremap.enabled", true),
+                c.getBoolean("squaremap.auto-configure", true),
+                c.getString("squaremap.dimension-names.overworld", "Overworld"),
+                c.getString("squaremap.dimension-names.nether", "Nether"),
+                c.getString("squaremap.dimension-names.end", "End"),
+                c.getBoolean("squaremap.hide-players", true),
                 c.getString("squaremap.layer-name", "Chunkloader"),
                 c.getBoolean("squaremap.default-hidden", false),
                 c.getBoolean("squaremap.show-inactive", true),
@@ -132,16 +133,6 @@ public record Settings(
                         c.getBoolean("squaremap.chunk-grid.labels", true),
                         c.getString("squaremap.chunk-grid.label", "Chunkraster")));
 
-        WebSettings web = new WebSettings(
-                c.getBoolean("web.enabled", false),
-                c.getString("web.bind", "0.0.0.0"),
-                Math.clamp(c.getInt("web.port", 8130), 1, 65535),
-                c.getString("web.access-key", ""),
-                c.getBoolean("web.show-owners", true),
-                c.getBoolean("web.show-coordinates", true),
-                c.getString("web.title", "MRchunks - Chunkloader"),
-                Math.clamp(c.getInt("web.refresh-seconds", 30), 5, 3600));
-
         String source = c.getString("update-checker.source", "github").toLowerCase(Locale.ROOT);
         if (!source.equals("modrinth") && !source.equals("github")) {
             log.warning("Ungültige update-checker.source '" + source + "', verwende github.");
@@ -161,7 +152,7 @@ public record Settings(
                 c.getString("gui.ban-reason", "über das Admin-Menü"),
                 c.getBoolean("gui.sounds", true));
 
-        return new Settings(loaders, item, border, squaremap, web, update, gui);
+        return new Settings(loaders, item, border, squaremap, update, gui);
     }
 
     /** "#RRGGBB" as written to the web page; anything else becomes the fallback (no script injection). */

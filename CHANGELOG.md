@@ -22,8 +22,10 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 - Sperren (`/mrchunks ban`): löscht alle Loader des Spielers und verhindert neue.
 - Anbindung an **squaremap**: Die Bereiche erscheinen als eigene Ebene „Chunkloader“ auf der echten Webkarte
   (Fläche, Symbol, Tooltip). Die Ebene aktualisiert sich bei jeder Änderung sofort.
-- Chunkraster auf der squaremap mit Regionsgrenzen und Chunk-Koordinaten, als Eintrag „Chunkraster“ im Ebenen-Menü
+- Chunkraster auf der squaremap mit Regionsgrenzen und Chunk-Koordinaten, als Ebene „Chunkraster“ im Ebenen-Menü
   (`squaremap.chunk-grid`).
 - `/chunkloader map` schickt Spielern einen anklickbaren Link zur Webkarte (`squaremap.public-url`).
-- Einfache eigene Webseite ohne Gelände (`web.*`) mit Zugriffsschlüssel, für Server ohne Kartenplugin.
+- squaremap wird automatisch erkannt und einmalig eingerichtet: 5-s-Aktualisierung, keine Spieler auf der Karte,
+  Welt-Auswahl mit „Overworld“, „Nether“ und „End“, Nether von innen. Erneut mit `/mrchunks map setup`.
+  Ohne squaremap gibt es keine Webkarte.
 - Discord-Logs, Update-Prüfung über GitHub Releases, `/mrchunks version`, Config-Migration (UTF-8 mit BOM).

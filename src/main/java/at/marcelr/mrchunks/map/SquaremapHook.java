@@ -71,8 +71,8 @@ final class SquaremapHook {
         Path web = api.webDir();
         Path index = web.resolve("index.html");
         try {
-            if (!grid.enabled()) {
-                removeGrid();
+            if (!grid.enabled() && !plugin.settings().squaremap().hidePlayers()) {
+                removeGrid(); // nothing for the script to do
                 return;
             }
             String script = gridScript(grid);
@@ -115,6 +115,7 @@ final class SquaremapHook {
 
     private String gridScript(Settings.GridSettings grid) throws IOException {
         JsonObject config = new JsonObject();
+        config.addProperty("gridEnabled", grid.enabled());
         config.addProperty("defaultVisible", grid.defaultVisible());
         config.addProperty("color", grid.color());
         config.addProperty("opacity", grid.opacity());
@@ -123,6 +124,7 @@ final class SquaremapHook {
         config.addProperty("regionColor", grid.regionColor());
         config.addProperty("labels", grid.labels());
         config.addProperty("label", grid.label());
+        config.addProperty("hidePlayerList", plugin.settings().squaremap().hidePlayers());
         try (InputStream in = plugin.getResource("web/squaremap-grid.js")) {
             if (in == null) {
                 throw new IOException("web/squaremap-grid.js fehlt im Plugin");
@@ -135,8 +137,22 @@ final class SquaremapHook {
 
     // ------------------------------------------------------------- markers
 
+    /** Hides (or shows again) all online players on the map; not persistent, applied again on every join. */
+    void hidePlayers(boolean hide) {
+        for (org.bukkit.entity.Player player : Bukkit.getOnlinePlayers()) {
+            api.playerManager().hidden(player.getUniqueId(), hide, false);
+        }
+    }
+
+    void hide(UUID player) {
+        api.playerManager().hide(player, false);
+    }
+
     void update() {
         installGrid();
+        if (!api.iconRegistry().hasEntry(ICON)) {
+            api.iconRegistry().register(ICON, icon()); // lost on /squaremap reload
+        }
         Settings.SquaremapSettings settings = plugin.settings().squaremap();
         int radius = plugin.settings().loaders().radius();
         for (World world : Bukkit.getWorlds()) {

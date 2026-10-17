@@ -1,5 +1,5 @@
 /*
- * MRchunks - Chunkraster für squaremap.
+ * MRchunks - Ergänzungen für squaremap: Chunkraster und ausgeblendete Spielerliste.
  * Wird von MRchunks in den Web-Ordner von squaremap kopiert und VOR squaremaps eigenem Skript eingebunden.
  * squaremap legt seine Leaflet-Karte nicht global ab; deshalb fangen wir die Zuweisung von window.L ab und
  * registrieren einen Init-Hook, bevor squaremap die Karte erzeugt.
@@ -11,6 +11,16 @@
   var LAYER_ID = "mrchunks_grid";
   var leaflet;
   var layerControls = [];
+
+  // Hide squaremap's player list in the sidebar (the players themselves are hidden server side).
+  if (CFG.hidePlayerList) {
+    var style = document.createElement("style");
+    style.textContent = "fieldset#players { display: none !important; }";
+    document.head.appendChild(style);
+  }
+  if (!CFG.gridEnabled) {
+    return;
+  }
 
   Object.defineProperty(window, "L", {
     configurable: true,

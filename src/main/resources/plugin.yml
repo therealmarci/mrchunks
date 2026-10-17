@@ -5,7 +5,7 @@ api-version: '26.3'
 softdepend: [squaremap]
 author: _therealmarci
 website: https://github.com/${githubRepository}
-description: Chunkloader-Blöcke mit Limits, Menüs, Admin-GUI, Webkarte und Discord-Logs.
+description: Chunkloader-Blöcke mit Limits, Menüs, Admin-GUI, squaremap-Anbindung und Discord-Logs.
 
 commands:
   chunkloader:
@@ -14,7 +14,7 @@ commands:
     aliases: [cl, chunkloaders]
   mrchunks:
     description: Verwaltung von MRchunks.
-    usage: /mrchunks <gui|list|tp|toggle|delete|limit|ban|unban|bans|web|discord|reload|version>
+    usage: /mrchunks <gui|list|tp|toggle|delete|limit|ban|unban|bans|map|discord|reload|version>
 
 permissions:
   mrchunks.use:
@@ -42,7 +42,7 @@ permissions:
       mrchunks.admin.teleport: true
       mrchunks.admin.limit: true
       mrchunks.admin.ban: true
-      mrchunks.admin.web: true
+      mrchunks.admin.map: true
       mrchunks.admin.discord: true
       mrchunks.admin.reload: true
       mrchunks.admin.update: true
@@ -64,8 +64,8 @@ permissions:
   mrchunks.admin.ban:
     description: Spieler für Chunkloader sperren und entsperren.
     default: op
-  mrchunks.admin.web:
-    description: /mrchunks web - Link zur Webkarte.
+  mrchunks.admin.map:
+    description: /mrchunks map [setup] - Status der Webkarte, squaremap einrichten.
     default: op
   mrchunks.admin.discord:
     description: /mrchunks discord [test]

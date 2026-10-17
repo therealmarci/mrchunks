@@ -11,7 +11,7 @@ Build, Config-Migration, Discord, Update-Checker, Menü-Grundgerüst und Release
 | Plattform | Paper 26.3 (`paper-api:26.3.build.200-stable`), Java 25 |
 | Build | Gradle 9.8.1 (Wrapper), JUnit 6, Minotaur für Modrinth |
 | Paket | `at.marcelr.mrchunks` |
-| Abhängigkeiten | keine. Der Webserver ist `com.sun.net.httpserver` aus dem JDK, JSON kommt über Gson aus Paper |
+| Abhängigkeiten | keine Pflicht. Optional squaremap (`compileOnly squaremap-api`, `softdepend`) |
 
 ## 2. Projektstruktur
 ```text
@@ -32,13 +32,13 @@ src/main/java/at/marcelr/mrchunks/
 ├─ command/               /chunkloader, /mrchunks
 ├─ gui/                   Menu, MenuListener, Items, Pages, LoaderIcons, PlayerIcons,
 │                         LoaderMenu, MyLoadersMenu, AdminMenu, PlayerLoadersMenu
-├─ map/                   MapHooks (ohne squaremap-Typen), SquaremapHook (Ebene, Marker, Icon)
-├─ web/WebMap.java        einfache eingebaute Webseite (ohne Gelände)
+├─ map/                   MapHooks (ohne squaremap-Typen), SquaremapHook (Ebene, Marker, Icon,
+│                         Raster, Spieler ausblenden), SquaremapSetup (squaremap-Config einrichten)
 └─ util/                  DurationUtil, Versions (mit Tests)
 src/main/resources/
 ├─ config.yml             UTF-8 mit BOM!
 ├─ plugin.yml, build-info.properties
-└─ web/index.html         die Webkarte (Canvas, ohne externe Ressourcen)
+└─ web/squaremap-grid.js  Raster + ausgeblendete Spielerliste für squaremap
 ```
 
 ## 3. Chunks laden (`LoaderManager`)
@@ -96,6 +96,14 @@ bans:
 - **`MapHooks`** enthält keinen einzigen squaremap-Typ. Erst wenn `isPluginEnabled("squaremap")` gilt, wird `SquaremapHook` erzeugt (`LinkageError` wird abgefangen). So entsteht ohne squaremap kein `NoClassDefFoundError`.
 - **`SquaremapHook`** registriert pro Welt eine `SimpleLayerProvider`-Ebene `mrchunks_loaders` (Name aus `squaremap.layer-name`) und ein selbst gezeichnetes 16×16-Icon `mrchunks_loader`. Jeder Loader bekommt ein `Marker.rectangle` in Blockkoordinaten der vollen Chunks und optional `Marker.icon`. Tooltips sind HTML, die Werte werden escaped.
 - **Aktualisierung:** `LoaderManager` ruft nach jeder Änderung (setzen, löschen, an/aus) `maps().refreshSoon()` auf. Mehrere Änderungen in einem Tick führen zu einem einzigen Update. Zusätzlich gleicht ein Task alle `squaremap.update-seconds` ab. Fehlt die Ebene, etwa nach `/squaremap reload`, wird sie neu registriert. Bei jedem Update werden alle Marker der Welt neu aufgebaut, das ist einfach und driftet nie.
+- **Ohne squaremap gibt es keine Karte.** Die frühere eigene Webseite (Port 8130) ist entfallen.
+- **Automatische Einrichtung (`SquaremapSetup`):** Beim Start schreibt MRchunks, wenn squaremap aktiv ist und `squaremap.auto-configure` an ist, **einmal pro `SquaremapSetup.VERSION`** die empfohlenen Werte in `plugins/squaremap/config.yml`:
+  - `background.interval-seconds: 5`, `player-tracker.enabled: false`, `ui.sidebar.pinned: pinned`
+  - pro Welt `world-settings.<welt-key>.map.display-name` (Overworld/Nether/End aus `squaremap.dimension-names`)
+  - im Nether `iterate-up: true` und `max-height: 127`
+
+  Danach folgt `squaremap reload` per Konsole und nach 2 s ein Abgleich, der Ebene, Icon und Raster wieder herstellt, denn squaremap verwirft sie beim Reload. Erledigt ist erledigt: `plugins/MRchunks/squaremap-setup.yml` merkt sich die Version, spätere Änderungen des Admins bleiben also erhalten. `/mrchunks map setup` erzwingt einen neuen Lauf. **Ändern sich die empfohlenen Werte, `VERSION` erhöhen.**
+- **Spieler ausblenden (`squaremap.hide-players`):** `PlayerManager#hidden(uuid, true, false)` für alle Online-Spieler, bei jedem Join und bei jedem Abgleich. Damit landen keine Namen in `players.json`. Zusätzlich blendet das Skript die Spielerliste der Seitenleiste per CSS aus (`fieldset#players`). Beim Deaktivieren werden die Spieler wieder eingeblendet.
 - **Chunkraster:** squaremap legt seine Leaflet-Karte nicht global ab, nur `window.L`. `SquaremapHook#installGrid` schreibt `web/squaremap-grid.js` (mit den Einstellungen als JSON von Gson, damit nichts aus der Config Skript einschleusen kann) als `mrchunks-grid.js` in `api.webDir()`. In `index.html` kommt eine Zeile mit `<!-- mrchunks-grid -->` **vor** dem Modul-Skript von squaremap.
   - Das Skript fängt per `Object.defineProperty(window, "L")` die Zuweisung von Leaflet ab und registriert `L.Map.addInitHook`, noch bevor squaremap die Karte erzeugt.
   - Zusätzlich fängt `L.Control.Layers.addInitHook` das Ebenen-Menü von squaremap ab. Das Raster wird dort per `addOverlay` eingetragen (`id = "mrchunks_grid"`, `order = 1000`), und squaremap merkt sich die Sichtbarkeit selbst als `localStorage hide_mrchunks_grid`. Findet das Skript nach etwa 10 s kein Menü, zeigt es als Notlösung einen eigenen Schalter.
@@ -105,13 +113,7 @@ bans:
 - **Live:** Die Aktualität bestimmt squaremap selbst. `background.interval-seconds` setzt sowohl den Render-Takt als auch `tiles_update_interval` der Webseite. Empfohlen sind 5 s, siehe README.
 - Getestet mit squaremap 1.4.3 für Paper 26.3: Die Ebene erscheint in `tiles/minecraft_overworld/markers.json` mit `"id":"mrchunks_loaders"`.
 
-## 9. Einfache Webseite (`web/WebMap.java`)
-- `HttpServer` auf `web.bind:web.port`, 2 Daemon-Threads. Routen: `/` (Seite), `/api/loaders` (JSON). Alles andere bekommt 404, andere Methoden als GET bekommen 405.
-- **Threading:** Der Main-Thread baut alle `refresh-seconds` einen JSON-Snapshot (`volatile String`). Die HTTP-Threads lesen nur diesen String.
-- **Zugriff:** `?key=` oder Header `X-Access-Key`, Vergleich mit `MessageDigest.isEqual` (zeitkonstant). Header: `no-store`, `nosniff`, `no-referrer`.
-- `index.html` ist eigenständig, ohne CDN oder externe Ressourcen. Es zeichnet die Chunk-Raster per Canvas, mit Verschieben, Zoom, Tooltip, Liste und automatischer Aktualisierung. `{{TITLE}}` wird beim Start ersetzt (HTML-escaped).
-
-## 10. Entwicklung
+## 9. Entwicklung
 ```text
 gradlew.bat build     Kompilieren + Tests + JAR  → build/libs/MRchunks-<version>.jar
 ```
@@ -129,5 +131,5 @@ Der Release-Ablauf entspricht MRsleep: Entwickelt wird auf `beta`, stabile Versi
 | 7 | Loader im Nether | Bereich geladen (`execute in minecraft:the_nether if loaded …`) |
 | 8 | `/mrchunks ban <spieler>` | alle seine Loader weg, Items aus dem Inventar entfernt, `give` verweigert |
 | 9 | `/mrchunks limit <spieler> 5` | Kopf im Admin-Menü zeigt „5 (individuell)“ |
-| 10 | Webkarte mit/ohne `?key=` | 200 / 401, Loader und Bereiche sichtbar |
+| 10 | Erster Start mit squaremap | Log „squaremap eingerichtet: …“, Dimensionsnamen in `tiles/settings.json`, `players.json` leer |
 | 11 | `/mrchunks reload` nach Änderung von `radius` | alte Tickets weg, neue Bereichsgröße aktiv |

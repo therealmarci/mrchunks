@@ -10,7 +10,7 @@ Chunkloader-Plugin für **Paper 26.3** (Java 25).
 - **Unzerstörbar:** kein Abbauen, keine Explosionen, Kolben, Wither oder Endermen.
 - **Menü per Rechtsklick:** Infos, Grenze anzeigen, an/aus, löschen.
 - **Admin-Menü:** alle Spieler und ihre Chunkloader, mit Teleport, an/aus, löschen, Limit und Sperre.
-- **Webkarte mit echtem Gelände** über [squaremap](https://modrinth.com/plugin/squaremap): Alle geladenen Bereiche werden eingezeichnet. Ohne squaremap gibt es eine einfache eigene Webseite.
+- **Webkarte mit echtem Gelände** über [squaremap](https://modrinth.com/plugin/squaremap): alle Bereiche, Chunkraster, Overworld/Nether/End. squaremap wird automatisch erkannt und eingerichtet.
 - **Discord-Logs**, **Update-Prüfung**, alles einstellbar in einer `config.yml`, eine Permission für jede Funktion.
 
 ---
@@ -59,7 +59,7 @@ Nur Items aus `/chunkloader give` sind Chunkloader. Normale Emeraldblöcke bleib
 | `/mrchunks limit <spieler> <anzahl\|reset>` | Individuelles Limit | `mrchunks.admin.limit` |
 | `/mrchunks ban <spieler> [dauer\|permanent] [grund]` | Sperren: löscht alle Loader des Spielers und verhindert neue | `mrchunks.admin.ban` |
 | `/mrchunks unban <spieler>` / `bans` | Sperre aufheben / alle Sperren anzeigen | `mrchunks.admin.ban` |
-| `/mrchunks web` | Link zur Webkarte | `mrchunks.admin.web` |
+| `/mrchunks map [setup]` | Status der Webkarte / squaremap neu einrichten | `mrchunks.admin.map` |
 | `/mrchunks discord [test]` | Discord-Status / Testnachricht | `mrchunks.admin.discord` |
 | `/mrchunks reload` | Config neu laden | `mrchunks.admin.reload` |
 | `/mrchunks version` | Version und Update-Status | alle |
@@ -78,7 +78,7 @@ Owner können ihre eigenen Loader auch mit `toggle` und `delete` steuern.
 | `mrchunks.limit.<anzahl>` | – | Höheres Limit, z.B. `mrchunks.limit.10`. Die höchste Zahl gilt. |
 | `mrchunks.limit.unlimited` | niemand | Beliebig viele Chunkloader |
 | `mrchunks.admin` | OP | Enthält alle `mrchunks.admin.*` |
-| `mrchunks.admin.gui` / `.list` / `.manage` / `.teleport` / `.limit` / `.ban` / `.web` / `.discord` / `.reload` / `.update` | OP | wie in den Tabellen oben |
+| `mrchunks.admin.gui` / `.list` / `.manage` / `.teleport` / `.limit` / `.ban` / `.map` / `.discord` / `.reload` / `.update` | OP | wie in den Tabellen oben |
 
 **Reihenfolge beim Limit:** Ein Admin-Limit (`/mrchunks limit`) hat Vorrang. Danach zählt die höchste `mrchunks.limit.<n>`-Permission, mindestens aber `loaders.default-limit`.
 
@@ -102,80 +102,32 @@ Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Perm
 
 ---
 
-## Webkarte
+## Webkarte (squaremap)
+MRchunks zeigt die Chunkloader auf **[squaremap](https://modrinth.com/plugin/squaremap)**, einer Webkarte mit echtem Minecraft-Gelände. **Ohne squaremap gibt es keine Webkarte**, alles andere funktioniert trotzdem ganz normal.
 
-### Mit echter Minecraft-Karte: squaremap (empfohlen)
-Installiere zusätzlich **[squaremap](https://modrinth.com/plugin/squaremap)** (Paper, für 26.3 verfügbar). MRchunks erkennt es automatisch und zeichnet jeden Chunkloader auf der Karte ein:
-- den **7×7-Bereich als farbige Fläche**, eine eigene Farbe pro Owner, deaktivierte Loader grau
-- ein **Chunkloader-Symbol** an der Position des Blocks
-- **Tooltip** beim Darüberfahren und **Infos** beim Anklicken (Owner, Position, Bereich, Status)
-- eine eigene Ebene **„Chunkloader“**, die man in der Ebenen-Auswahl ein- und ausblenden kann
+### Einrichten
+1. squaremap (Paper, für 26.3 verfügbar) in den Ordner `plugins/` legen und den Server neu starten.
+2. **MRchunks erkennt squaremap automatisch und stellt es einmalig passend ein:**
+   - Die Karte aktualisiert sich alle 5 Sekunden, Gebautes ist nach ca. 5 bis 10 s sichtbar.
+   - Spieler werden weder auf der Karte noch in der Seitenleiste gezeigt.
+   - Die Welt-Auswahl (**Overworld**, **Nether**, **End**) ist immer sichtbar.
+   - Der Nether wird von innen gezeigt statt der Bedrock-Decke.
 
-Die Karte selbst liefert squaremap (Standard: `http://<server-ip>:8080`).
+   Danach kannst du in `plugins/squaremap/config.yml` alles frei ändern, MRchunks überschreibt das nicht mehr. Erneut ausführen: `/mrchunks map setup`. Abschalten: `squaremap.auto-configure: false`.
+3. **Einmal alles rendern.** squaremap zeichnet bestehende Gebiete erst nach einem Full-Render:
+   ```text
+   /squaremap fullrender minecraft:overworld
+   /squaremap fullrender minecraft:the_nether
+   /squaremap fullrender minecraft:the_end
+   ```
+   Weiße Flächen sind Gebiete, die noch nie erzeugt wurden. Für eine vorab gefüllte Karte die Welt vorher mit [Chunky](https://modrinth.com/plugin/chunky) erzeugen (z.B. `/chunky world world_nether`, `/chunky radius 1000`, `/chunky start`).
+4. **Port 8080 beim Hoster freigeben** und den öffentlichen Link unter `squaremap.public-url` eintragen, z.B. `http://play.deinserver.de:8080`, oder in der squaremap-Config als `web-address`. Dann bekommen alle Spieler den Link mit **`/chunkloader map`** (auch in `/chunkloader info`).
 
-**Chunkraster:** MRchunks ergänzt squaremap um ein Chunkraster.
-- Die Chunk-Linien erscheinen ab einer sinnvollen Zoomstufe.
-- Regionsgrenzen (32 × 32 Chunks) sind gelb hervorgehoben.
-- Bei starkem Zoom stehen die Chunk-Koordinaten in jedem Chunk.
-- Jeder Besucher kann das Raster unten rechts mit „Chunkraster“ ein- und ausschalten, der Browser merkt sich die Wahl.
-- Farben, Deckkraft, ab welcher Zoomstufe es erscheint und die Beschriftungen stellst du unter `squaremap.chunk-grid` ein.
-
-**Für alle Spieler:** `/chunkloader map` schickt einen anklickbaren Link zur Karte, auch `/chunkloader info` zeigt ihn. Trag den öffentlichen Link unter `squaremap.public-url` ein, z.B. `http://play.deinserver.de:8080`, oder setz ihn in der squaremap-Config als `web-address`. Der Port muss beim Hoster freigegeben sein.
-
-**Empfohlene squaremap-Einstellungen** (`plugins/squaremap/config.yml`, danach `/squaremap reload`):
-```yaml
-settings:
-  web-address: http://play.deinserver.de:8080   # Link für /chunkloader map
-  ui:
-    sidebar:
-      pinned: pinned               # Welt-Auswahl (Oberwelt/Nether/End) immer sichtbar
-world-settings:
-  default:
-    map:
-      render:
-        background:
-          interval-seconds: 5      # Gebautes erscheint nach ca. 5-10 s (Standard 15)
-    player-tracker:
-      enabled: false               # keine Live-Standorte der Spieler
-  minecraft:the_nether:
-    map:
-      iterate-up: true             # Nether von innen zeigen statt der Bedrock-Decke
-      max-height: 127
-```
-
-**Alle Dimensionen auf der Karte:** Zwischen Oberwelt, Nether und End wechselst du über die **Welt-Auswahl rechts** in der Seitenleiste. Eine Dimension erscheint aber erst auf der Karte, wenn dort Gelände existiert und gerendert ist. Damit sofort alles da ist:
-```text
-/chunky world world          → /chunky radius 2000 → /chunky start
-/chunky world world_nether   → /chunky radius 1000 → /chunky start
-/chunky world world_the_end  → /chunky radius 1000 → /chunky start
-/squaremap fullrender minecraft:overworld
-/squaremap fullrender minecraft:the_nether
-/squaremap fullrender minecraft:the_end
-```
-([Chunky](https://modrinth.com/plugin/chunky) erzeugt das Gelände vorab. Den Radius passt du an deine Welt an, größer heißt mehr Speicherplatz.)
-Die Karte ist damit **nahezu live**: squaremap rendert geänderte Chunks alle 5 Sekunden neu, und die geöffnete Webseite lädt sie im selben Takt nach, ohne dass man neu laden muss.
-
-> **Wichtig nach der Installation von squaremap:** squaremap zeichnet bestehende Gebiete erst nach einem einmaligen Full-Render.
-> Ohne den siehst du anfangs nur ein paar Chunks:
-> ```text
-> /squaremap fullrender minecraft:overworld
-> /squaremap fullrender minecraft:the_nether
-> /squaremap fullrender minecraft:the_end
-> ```
-> Neu erkundete Gebiete rendert squaremap danach automatisch. Weiße Flächen sind Gebiete, die noch nie erzeugt wurden.
-> Für eine vorab gefüllte Karte die Welt z.B. mit [Chunky](https://modrinth.com/plugin/chunky) vorgenerieren und dann den Full-Render starten. Änderungen wie Setzen, Löschen oder An/Aus erscheinen sofort. Farbe, Deckkraft, Symbol und die Texte stellst du unter `squaremap:` in der Config ein. Ohne squaremap passiert einfach nichts. `/mrchunks web` zeigt den Status.
-
-### Ohne Kartenplugin: einfache Webseite
-MRchunks bringt außerdem eine eigene, schlichte Seite ohne Gelände mit. Sie zeigt ein Chunk-Raster pro Welt mit allen Chunkloadern, farbig nach Owner. Deaktivierte Loader sind gestrichelt. Die Seite lässt sich verschieben und zoomen, beim Darüberfahren erscheinen Infos, und daneben steht eine Liste aller Loader.
-
-```yaml
-web:
-  enabled: true
-  port: 8130            # muss beim Hoster freigegeben sein
-  access-key: "geheim"  # leer = jeder mit der Adresse kann die Karte sehen
-```
-Danach `/mrchunks reload`. Den fertigen Link (mit Schlüssel) zeigt `/mrchunks web`, z.B. `http://<server-ip>:8130/?key=geheim`.
-Mit `show-owners` und `show-coordinates` legst du fest, was öffentlich sichtbar ist.
+### Was MRchunks auf der Karte zeigt
+- **Ebene „Chunkloader“:** pro Loader der 7×7-Bereich als farbige Fläche, eine Farbe pro Owner, deaktivierte Loader grau. Dazu ein Chunkloader-Symbol und Infos beim Darüberfahren oder Anklicken (Owner, Position, Bereich, Status). Änderungen erscheinen sofort.
+- **Ebene „Chunkraster“:** Chunk-Linien ab einer sinnvollen Zoomstufe, gelbe Regionsgrenzen (32 × 32 Chunks) und bei starkem Zoom die Chunk-Koordinaten.
+- Beide Ebenen schaltet jeder Besucher im **Ebenen-Menü oben links** ein und aus.
+- Farben, Deckkraft, Symbol, Texte, Dimensionsnamen und Raster stellst du unter `squaremap:` in der MRchunks-Config ein. `/mrchunks map` zeigt den Status.
 
 ---
 
