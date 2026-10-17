@@ -24,7 +24,7 @@ Bei Updates wird die Config automatisch migriert: Deine Werte bleiben erhalten, 
 ---
 
 ## So funktioniert's
-1. **`/chunkloader give`** legt einen Chunkloader ins Inventar, solange dein Limit nicht erreicht ist.
+1. **`/chunkloader give`** legt einen Chunkloader ins Inventar, solange dein Limit nicht erreicht ist. Es gibt zwei Limits: wie viele du **setzen** darfst und wie viele davon **gleichzeitig aktiv** sein dürfen (siehe [Limits](#limits-setzen-und-gleichzeitig-aktiv)).
 2. **Platzieren:** Ab sofort bleiben `7×7` Chunks um den Block geladen. Den Radius stellst du über `loaders.radius` ein.
 3. **Rechtsklick** auf den Block öffnet das Menü und zeigt dir die Grenze des Bereichs mit Partikeln.
    **Sneak + Rechtsklick** verhält sich normal, du kannst also weiter Blöcke daran bauen.
@@ -56,7 +56,8 @@ Nur Items aus `/chunkloader give` sind Chunkloader. Normale Emeraldblöcke bleib
 | `/mrchunks tp <id>` | Zu einem Chunkloader teleportieren | `mrchunks.admin.teleport` |
 | `/mrchunks toggle <id>` | Chunkloader an/aus | `mrchunks.admin.manage` |
 | `/mrchunks delete <id>` | Chunkloader löschen | `mrchunks.admin.manage` |
-| `/mrchunks limit <spieler> <anzahl\|reset>` | Individuelles Limit | `mrchunks.admin.limit` |
+| `/mrchunks limit <spieler> <anzahl\|reset>` | Wie viele Loader der Spieler setzen darf | `mrchunks.admin.limit` |
+| `/mrchunks activelimit <spieler> <anzahl\|reset>` | Wie viele davon gleichzeitig aktiv sein dürfen | `mrchunks.admin.limit` |
 | `/mrchunks ban <spieler> [dauer\|permanent] [grund]` | Sperren: löscht alle Loader des Spielers und verhindert neue | `mrchunks.admin.ban` |
 | `/mrchunks unban <spieler>` / `bans` | Sperre aufheben / alle Sperren anzeigen | `mrchunks.admin.ban` |
 | `/mrchunks map [setup]` | Status der Webkarte / squaremap neu einrichten | `mrchunks.admin.map` |
@@ -75,17 +76,35 @@ Owner können ihre eigenen Loader auch mit `toggle` und `delete` steuern.
 | `mrchunks.info` | alle | `/chunkloader info` |
 | `mrchunks.map` | alle | `/chunkloader map` |
 | `mrchunks.view` | alle | Menü fremder Chunkloader ansehen und deren Grenze anzeigen |
-| `mrchunks.limit.<anzahl>` | – | Höheres Limit, z.B. `mrchunks.limit.10`. Die höchste Zahl gilt. |
-| `mrchunks.limit.unlimited` | niemand | Beliebig viele Chunkloader |
+| `mrchunks.limit.<anzahl>` / `mrchunks.active.<anzahl>` | – | Mehr setzbare bzw. gleichzeitig aktive Loader, siehe [Limits](#limits-setzen-und-gleichzeitig-aktiv) |
+| `mrchunks.limit.unlimited` / `mrchunks.active.unlimited` | niemand | Beliebig viele |
 | `mrchunks.admin` | OP | Enthält alle `mrchunks.admin.*` |
 | `mrchunks.admin.gui` / `.list` / `.manage` / `.teleport` / `.limit` / `.ban` / `.map` / `.discord` / `.reload` / `.update` | OP | wie in den Tabellen oben |
 
-**Reihenfolge beim Limit:** Ein Admin-Limit (`/mrchunks limit`) hat Vorrang. Danach zählt die höchste `mrchunks.limit.<n>`-Permission, mindestens aber `loaders.default-limit`.
+---
 
-> ⚠️ In LuckPerms enthalten `*` und `mrchunks.*` auch `mrchunks.limit.unlimited`. Wer das nicht will, setzt die Permission bei der Gruppe ausdrücklich auf `false`.
+## Limits: setzen und gleichzeitig aktiv
+Jeder Spieler hat **zwei Limits**:
+
+| | Setzbare Loader | Gleichzeitig aktive Loader |
+|---|---|---|
+| Standard (Config) | `loaders.default-limit` | `loaders.default-active-limit` |
+| Per Permission | `mrchunks.limit.<n>` | `mrchunks.active.<n>` |
+| Unbegrenzt | `mrchunks.limit.unlimited` | `mrchunks.active.unlimited` |
+| Per Admin | `/mrchunks limit <spieler> <n\|reset>` | `/mrchunks activelimit <spieler> <n\|reset>` |
+
+**Beispiel:** 15 Loader setzen, davon 3 gleichzeitig nutzen: `/mrchunks limit Steve 15` und `/mrchunks activelimit Steve 3`, oder für eine Gruppe `mrchunks.limit.15` und `mrchunks.active.3`.
+
+- **Setzen:** Ist noch ein Aktiv-Platz frei, startet der neue Loader aktiv. Sonst wird er gesetzt, bleibt aber **deaktiviert**, mit Hinweis.
+- **Aktivieren** (Menü oder `/mrchunks toggle`): Ist das Aktiv-Limit erreicht, wird abgelehnt, man muss zuerst einen anderen ausschalten. Admins mit `mrchunks.admin.manage` dürfen darüber hinaus aktivieren.
+- **Admin senkt das Aktiv-Limit:** Überzählige Loader werden sofort deaktiviert, die zuletzt gesetzten zuerst, und der Owner wird benachrichtigt.
+- **Reihenfolge:** Ein Admin-Limit hat Vorrang. Danach zählt die höchste Permission-Zahl, mindestens aber der Standard aus der Config. Permissions kennt der Server nur bei Online-Spielern, für Offline-Spieler gelten Admin-Limit oder Standard.
+
+> ⚠️ In LuckPerms enthalten `*` und `mrchunks.*` auch `mrchunks.limit.unlimited` und `mrchunks.active.unlimited`. Wer das nicht will, setzt beide bei der Gruppe ausdrücklich auf `false`.
 
 ```text
-/lp group vip permission set mrchunks.limit.6 true
+/lp group vip permission set mrchunks.limit.15 true
+/lp group vip permission set mrchunks.active.3 true
 /lp group mod permission set mrchunks.admin.gui true
 /lp group mod permission set mrchunks.admin.teleport true
 ```
@@ -95,7 +114,7 @@ Owner können ihre eigenen Loader auch mit `toggle` und `delete` steuern.
 ## Admin-Menü (`/mrchunks gui`)
 - **Oben:** Übersicht (Anzahl Loader, aktive Loader, geladene Chunks, Spieler, Sperren), Version und Webkarten-Status, Filter (Alle mit Loadern, Online, Gesperrte).
 - **Spielerköpfe:** Loader und Limit, woher das Limit kommt, online, offline oder gesperrt.
-- **Klick auf einen Kopf:** Limit (Linksklick +1, Rechtsklick −1, Shift-Klick zurücksetzen), alle Loader löschen, sperren (1d, 7d, dauerhaft) oder entsperren, dazu alle Loader des Spielers.
+- **Klick auf einen Kopf:** beide Limits, setzbar (Erfahrungsflasche) und gleichzeitig aktiv (Leuchtfeuer), jeweils Linksklick +1, Rechtsklick −1, Shift-Klick zurücksetzen. Dazu: alle Loader löschen, sperren (1d, 7d, dauerhaft) oder entsperren, dazu alle Loader des Spielers.
 - **Klick auf einen Loader:** an/aus, Grenze anzeigen, **hinteleportieren**, löschen.
 
 Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Permission.

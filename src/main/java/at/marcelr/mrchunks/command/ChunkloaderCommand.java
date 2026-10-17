@@ -141,7 +141,9 @@ public final class ChunkloaderCommand implements TabExecutor {
                 tag("size", plugin.settings().loaders().size()),
                 tag("placed", own.size()),
                 tag("held", plugin.loaderItem().count(player)),
-                tag("limit", Texts.limit(loaders.limit(player))));
+                tag("limit", Texts.limit(loaders.limit(player))),
+                tag("active", loaders.activeCount(player.getUniqueId())),
+                tag("active-limit", Texts.limit(loaders.activeLimit(player))));
         if (own.isEmpty()) {
             messages.send(player, "info-none");
         }

@@ -27,7 +27,8 @@ public record Settings(
 
     public enum LoadMethod { TICKET, FORCELOAD }
 
-    public record LoaderSettings(int radius, int defaultLimit, Set<String> disabledWorlds, LoadMethod loadMethod,
+    public record LoaderSettings(int radius, int defaultLimit, int defaultActiveLimit, Set<String> disabledWorlds,
+                                 LoadMethod loadMethod,
                                  boolean restoreMissingBlocks, int checkIntervalSeconds) {
 
         /** Edge length of the loaded square in chunks, e.g. 7 for radius 3. */
@@ -73,6 +74,7 @@ public record Settings(
         LoaderSettings loaders = new LoaderSettings(
                 Math.clamp(c.getInt("loaders.radius", 3), 0, 10),
                 Math.max(0, c.getInt("loaders.default-limit", 3)),
+                Math.max(0, c.getInt("loaders.default-active-limit", 3)),
                 c.getStringList("loaders.disabled-worlds").stream()
                         .map(s -> s.toLowerCase(Locale.ROOT)).collect(Collectors.toUnmodifiableSet()),
                 parseEnum(c.getString("loaders.load-method"), LoadMethod.TICKET, "loaders.load-method", log),

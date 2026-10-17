@@ -24,10 +24,16 @@ loaders:
   # 3 = 7x7 Chunks (49 Chunks), 2 = 5x5, 1 = 3x3.
   radius: 3
 
-  # Wie viele Chunkloader jeder Spieler setzen darf.
-  # Mehr gibt es per Permission "mrchunks.limit.<anzahl>" (z.B. mrchunks.limit.10)
+  # Wie viele Chunkloader jeder Spieler SETZEN darf.
+  # Mehr gibt es per Permission "mrchunks.limit.<anzahl>" (z.B. mrchunks.limit.15)
   # oder per Admin-Befehl /mrchunks limit <spieler> <anzahl>.
   default-limit: 3
+
+  # Wie viele davon GLEICHZEITIG AKTIV sein dürfen (also wirklich Chunks laden).
+  # Weitere gesetzte Loader bleiben deaktiviert, bis ein anderer ausgeschaltet wird.
+  # Beispiel: default-limit 15 und default-active-limit 3 = 15 Loader setzen, 3 davon gleichzeitig nutzen.
+  # Mehr gibt es per Permission "mrchunks.active.<anzahl>" oder per /mrchunks activelimit <spieler> <anzahl>.
+  default-active-limit: 3
 
   # Welten, in denen keine Chunkloader gesetzt werden können (Name, Groß-/Kleinschreibung egal).
   # Chunkloader funktionieren in allen Dimensionen (Oberwelt, Nether, End).
@@ -198,7 +204,7 @@ discord:
     admin-limit:
       enabled: true
       color: "#9B59B6"
-      message: "🛠️ **{admin}** hat das Limit von **{player}** auf **{limit}** gesetzt."
+      message: "🛠️ **{admin}** hat das {type} von **{player}** auf **{limit}** gesetzt."
     admin-reload:
       enabled: true
       color: "#3498DB"
@@ -277,7 +283,7 @@ messages:
     <dark_gray> » <gray>Mob-Spawning braucht weiterhin einen Spieler in der Nähe (Minecraft-Regel).
     <dark_gray> » <gray>Rechtsklick auf den Block öffnet das Menü: Grenze anzeigen, an/aus, löschen.
     <dark_gray> » <gray>Chunkloader sind unzerstörbar - entfernen nur über das Menü.
-    <prefix><gray>Deine Chunkloader: <white><placed></white>/<white><limit></white> <dark_gray>(<held> als Item im Inventar)
+    <prefix><gray>Deine Chunkloader: <white><placed></white>/<white><limit></white> gesetzt, <white><active></white>/<white><active-limit></white> aktiv <dark_gray>(<held> als Item im Inventar)
   info-entry: "<dark_gray>   #<id> <gray><world> <white><x> <y> <z></white> <dark_gray>- <state>"
   map-link: "<prefix><gray>Webkarte mit allen Chunkloadern: <link>"
   map-link-label: "<aqua><u><url></u></aqua>"
@@ -285,7 +291,9 @@ messages:
   info-none: "<dark_gray>   (noch keine gesetzt)"
 
   # --- Setzen / Block ----------------------------------------------------------
-  placed: "<prefix><green>Chunkloader <white>#<id></white> gesetzt - <white><chunks></white> Chunks bleiben jetzt geladen. <gray>(<placed>/<limit>)"
+  placed: "<prefix><green>Chunkloader <white>#<id></white> gesetzt - <white><chunks></white> Chunks bleiben jetzt geladen. <gray>(<placed>/<limit> gesetzt, <active>/<active-limit> aktiv)"
+  placed-inactive: "<prefix><yellow>Chunkloader <white>#<id></white> gesetzt, aber <white>deaktiviert</white>: Du hast schon <white><active>/<active-limit></white> aktive Chunkloader. <gray>Schalte im MenÃ¼ einen anderen aus, um diesen zu aktivieren."
+  active-limit-reached: "<prefix><red>Du hast schon <white><active>/<active-limit></white> aktive Chunkloader. <gray>Deaktiviere zuerst einen anderen."
   place-limit: "<prefix><red>Du hast dein Limit von <white><limit></white> Chunkloadern erreicht."
   place-world-disabled: "<prefix><red>In dieser Welt sind keine Chunkloader erlaubt."
   break-denied: "<prefix><red>Chunkloader sind unzerstörbar. <gray>Rechtsklick auf den Block öffnet das Menü zum Löschen."
@@ -306,7 +314,8 @@ messages:
     <green>/mrchunks tp <id></green> <dark_gray>- <gray>Zu einem Chunkloader teleportieren
     <green>/mrchunks toggle <id></green> <dark_gray>- <gray>Chunkloader an/aus
     <green>/mrchunks delete <id></green> <dark_gray>- <gray>Chunkloader löschen
-    <green>/mrchunks limit <spieler> <anzahl|reset></green> <dark_gray>- <gray>Eigenes Limit für einen Spieler
+    <green>/mrchunks limit <spieler> <anzahl|reset></green> <dark_gray>- <gray>Wie viele Loader ein Spieler setzen darf
+    <green>/mrchunks activelimit <spieler> <anzahl|reset></green> <dark_gray>- <gray>Wie viele davon gleichzeitig aktiv sein dürfen
     <green>/mrchunks ban <spieler> [dauer] [grund]</green> <dark_gray>- <gray>Sperren (löscht alle seine Loader)
     <green>/mrchunks unban <spieler></green> <dark_gray>- <gray>Sperre aufheben
     <green>/mrchunks bans</green> <dark_gray>- <gray>Alle Sperren
@@ -318,9 +327,13 @@ messages:
   list-header: "<prefix><gray>Chunkloader<filter>: <white><count></white>"
   list-entry: "<dark_gray> #<id> <white><player></white> <gray><world> <x> <y> <z> <dark_gray>- <state>"
   list-empty: "<prefix><gray>Keine Chunkloader gefunden."
-  limit-set: "<prefix><green>Limit von <white><player></white> ist jetzt <white><limit></white>."
-  limit-reset: "<prefix><green>Limit von <white><player></white> zurückgesetzt <gray>(gilt jetzt: <limit>)."
-  limit-notify: "<prefix><green>Du darfst jetzt <white><limit></white> Chunkloader setzen."
+  limit-set: "<prefix><green><type> von <white><player></white> ist jetzt <white><limit></white>."
+  limit-reset: "<prefix><green><type> von <white><player></white> zurückgesetzt <gray>(gilt jetzt: <limit>)."
+  limit-notify: "<prefix><green>Dein <type> ist jetzt <white><limit></white>."
+  limit-type-place: "Limit (setzbare Loader)"
+  limit-type-active: "Aktiv-Limit (gleichzeitig aktive Loader)"
+  active-limit-enforced: "<prefix><yellow><white><count></white> Chunkloader von <white><player></white> wurden deaktiviert, weil das neue Aktiv-Limit niedriger ist."
+  active-limit-enforced-notify: "<prefix><yellow><white><count></white> deiner Chunkloader wurden deaktiviert, weil dein Aktiv-Limit gesenkt wurde."
   ban-set: "<prefix><green><white><player></white> ist gesperrt <dark_gray>(<duration>, Grund: <reason>)<green>. <white><count></white> Chunkloader gelöscht."
   ban-notify: "<prefix><red>Du wurdest für Chunkloader gesperrt <dark_gray>(<duration>, Grund: <reason>)<red>. Deine Chunkloader wurden gelöscht."
   unban-set: "<prefix><green>Sperre von <white><player></white> aufgehoben."
@@ -405,7 +418,7 @@ messages:
   gui-teleport-name: "<aqua>Hinteleportieren"
 
   # Eigene Chunkloader (/chunkloader list)
-  gui-title-mine: "<dark_gray>Meine Chunkloader <gray>(<placed>/<limit>)"
+  gui-title-mine: "<dark_gray>Meine Chunkloader <gray>(<placed>/<limit>, <active>/<active-limit> aktiv)"
 
   # Admin-Menü
   gui-title-admin: "<dark_gray>MRchunks <gray>» <dark_green>Übersicht"
@@ -434,7 +447,8 @@ messages:
   gui-reload-name: "<aqua>Konfiguration neu laden"
   gui-player-name: "<white><player>"
   gui-player-lore:
-    - "<gray>Chunkloader: <white><placed></white>/<white><limit></white> <dark_gray>(<active> aktiv)"
+    - "<gray>Gesetzt: <white><placed></white>/<white><limit></white>"
+    - "<gray>Aktiv: <white><active></white>/<white><active-limit></white>"
     - "<gray>Limit: <limit-source>"
     - "<gray>Status: <status>"
   gui-player-click: "<yellow>» Klicken für Chunkloader & Aktionen"
@@ -444,7 +458,8 @@ messages:
   gui-limit-default: "<white>Standard"
   gui-limit-permission: "<white>Permission"
   gui-limit-custom: "<light_purple>individuell"
-  gui-limit-name: "<light_purple>Limit: <white><limit>"
+  gui-limit-name: "<light_purple>Setzbar: <white><limit></white> <gray>Loader"
+  gui-active-limit-name: "<aqua>Gleichzeitig aktiv: <white><limit></white> <gray>Loader"
   gui-limit-lore:
     - "<gray>Linksklick: <white>+1"
     - "<gray>Rechtsklick: <white>-1"

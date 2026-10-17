@@ -33,9 +33,6 @@ import java.util.logging.Level;
  */
 public final class LoaderManager {
 
-    public static final String PERM_LIMIT_PREFIX = "mrchunks.limit.";
-    public static final String PERM_UNLIMITED = "mrchunks.limit.unlimited";
-
     private final MRChunks plugin;
     private final File dataFile;
 
@@ -53,6 +50,7 @@ public final class LoaderManager {
     private Settings.LoadMethod appliedMethod;
 
     private final Map<UUID, Integer> limitOverrides = new HashMap<>();
+    private final Map<UUID, Integer> activeOverrides = new HashMap<>();
     private final Map<UUID, Ban> bans = new HashMap<>();
 
     /** Exclusion from chunk loaders. {@code until == Long.MAX_VALUE} means permanent. */
@@ -117,6 +115,7 @@ public final class LoaderManager {
         Set<UUID> players = new HashSet<>();
         loaders.values().forEach(l -> players.add(l.owner()));
         players.addAll(limitOverrides.keySet());
+        players.addAll(activeOverrides.keySet());
         players.addAll(activeBans().keySet());
         return players;
     }
@@ -136,12 +135,15 @@ public final class LoaderManager {
 
     // --------------------------------------------------------- create/delete
 
-    public Loader create(UUID owner, Block block) {
+    /** @param active false if the owner already has as many active loaders as allowed */
+    public Loader create(UUID owner, Block block, boolean active) {
         Loader loader = new Loader(nextId++, owner, block.getWorld().getUID(), block.getWorld().getName(),
-                block.getX(), block.getY(), block.getZ(), System.currentTimeMillis(), true);
+                block.getX(), block.getY(), block.getZ(), System.currentTimeMillis(), active);
         loaders.put(loader.id(), loader);
         index(loader);
-        cover(loader);
+        if (active) {
+            cover(loader);
+        }
         save();
         plugin.maps().refreshSoon();
         return loader;
@@ -315,18 +317,36 @@ public final class LoaderManager {
 
     // -------------------------------------------------------------- limits
 
-    /** @return the admin-set limit, or null if the player uses the default/permission limit */
-    public Integer limitOverride(UUID player) {
-        return limitOverrides.get(player);
+    /** The two caps per player: how many loaders may be placed, and how many of them may be active at once. */
+    public enum LimitKind {
+        PLACE("mrchunks.limit.", "mrchunks.limit.unlimited"),
+        ACTIVE("mrchunks.active.", "mrchunks.active.unlimited");
+
+        final String permPrefix;
+        final String permUnlimited;
+
+        LimitKind(String permPrefix, String permUnlimited) {
+            this.permPrefix = permPrefix;
+            this.permUnlimited = permUnlimited;
+        }
     }
 
-    public void setLimitOverride(UUID player, Integer limit) {
+    /** @return the admin-set limit, or null if the player uses the default/permission limit */
+    public Integer limitOverride(UUID player, LimitKind kind) {
+        return overrides(kind).get(player);
+    }
+
+    public void setLimitOverride(UUID player, LimitKind kind, Integer limit) {
         if (limit == null) {
-            limitOverrides.remove(player);
+            overrides(kind).remove(player);
         } else {
-            limitOverrides.put(player, Math.max(0, limit));
+            overrides(kind).put(player, Math.max(0, limit));
         }
         save();
+    }
+
+    private Map<UUID, Integer> overrides(LimitKind kind) {
+        return kind == LimitKind.PLACE ? limitOverrides : activeOverrides;
     }
 
     /** Where the effective limit comes from (for display). */
@@ -335,35 +355,82 @@ public final class LoaderManager {
     public record Limit(int value, LimitSource source) {
     }
 
+    /** How many loaders the player may place. */
+    public Limit limit(OfflinePlayer player) {
+        return limit(player, LimitKind.PLACE);
+    }
+
+    /** How many loaders of the player may be active at the same time. */
+    public Limit activeLimit(OfflinePlayer player) {
+        return limit(player, LimitKind.ACTIVE);
+    }
+
     /**
-     * Effective limit: an admin override wins; otherwise the highest {@code mrchunks.limit.<n>} permission
+     * Effective limit: an admin override wins; otherwise the highest {@code <prefix><n>} permission
      * (only known while the player is online), but never less than the config default.
      */
-    public Limit limit(OfflinePlayer player) {
-        Integer override = limitOverrides.get(player.getUniqueId());
+    public Limit limit(OfflinePlayer player, LimitKind kind) {
+        Integer override = overrides(kind).get(player.getUniqueId());
         if (override != null) {
             return new Limit(override, LimitSource.CUSTOM);
         }
-        int base = plugin.settings().loaders().defaultLimit();
+        Settings.LoaderSettings settings = plugin.settings().loaders();
+        int base = kind == LimitKind.PLACE ? settings.defaultLimit() : settings.defaultActiveLimit();
         Player online = player.getPlayer();
         if (online == null) {
             return new Limit(base, LimitSource.DEFAULT);
         }
-        if (online.hasPermission(PERM_UNLIMITED)) {
+        if (online.hasPermission(kind.permUnlimited)) {
             return new Limit(Integer.MAX_VALUE, LimitSource.UNLIMITED);
         }
         int best = -1;
         for (PermissionAttachmentInfo info : online.getEffectivePermissions()) {
             String perm = info.getPermission();
-            if (info.getValue() && perm.startsWith(PERM_LIMIT_PREFIX)) {
+            if (info.getValue() && perm.startsWith(kind.permPrefix)) {
                 try {
-                    best = Math.max(best, Integer.parseInt(perm.substring(PERM_LIMIT_PREFIX.length())));
+                    best = Math.max(best, Integer.parseInt(perm.substring(kind.permPrefix.length())));
                 } catch (NumberFormatException ignored) {
-                    // e.g. mrchunks.limit.unlimited or a typo
+                    // e.g. "...unlimited" or a typo
                 }
             }
         }
         return best > base ? new Limit(best, LimitSource.PERMISSION) : new Limit(base, LimitSource.DEFAULT);
+    }
+
+    public int activeCount(UUID owner) {
+        int count = 0;
+        for (Loader loader : loaders.values()) {
+            if (loader.active() && loader.owner().equals(owner)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /** True if one more of the player's loaders may be activated. */
+    public boolean canActivate(OfflinePlayer player) {
+        return activeCount(player.getUniqueId()) < activeLimit(player).value();
+    }
+
+    /**
+     * Deactivates the newest active loaders until the player is within their active limit.
+     * @return the deactivated loaders
+     */
+    public List<Loader> enforceActiveLimit(OfflinePlayer player) {
+        int limit = activeLimit(player).value();
+        List<Loader> active = new ArrayList<>();
+        for (Loader loader : byOwner(player.getUniqueId())) {
+            if (loader.active()) {
+                active.add(loader);
+            }
+        }
+        List<Loader> deactivated = new ArrayList<>();
+        // byOwner keeps creation order: keep the oldest ones running
+        for (int i = active.size() - 1; i >= 0 && active.size() - deactivated.size() > limit; i--) {
+            setActive(active.get(i), false);
+            deactivated.add(active.get(i));
+        }
+        return deactivated;
     }
 
     // ---------------------------------------------------------------- bans
@@ -409,6 +476,7 @@ public final class LoaderManager {
         loaders.clear();
         byPosition.clear();
         limitOverrides.clear();
+        activeOverrides.clear();
         bans.clear();
         nextId = 1;
         if (!dataFile.exists()) {
@@ -449,6 +517,15 @@ public final class LoaderManager {
                 }
             }
         }
+        ConfigurationSection activeSection = data.getConfigurationSection("active-limits");
+        if (activeSection != null) {
+            for (String key : activeSection.getKeys(false)) {
+                UUID uuid = parseUuid(key);
+                if (uuid != null) {
+                    activeOverrides.put(uuid, activeSection.getInt(key));
+                }
+            }
+        }
         ConfigurationSection banSection = data.getConfigurationSection("bans");
         if (banSection != null) {
             for (String key : banSection.getKeys(false)) {
@@ -477,6 +554,7 @@ public final class LoaderManager {
             data.set(p + "active", loader.active());
         }
         limitOverrides.forEach((uuid, limit) -> data.set("limits." + uuid, limit));
+        activeOverrides.forEach((uuid, limit) -> data.set("active-limits." + uuid, limit));
         bans.forEach((uuid, ban) -> {
             data.set("bans." + uuid + ".until", ban.until());
             data.set("bans." + uuid + ".reason", ban.reason());

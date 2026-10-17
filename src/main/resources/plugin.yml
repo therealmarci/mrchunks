@@ -14,7 +14,7 @@ commands:
     aliases: [cl, chunkloaders]
   mrchunks:
     description: Verwaltung von MRchunks.
-    usage: /mrchunks <gui|list|tp|toggle|delete|limit|ban|unban|bans|map|discord|reload|version>
+    usage: /mrchunks <gui|list|tp|toggle|delete|limit|activelimit|ban|unban|bans|map|discord|reload|version>
 
 permissions:
   mrchunks.use:
@@ -31,6 +31,9 @@ permissions:
     default: true
   mrchunks.limit.unlimited:
     description: Beliebig viele Chunkloader. Feste Grenzen gehen per mrchunks.limit.<anzahl>, z.B. mrchunks.limit.10.
+    default: false
+  mrchunks.active.unlimited:
+    description: Beliebig viele gleichzeitig aktive Chunkloader. Feste Grenzen per mrchunks.active.<anzahl>, z.B. mrchunks.active.3.
     default: false
   mrchunks.admin:
     description: Alle Admin-Rechte von MRchunks.
@@ -59,7 +62,7 @@ permissions:
     description: Zu Chunkloadern teleportieren.
     default: op
   mrchunks.admin.limit:
-    description: Individuelle Limits vergeben (/mrchunks limit).
+    description: Individuelle Limits vergeben (/mrchunks limit und /mrchunks activelimit).
     default: op
   mrchunks.admin.ban:
     description: Spieler für Chunkloader sperren und entsperren.

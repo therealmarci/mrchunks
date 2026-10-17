@@ -64,6 +64,14 @@ public final class AdminActions {
             return;
         }
         boolean active = !loader.active();
+        OfflinePlayer owner = org.bukkit.Bukkit.getOfflinePlayer(loader.owner());
+        // Owners stay within their active limit; admins (mrchunks.admin.manage) may go beyond it.
+        if (active && !sender.hasPermission(PERM_MANAGE) && !loaders().canActivate(owner)) {
+            messages().send(sender, "active-limit-reached",
+                    tag("active", loaders().activeCount(loader.owner())),
+                    tag("active-limit", Texts.limit(loaders().activeLimit(owner))));
+            return;
+        }
         loaders().setActive(loader, active);
         String state = Texts.state(plugin, active);
         messages().send(sender, "toggled", Texts.loader(plugin, loader), tag("state", state));
@@ -111,18 +119,31 @@ public final class AdminActions {
 
     // ------------------------------------------------------------- players
 
-    /** @param limit new limit, or null to reset to default/permission */
-    public void setLimit(CommandSender sender, OfflinePlayer target, Integer limit) {
+    /**
+     * Sets one of the two caps. Lowering the active limit switches off the player's newest active loaders.
+     * @param limit new limit, or null to reset to default/permission
+     */
+    public void setLimit(CommandSender sender, OfflinePlayer target, LoaderManager.LimitKind kind, Integer limit) {
         if (!sender.hasPermission(PERM_LIMIT)) {
             messages().send(sender, "no-permission");
             return;
         }
-        loaders().setLimitOverride(target.getUniqueId(), limit);
+        loaders().setLimitOverride(target.getUniqueId(), kind, limit);
         String name = name(target);
-        String effective = Texts.limit(loaders().limit(target));
-        messages().send(sender, limit == null ? "limit-reset" : "limit-set", tag("player", name), tag("limit", effective));
-        notifyOwner(target.getUniqueId(), "limit-notify", tag("limit", effective));
-        plugin.discord().log("admin-limit", "admin", sender.getName(), "player", name, "limit", effective);
+        String effective = Texts.limit(loaders().limit(target, kind));
+        String type = messages().plain(kind == LoaderManager.LimitKind.PLACE ? "limit-type-place" : "limit-type-active");
+        messages().send(sender, limit == null ? "limit-reset" : "limit-set",
+                tag("player", name), tag("limit", effective), tag("type", type));
+        notifyOwner(target.getUniqueId(), "limit-notify", tag("limit", effective), tag("type", type));
+        plugin.discord().log("admin-limit", "admin", sender.getName(), "player", name, "limit", effective, "type", type);
+
+        if (kind == LoaderManager.LimitKind.ACTIVE) {
+            int switchedOff = loaders().enforceActiveLimit(target).size();
+            if (switchedOff > 0) {
+                messages().send(sender, "active-limit-enforced", tag("player", name), tag("count", switchedOff));
+                notifyOwner(target.getUniqueId(), "active-limit-enforced-notify", tag("count", switchedOff));
+            }
+        }
     }
 
     /** Bans the player: all their loaders are deleted and their loader items taken away. */

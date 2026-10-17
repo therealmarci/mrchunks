@@ -81,10 +81,14 @@ public final class LoaderListener implements Listener {
             return;
         }
         Player player = event.getPlayer();
-        Loader loader = loaders().create(player.getUniqueId(), event.getBlockPlaced());
-        plugin.messages().send(player, "placed", Texts.loader(plugin, loader),
+        // Starts active only if the player still has an active slot; otherwise it is placed switched off.
+        boolean active = loaders().canActivate(player);
+        Loader loader = loaders().create(player.getUniqueId(), event.getBlockPlaced(), active);
+        plugin.messages().send(player, active ? "placed" : "placed-inactive", Texts.loader(plugin, loader),
                 tag("placed", loaders().count(player.getUniqueId())),
-                tag("limit", Texts.limit(loaders().limit(player))));
+                tag("limit", Texts.limit(loaders().limit(player))),
+                tag("active", loaders().activeCount(player.getUniqueId())),
+                tag("active-limit", Texts.limit(loaders().activeLimit(player))));
         plugin.discord().log("loader-placed", plugin.adminActions().discordTags(loader));
     }
 

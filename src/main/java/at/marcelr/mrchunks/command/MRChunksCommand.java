@@ -84,7 +84,8 @@ public final class MRChunksCommand implements TabExecutor {
             }
             case "toggle" -> withLoader(sender, args, loader -> actions().toggle(sender, loader));
             case "delete", "remove" -> withLoader(sender, args, loader -> actions().delete(sender, loader));
-            case "limit" -> limit(sender, args);
+            case "limit" -> limit(sender, args, LoaderManager.LimitKind.PLACE);
+            case "activelimit", "active" -> limit(sender, args, LoaderManager.LimitKind.ACTIVE);
             case "ban" -> ban(sender, args);
             case "unban" -> withPlayer(sender, args, 1, target -> actions().unban(sender, target));
             case "bans" -> {
@@ -135,7 +136,7 @@ public final class MRChunksCommand implements TabExecutor {
         }
     }
 
-    private void limit(CommandSender sender, String[] args) {
+    private void limit(CommandSender sender, String[] args, LoaderManager.LimitKind kind) {
         if (!check(sender, AdminActions.PERM_LIMIT)) {
             return;
         }
@@ -153,7 +154,7 @@ public final class MRChunksCommand implements TabExecutor {
             }
         }
         Integer finalLimit = limit;
-        withPlayer(sender, args, 1, target -> actions().setLimit(sender, target, finalLimit));
+        withPlayer(sender, args, 1, target -> actions().setLimit(sender, target, kind, finalLimit));
     }
 
     /** /mrchunks ban <player> [duration|permanent] [reason...] - without a duration the ban is permanent. */
@@ -324,7 +325,7 @@ public final class MRChunksCommand implements TabExecutor {
             addIf(sender, PERM_LIST, options, "list");
             addIf(sender, AdminActions.PERM_TELEPORT, options, "tp");
             addIf(sender, AdminActions.PERM_MANAGE, options, "toggle", "delete");
-            addIf(sender, AdminActions.PERM_LIMIT, options, "limit");
+            addIf(sender, AdminActions.PERM_LIMIT, options, "limit", "activelimit");
             addIf(sender, AdminActions.PERM_BAN, options, "ban", "unban", "bans");
             addIf(sender, PERM_MAP, options, "map");
             addIf(sender, PERM_DISCORD, options, "discord");
@@ -337,11 +338,11 @@ public final class MRChunksCommand implements TabExecutor {
                         plugin.loaders().all().forEach(l -> options.add(String.valueOf(l.id())));
                     }
                 }
-                case "list", "limit", "ban" -> {
+                case "list", "limit", "activelimit", "ban" -> {
                     if (args.length == 2) {
                         Bukkit.getOnlinePlayers().forEach(p -> options.add(p.getName()));
                         plugin.loaders().knownPlayers().forEach(u -> options.add(LoaderManager.name(u)));
-                    } else if (args.length == 3 && sub.equals("limit")) {
+                    } else if (args.length == 3 && (sub.equals("limit") || sub.equals("activelimit"))) {
                         options.addAll(List.of("5", "10", "reset"));
                     } else if (args.length == 3 && sub.equals("ban")) {
                         options.addAll(List.of("permanent", "1d", "7d", "30d"));

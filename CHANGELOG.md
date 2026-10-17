@@ -14,11 +14,15 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   (Radius einstellbar), in allen Dimensionen und auch wenn der Owner offline ist.
 - Wahlweise Plugin-Tickets oder Vanilla-Forceload (`loaders.load-method`). Überschneidende Bereiche werden pro Chunk
   mitgezählt, damit beim Entfernen eines Loaders keine Chunks verloren gehen.
-- `/chunkloader give|remove|list|info` für Spieler, Limit pro Spieler (Config, `mrchunks.limit.<n>`, Admin-Limit).
+- `/chunkloader give|remove|list|info|map` für Spieler.
+- **Zwei Limits pro Spieler:** setzbare Loader und gleichzeitig aktive Loader (z.B. 15 setzen, 3 aktiv),
+  jeweils über Config, Permission (`mrchunks.limit.<n>` / `mrchunks.active.<n>`) oder Admin-Befehl
+  (`/mrchunks limit` / `/mrchunks activelimit`). Senkt ein Admin das Aktiv-Limit, werden die neuesten Loader
+  automatisch deaktiviert.
 - Unzerstörbare Blöcke: kein Abbauen, keine Explosionen, Kolben, Wither, Endermen, kein Feuer. Fehlende Blöcke
   (z.B. durch WorldEdit) werden automatisch wiederhergestellt. Loader-Items lassen sich nicht zu Smaragden craften.
 - Menü per Rechtsklick auf den Block: Infos, Grenzanzeige mit Partikeln, an/aus, löschen (mit Bestätigung).
-- Admin-Menü (`/mrchunks gui`): alle Spieler mit Loadern, Limit +/−, Sperren, alle Loader löschen, Teleport.
+- Admin-Menü (`/mrchunks gui`): alle Spieler mit Loadern, beide Limits +/−, Sperren, alle Loader löschen, Teleport.
 - Sperren (`/mrchunks ban`): löscht alle Loader des Spielers und verhindert neue.
 - Anbindung an **squaremap**: Die Bereiche erscheinen als eigene Ebene „Chunkloader“ auf der echten Webkarte
   (Fläche, Symbol, Tooltip). Die Ebene aktualisiert sich bei jeder Änderung sofort.

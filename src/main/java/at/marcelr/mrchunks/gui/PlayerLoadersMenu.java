@@ -53,28 +53,9 @@ public final class PlayerLoadersMenu extends Menu {
         String name = AdminActions.name(target);
         List<Loader> owned = loaders.byOwner(targetId);
 
-        // ---- limit: left +1, right -1, shift = reset
-        LoaderManager.Limit limit = loaders.limit(target);
-        boolean mayLimit = viewer.hasPermission(AdminActions.PERM_LIMIT);
-        Items limitItem = Items.of(Material.EXPERIENCE_BOTTLE)
-                .name(messages.item("gui-limit-name", tag("limit", Texts.limit(limit))))
-                .lore(messages.lore("gui-limit-lore"));
-        if (!mayLimit) {
-            limitItem.lore(messages.item("gui-no-permission"));
-        }
-        set(0, limitItem.build(), click -> {
-            if (!allowed(AdminActions.PERM_LIMIT)) {
-                return;
-            }
-            if (click.isShiftClick()) {
-                actions.setLimit(viewer, target, null);
-            } else if (limit.value() != Integer.MAX_VALUE) {
-                int next = limit.value() + (click == ClickType.RIGHT ? -1 : 1);
-                actions.setLimit(viewer, target, Math.max(0, next));
-            }
-            successSound();
-            render();
-        });
+        // ---- the two caps: left +1, right -1, shift = reset
+        limitButton(0, Material.EXPERIENCE_BOTTLE, "gui-limit-name", target, LoaderManager.LimitKind.PLACE);
+        limitButton(1, Material.BEACON, "gui-active-limit-name", target, LoaderManager.LimitKind.ACTIVE);
 
         // ---- delete all
         TagResolver tags = TagResolver.resolver(tag("player", name), tag("placed", owned.size()));
@@ -123,6 +104,31 @@ public final class PlayerLoadersMenu extends Menu {
             parent.open();
         });
         fillRow(5);
+    }
+
+    private void limitButton(int slot, Material material, String nameKey, OfflinePlayer target,
+                             LoaderManager.LimitKind kind) {
+        Messages messages = plugin.messages();
+        LoaderManager.Limit limit = plugin.loaders().limit(target, kind);
+        Items item = Items.of(material)
+                .name(messages.item(nameKey, tag("limit", Texts.limit(limit))))
+                .lore(messages.lore("gui-limit-lore"));
+        if (!viewer.hasPermission(AdminActions.PERM_LIMIT)) {
+            item.lore(messages.item("gui-no-permission"));
+        }
+        set(slot, item.build(), click -> {
+            if (!allowed(AdminActions.PERM_LIMIT)) {
+                return;
+            }
+            if (click.isShiftClick()) {
+                plugin.adminActions().setLimit(viewer, target, kind, null);
+            } else if (limit.value() != Integer.MAX_VALUE) {
+                int next = limit.value() + (click == ClickType.RIGHT ? -1 : 1);
+                plugin.adminActions().setLimit(viewer, target, kind, Math.max(0, next));
+            }
+            successSound();
+            render();
+        });
     }
 
     private void guarded(int slot, Material material, String nameKey, String loreKey, String permission,

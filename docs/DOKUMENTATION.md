@@ -70,7 +70,8 @@ Loader in einer Welt, die noch nicht geladen ist, bekommen ihre Tickets per `Wor
 Die Block-Suche läuft über einen Positions-Index (`byPosition`), damit große Explosionen nicht alle Loader durchgehen müssen.
 
 ## 5. Item (`LoaderItem`)
-Material, Name, Lore und Glanz kommen aus der Config. Markiert wird das Item im PersistentDataContainer (`mrchunks:chunkloader`). **Limit-Logik:** Setzen erlaubt, wenn `gesetzte < Limit`. `give` gibt höchstens `Limit − gesetzte − Items im Inventar` aus. Damit kann niemand Items horten, um das Limit zu umgehen, denn beim Setzen wird immer neu gezählt.
+Material, Name, Lore und Glanz kommen aus der Config. Markiert wird das Item im PersistentDataContainer (`mrchunks:chunkloader`). **Zwei Limits** (`LoaderManager.LimitKind` PLACE/ACTIVE), beide aufgelöst nach Admin-Override → höchste Permission `mrchunks.limit.<n>` bzw. `mrchunks.active.<n>` (nur online) → Config-Standard. Neue Loader starten nur aktiv, wenn `canActivate` gilt. `AdminActions#toggle` lehnt Aktivieren über dem Limit ab (außer mit `mrchunks.admin.manage`). `enforceActiveLimit` deaktiviert beim Senken die neuesten aktiven Loader. In `data.yml` stehen die Overrides unter `limits` bzw. `active-limits`.
+**Limit-Logik:** Setzen erlaubt, wenn `gesetzte < Limit`. `give` gibt höchstens `Limit − gesetzte − Items im Inventar` aus. Damit kann niemand Items horten, um das Limit zu umgehen, denn beim Setzen wird immer neu gezählt.
 
 ## 6. Daten (`plugins/MRchunks/data.yml`)
 ```yaml

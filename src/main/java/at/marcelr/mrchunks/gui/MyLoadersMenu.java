@@ -20,7 +20,9 @@ public final class MyLoadersMenu extends Menu {
     public MyLoadersMenu(MRChunks plugin, Player viewer) {
         super(plugin, viewer, 6, plugin.messages().get("gui-title-mine",
                 tag("placed", plugin.loaders().count(viewer.getUniqueId())),
-                tag("limit", Texts.limit(plugin.loaders().limit(viewer)))));
+                tag("limit", Texts.limit(plugin.loaders().limit(viewer))),
+                tag("active", plugin.loaders().activeCount(viewer.getUniqueId())),
+                tag("active-limit", Texts.limit(plugin.loaders().activeLimit(viewer)))));
     }
 
     @Override
