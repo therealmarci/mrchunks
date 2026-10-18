@@ -15,7 +15,7 @@ jobs:
     env:
       MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0   # nötig, um zu prüfen, auf welchem Branch der Tag liegt
       - uses: actions/setup-java@v4
