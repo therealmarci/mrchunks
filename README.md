@@ -18,7 +18,7 @@ Chunkloader-Plugin für **Paper 26.3** (Java 25).
 ---
 
 ## Installation
-1. Die JAR für deine Minecraft-Version in den Ordner `plugins/` legen, z.B. `MRchunks-mc26.3-v0.2.0.jar` für Minecraft 26.3, und den Server starten.
+1. Die JAR für deine Minecraft-Version in den Ordner `plugins/` legen, z.B. `MRchunks-mc26.3-v0.3.0.jar` für Minecraft 26.3, und den Server starten.
 2. `plugins/MRchunks/config.yml` anpassen und `/mrchunks reload` ausführen.
 
 Bei Updates wird die Config automatisch migriert: Deine Werte bleiben erhalten, und eine Sicherung `config.v<N>.backup.yml` wird angelegt.
@@ -99,6 +99,8 @@ Nur Items aus `/chunkloader give` sind Chunkloader. Normale Emeraldblöcke bleib
 | `/mrchunks tp <spieler> <nr>` | Zu einem Chunkloader teleportieren | `mrchunks.admin.teleport` |
 | `/mrchunks toggle <spieler> <nr>` | Chunkloader an/aus | `mrchunks.admin.manage` |
 | `/mrchunks delete <spieler> <nr>` | Chunkloader löschen | `mrchunks.admin.manage` |
+| `/mrchunks unlock <spieler> <nr>` | Lag-Sperre aufheben (siehe [Lag-Schutz](#lag-schutz)) | `mrchunks.admin.manage` |
+| `/mrchunks lag` | Auffällige und gesperrte Chunkloader | `mrchunks.admin.manage` |
 | `/mrchunks limit <spieler> <place\|active> <anzahl\|reset>` | `place` = wie viele Loader der Spieler setzen darf, `active` = wie viele davon gleichzeitig aktiv sein dürfen | `mrchunks.admin.limit` |
 | `/mrchunks ban <spieler> [dauer\|permanent] [grund]` | Sperren: löscht alle Loader des Spielers und verhindert neue | `mrchunks.admin.ban` |
 | `/mrchunks unban <spieler>` / `bans` | Sperre aufheben / alle Sperren anzeigen | `mrchunks.admin.ban` |
@@ -199,6 +201,43 @@ Jeder Spieler hat **zwei Limits**:
 /lp group mod permission set mrchunks.admin.gui true
 /lp group mod permission set mrchunks.admin.teleport true
 ```
+
+---
+
+## Lag-Schutz
+MRchunks misst alle 30 Sekunden, was im Bereich jedes **aktiven** Chunkloaders passiert, also in allen Chunks
+seines 7×7-Bereichs zusammen:
+
+| Messwert | Bedeutung | Warnung | Sperre |
+|---|---|---|---|
+| `entities` | Entities ohne Spieler (Mobs, Tiere, Loren …, inkl. Items) | 300 | 800 |
+| `items` | Items am Boden | 200 | 1000 |
+| `redstone` | Redstone-Signaländerungen pro Sekunde | 500 | 2000 |
+| `hoppers` | Item-Transfers von Trichtern, Droppern, Trichterloren pro Sekunde | 300 | 1200 |
+| `pistons` | Kolben-Bewegungen pro Sekunde | 40 | 150 |
+| `spawns` | neue Mobs und Items pro Sekunde | 20 | 80 |
+
+- **Auffällig** (über „Warnung“): Der Loader erscheint in `/mrchunks lag` und, falls MRadmin installiert ist, im
+  Serverzustand von MRadmin. Dazu kommt ein Discord-Log, höchstens einmal pro Stunde. Sonst passiert nichts.
+- **Gesperrt** (über „Sperre“): Das passiert nur, wenn ein Wert `lock-after-samples` Messungen hintereinander darüber
+  liegt (Standard 3, also 1,5 min) **und der Server dabei laggt** (durchschnittliche Tick-Zeit ab `server-lag-mspt`,
+  Standard 40 ms). Eine große Farm, mit der der Server gut zurechtkommt, wird nicht gesperrt. Mit
+  `only-when-server-lags: false` wird auch ohne Server-Lag gesperrt.
+- **Gesperrt heißt:**
+  - Der Loader ist aus, und weder Owner noch Eingeladene können ihn einschalten.
+  - Der Owner wird sofort informiert, oder beim nächsten Join, wenn er offline war. In seiner Liste steht der
+    Loader mit 🔒 und Grund.
+  - Admins mit `mrchunks.admin.manage` bekommen ingame eine Meldung mit [Teleport], dazu ein Discord-Log.
+- **Aufheben** können nur Admins (`mrchunks.admin.manage`): im Menü des Loaders („Lag-Sperre aufheben“) oder per
+  `/mrchunks unlock <spieler> <nr>`. Der Loader bleibt danach aus, der Owner schaltet ihn wieder ein. Danach gibt es
+  `unlock-grace` (30 min) lang keine neue Sperre, damit die Farm repariert werden kann.
+- **Aktivität einsehen:** Das Menü jedes aktiven Loaders zeigt die letzte Messung, also die Werte, die ihren Grenzen
+  am nächsten sind. Das hilft auch Spielern, ihre Farm einzuschätzen.
+- Alle Grenzen stehen in der `config.yml` unter `lag-protection.limits`. Ein Wert von `0` schaltet die jeweilige
+  Messung ab, z.B. `hoppers: { warn: 0, lock: 0 }`. Dann wird dafür auch nicht mitgezählt.
+
+Die Paper-API kennt keine Tick-Zeit pro Chunk. MRchunks misst deshalb die üblichen Verursacher. Die Standardwerte
+sind bewusst großzügig: Normale Farmen bleiben weit darunter, außer Kontrolle geratene Maschinen nicht.
 
 ---
 

@@ -82,6 +82,12 @@ public final class MRChunksCommand implements TabExecutor {
             }
             case "toggle" -> withLoader(sender, args, loader -> actions().toggle(sender, loader));
             case "delete", "remove" -> withLoader(sender, args, loader -> actions().delete(sender, loader));
+            case "unlock", "entsperren" -> withLoader(sender, args, loader -> actions().unlock(sender, loader));
+            case "lag" -> {
+                if (check(sender, AdminActions.PERM_MANAGE)) {
+                    lag(sender);
+                }
+            }
             case "limit" -> limit(sender, args);
             case "ban" -> ban(sender, args);
             case "unban" -> withPlayer(sender, args, 1, target -> actions().unban(sender, target));
@@ -174,6 +180,32 @@ public final class MRChunksCommand implements TabExecutor {
                 tag("duration", Texts.banDuration(plugin, ban)),
                 tag("reason", ban.reason()),
                 tag("by", ban.by())));
+    }
+
+    /** /mrchunks lag - locked and conspicuous loaders with their worst metric. */
+    private void lag(CommandSender sender) {
+        if (!plugin.settings().lag().enabled()) {
+            messages().send(sender, "lag-disabled");
+        }
+        var list = plugin.lag().conspicuous();
+        if (list.isEmpty()) {
+            messages().send(sender, "lag-list-empty");
+            return;
+        }
+        messages().send(sender, "lag-list-header");
+        for (Loader loader : list) {
+            var lock = plugin.loaders().lagLock(loader);
+            var activity = plugin.lag().activity(loader);
+            if (lock != null) {
+                messages().send(sender, "lag-list-locked", plugin.lag().tags(loader, lock));
+            } else if (activity != null) {
+                var metric = activity.worst();
+                messages().send(sender, "lag-list-entry", Texts.loader(plugin, loader),
+                        tag("metric", messages().plain("lag-metric-" + metric.key())),
+                        tag("value", at.marcelr.mrchunks.lag.LagMonitor.format(activity.value(metric))),
+                        tag("limit", at.marcelr.mrchunks.lag.LagMonitor.format(plugin.settings().lag().limits().warn(metric))));
+            }
+        }
     }
 
     // ---------------------------------------------------------------- misc
@@ -322,7 +354,7 @@ public final class MRChunksCommand implements TabExecutor {
             options.add("version");
             addIf(sender, PERM_GUI, options, "gui");
             addIf(sender, AdminActions.PERM_TELEPORT, options, "tp");
-            addIf(sender, AdminActions.PERM_MANAGE, options, "toggle", "delete");
+            addIf(sender, AdminActions.PERM_MANAGE, options, "toggle", "delete", "unlock", "lag");
             addIf(sender, AdminActions.PERM_LIMIT, options, "limit");
             addIf(sender, AdminActions.PERM_BAN, options, "ban", "unban", "bans");
             addIf(sender, PERM_MAP, options, "map");
@@ -331,7 +363,7 @@ public final class MRChunksCommand implements TabExecutor {
         } else {
             String sub = args[0].toLowerCase(Locale.ROOT);
             switch (sub) {
-                case "tp", "teleport", "toggle", "delete", "remove" -> {
+                case "tp", "teleport", "toggle", "delete", "remove", "unlock", "entsperren" -> {
                     if (args.length == 2) {
                         plugin.loaders().all().forEach(l -> options.add(LoaderManager.name(l.owner())));
                     } else if (args.length == 3) {

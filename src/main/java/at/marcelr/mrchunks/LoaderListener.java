@@ -230,7 +230,7 @@ public final class LoaderListener implements Listener {
             plugin.messages().send(player, "no-permission");
             return;
         }
-        new LoaderMenu(plugin, player, loader.id(), null).open();
+        new LoaderMenu(plugin, player, loader.id(), (Runnable) null).open();
         if (plugin.settings().border().showOnOpen()) {
             plugin.border().show(player, loader);
         }

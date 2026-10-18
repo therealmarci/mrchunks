@@ -5,11 +5,17 @@ import at.marcelr.mrchunks.Loader;
 import at.marcelr.mrchunks.MRChunks;
 import at.marcelr.mrchunks.Messages;
 import at.marcelr.mrchunks.Texts;
+import at.marcelr.mrchunks.lag.LagLock;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static at.marcelr.mrchunks.Messages.tag;
 
@@ -26,14 +32,19 @@ import static at.marcelr.mrchunks.Messages.tag;
 public final class LoaderMenu extends Menu {
 
     private final int loaderId;
-    private final Menu parent;
+    /** What "back" does (reopen the list it came from, or return to e.g. MRadmin); null = no back button. */
+    private final Runnable back;
     /** Delete is armed until this time (ms) after the first click. */
     private long confirmUntil;
 
     public LoaderMenu(MRChunks plugin, Player viewer, int loaderId, Menu parent) {
+        this(plugin, viewer, loaderId, parent == null ? null : (Runnable) parent::open);
+    }
+
+    public LoaderMenu(MRChunks plugin, Player viewer, int loaderId, Runnable back) {
         super(plugin, viewer, 3, title(plugin, loaderId));
         this.loaderId = loaderId;
-        this.parent = parent;
+        this.back = back;
     }
 
     private static net.kyori.adventure.text.Component title(MRChunks plugin, int loaderId) {
@@ -48,8 +59,8 @@ public final class LoaderMenu extends Menu {
         if (loader == null) {
             // Deleted meanwhile (by an admin, a ban, ...): leave on the next tick, not while drawing.
             Bukkit.getScheduler().runTask(plugin, () -> {
-                if (parent != null) {
-                    parent.open();
+                if (back != null) {
+                    back.run();
                 } else {
                     viewer.closeInventory();
                 }
@@ -63,9 +74,27 @@ public final class LoaderMenu extends Menu {
         boolean manage = AdminActions.canManage(viewer, loader);
         boolean toggle = actions.canToggle(viewer, loader);
 
-        set(4, LoaderIcons.loader(plugin, loader, false));
+        ItemStack info = LoaderIcons.loader(plugin, loader, false);
+        List<Component> activity = LoaderIcons.activity(plugin, loader);
+        if (!activity.isEmpty()) {
+            info.editMeta(meta -> {
+                List<Component> lore = meta.lore() == null ? new ArrayList<>() : new ArrayList<>(meta.lore());
+                lore.add(Component.empty());
+                lore.addAll(activity);
+                meta.lore(lore);
+            });
+        }
+        set(4, info);
 
-        if (loader.active()) {
+        LagLock lock = plugin.loaders().lagLock(loader);
+        TagResolver lockTags = lock == null ? tags : TagResolver.resolver(tags, plugin.lag().tags(loader, lock));
+        if (lock != null && viewer.hasPermission(AdminActions.PERM_MANAGE)) {
+            button(10, Material.IRON_DOOR, "gui-unlock-name", "gui-unlock-lore", true,
+                    () -> actions.unlock(viewer, loader), lockTags);
+        } else if (lock != null) {
+            set(10, Items.of(Material.REDSTONE_BLOCK).name(messages.item("gui-locked-name", lockTags))
+                    .lore(messages.lore("gui-locked-lore", lockTags)).build());
+        } else if (loader.active()) {
             button(10, Material.RED_DYE, "gui-toggle-off-name", "gui-toggle-off-lore", toggle,
                     () -> actions.toggle(viewer, loader), tags);
         } else {
@@ -74,7 +103,7 @@ public final class LoaderMenu extends Menu {
         }
 
         button(15, Material.NAME_TAG, "gui-rename-name", "gui-rename-lore", manage,
-                () -> RenameDialog.open(plugin, viewer, loader, parent), tags);
+                () -> RenameDialog.open(plugin, viewer, loader, back), tags);
 
         if (plugin.settings().invites().enabled() && AdminActions.canManageInvites(viewer, loader.owner())) {
             int count = plugin.loaders().members(loader.owner(), loader).size();
@@ -102,8 +131,8 @@ public final class LoaderMenu extends Menu {
                 armed ? "gui-delete-confirm-lore" : "gui-delete-lore", manage, () -> {
                     if (System.currentTimeMillis() < confirmUntil) {
                         actions.delete(viewer, loader);
-                        if (parent != null) {
-                            parent.open();
+                        if (back != null) {
+                            back.run();
                         } else {
                             viewer.closeInventory();
                         }
@@ -114,10 +143,10 @@ public final class LoaderMenu extends Menu {
                     }
                 }, tags);
 
-        if (parent != null) {
+        if (back != null) {
             set(18, Items.of(Material.ARROW).name(messages.item("gui-back")).build(), click -> {
                 clickSound();
-                parent.open();
+                back.run();
             });
         }
         // Admins with teleport: close moves one to the left, the middle stays glass, teleport on the right.

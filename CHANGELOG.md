@@ -9,6 +9,25 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+## [0.3.0] - 2026-10-19
+Dritte Testversion für Minecraft **26.3** (`mc26.3-v0.3.0`). Update von 0.2.0: JAR austauschen und neu starten,
+Config und Texte werden automatisch ergänzt (Backup `config.v4.backup.yml`).
+
+> Der Lag-Schutz ist nach dem Update **eingeschaltet**. Die Standardgrenzen sind großzügig und gesperrt wird nur,
+> während der Server laggt - bei Bedarf unter `lag-protection` anpassen.
+
+### Neu
+- **Lag-Schutz:** MRchunks misst im Bereich jedes aktiven Loaders Entities, Items, Redstone, Trichter-Transfers,
+  Kolben und Spawns. Auffällige Loader sieht man in `/mrchunks lag` (und in MRadmin); liegt ein Loader mehrmals
+  hintereinander über der Sperrgrenze, während der Server laggt, wird er deaktiviert und gesperrt. Der Owner wird
+  informiert und sieht den Loader mit 🔒 in seiner Liste; nur Admins können die Sperre aufheben (Menü oder
+  `/mrchunks unlock`). Alles einstellbar unter `lag-protection`.
+- **Aktivität im Loader-Menü:** die letzte Messung mit Warn- und Sperrgrenze.
+- **MRadmin-Anbindung:** Im Admin-Kompass von MRadmin zeigt der MRchunks-Knopf live Chunkloader, aktive Loader,
+  geladene Chunks und Sperren; im Spieler-Menü von MRadmin gibt es die Loader-Infos des Spielers und einen Knopf zu
+  seinen Chunkloadern (Zurück führt wieder zu MRadmin). Im Serverzustand von MRadmin erscheinen auffällige und
+  gesperrte Chunkloader statt der Chunks mit den meisten Entities. Ohne MRadmin ändert sich nichts.
+
 ## [0.2.0] - 2026-10-18
 Zweite Testversion für Minecraft **26.3** (`mc26.3-v0.2.0`) mit den Rückmeldungen aus dem Alpha-Test.
 

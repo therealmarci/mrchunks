@@ -1,5 +1,6 @@
 package at.marcelr.mrchunks;
 
+import at.marcelr.mrchunks.lag.LagLock;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
@@ -95,6 +96,12 @@ public final class AdminActions {
             return;
         }
         boolean active = !loader.active();
+        // A lag lock blocks switching on for everyone - admins lift it explicitly first (unlock).
+        LagLock lock = loaders().lagLock(loader);
+        if (active && lock != null) {
+            messages().send(sender, "lag-locked-toggle", plugin.lag().tags(loader, lock));
+            return;
+        }
         OfflinePlayer owner = org.bukkit.Bukkit.getOfflinePlayer(loader.owner());
         // Owners stay within their active limit; admins (mrchunks.admin.manage) may go beyond it.
         if (active && !sender.hasPermission(PERM_MANAGE) && !loaders().canActivate(owner)) {
@@ -111,6 +118,25 @@ public final class AdminActions {
                     tag("state", state), tag("admin", sender.getName()));
         }
         plugin.discord().log("loader-toggled", discordTags(loader, "admin", sender.getName(), "state", state));
+    }
+
+    /** Lifts a lag lock (mrchunks.admin.manage). The loader stays off; the owner can switch it on again. */
+    public void unlock(CommandSender sender, Loader loader) {
+        if (!sender.hasPermission(PERM_MANAGE)) {
+            messages().send(sender, "no-permission");
+            return;
+        }
+        LagLock lock = loaders().lagLock(loader);
+        if (lock == null) {
+            messages().send(sender, "lag-not-locked", Texts.loader(plugin, loader));
+            return;
+        }
+        loaders().lagUnlock(loader);
+        plugin.lag().unlocked(loader);
+        messages().send(sender, "lag-unlocked", Texts.loader(plugin, loader));
+        notifyOwner(loader.owner(), "lag-unlocked-owner", Texts.loader(plugin, loader), tag("admin", sender.getName()));
+        plugin.getLogger().info(sender.getName() + " lifted the lag lock of " + Texts.consoleName(plugin, loader) + ".");
+        plugin.discord().log("loader-lag-unlocked", discordTags(loader, "admin", sender.getName()));
     }
 
     public void delete(CommandSender sender, Loader loader) {

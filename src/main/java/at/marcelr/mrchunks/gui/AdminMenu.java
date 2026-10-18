@@ -4,7 +4,6 @@ import at.marcelr.mrchunks.Loader;
 import at.marcelr.mrchunks.LoaderManager;
 import at.marcelr.mrchunks.MRChunks;
 import at.marcelr.mrchunks.Messages;
-import at.marcelr.mrchunks.Texts;
 import at.marcelr.mrchunks.UpdateChecker;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
