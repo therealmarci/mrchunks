@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Do not change - tells the plugin which texts need to be renewed on updates.
-lang-version: 5
+lang-version: 6
 
 # Discord log texts (Discord markdown). Placeholders: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit}. On/off and colour are set in config.yml.
@@ -256,7 +256,7 @@ gui-state-active: "<green>● active"
 gui-state-inactive: "<red>● disabled"
 
 # Menu of a chunk loader
-gui-title-loader: "<dark_gray>MRchunks » <dark_green><name>"
+gui-title-loader: "<dark_gray>Loader » <dark_green><name>"
 gui-toggle-off-name: "<red>Disable"
 gui-toggle-off-lore:
   - "<gray>The chunks are no longer"
@@ -289,7 +289,9 @@ gui-shared-name: "<green>Shared with me <gray>(<count>)"
 gui-shared-lore:
   - "<gray>Chunk loaders of other players"
   - "<gray>that you may switch on and off."
+# Window titles have room for about 160 pixels (roughly 26 characters) - longer ones are cut with "…" automatically.
 gui-title-members: "<dark_gray>Members » <dark_green><scope>"
+gui-members-scope-all: "all loaders"
 gui-title-shared: "<dark_gray>Shared with me"
 gui-member-name: "<white><player>"
 gui-member-lore:
@@ -330,11 +332,11 @@ gui-delete-confirm-lore:
 gui-teleport-name: "<aqua>Teleport there"
 
 # Own chunk loaders (/chunkloader list)
-gui-title-mine: "<dark_gray>My chunk loaders <gray>(<placed>/<limit>, <active>/<active-limit> active)"
+gui-title-mine: "<dark_gray>My chunk loaders <gray>(<placed>/<limit>)"
 
 # Admin menu
 gui-title-admin: "<dark_gray>MRchunks <gray>» <dark_green>Overview"
-gui-title-player: "<dark_gray>MRchunks <gray>» <dark_green><player>"
+gui-title-player: "<dark_gray>Player » <dark_green><player>"
 gui-stats-name: "<green>Overview"
 gui-stats-lore:
   - "<gray>Chunk loaders: <white><loaders></white> <dark_gray>(<active> active)"
