@@ -35,6 +35,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ### Behoben
 - Die Grenze blieb sichtbar, nachdem der Chunkloader gelöscht wurde.
+- Die Grenze erscheint beim Öffnen des Menüs nicht mehr automatisch (`border.show-on-open` jetzt standardmäßig `false`).
 - Kaputtes „Ã¼“ in der Meldung, wenn ein Loader wegen des Aktiv-Limits deaktiviert gesetzt wird.
 
 

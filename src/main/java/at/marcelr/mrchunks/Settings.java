@@ -98,7 +98,7 @@ public record Settings(
                 c.getBoolean("item.glint", true));
 
         BorderSettings border = new BorderSettings(
-                c.getBoolean("border.show-on-open", true),
+                c.getBoolean("border.show-on-open", false),
                 Math.clamp(c.getInt("border.duration-seconds", 60), 1, 600),
                 blockMaterial(c.getString("border.block"), Material.LIME_CONCRETE, "border.block", log),
                 blockMaterial(c.getString("border.inactive-block"), Material.LIGHT_GRAY_CONCRETE, "border.inactive-block", log),

@@ -88,8 +88,8 @@ border:
   # Die Grenze besteht aus leuchtenden Linien (ein "Zaun" an jedem Chunk der Außenkante), die durch Blöcke
   # hindurch sichtbar sind. Nur der Spieler selbst sieht sie. Sie folgt seiner Höhe und verschwindet nach der
   # Zeit unten, beim Löschen des Loaders oder über den Button im Menü.
-  # Grenze automatisch zeigen, wenn das Menü eines Chunkloaders geöffnet wird.
-  show-on-open: true
+  # Grenze automatisch zeigen, wenn das Menü eines Chunkloaders geöffnet wird (sonst nur über den Button im Menü).
+  show-on-open: false
   # Wie lange die Grenze sichtbar bleibt (in Sekunden).
   duration-seconds: 60
   # Farbe des Leuchtens und Block der Linien - für aktive und für deaktivierte Chunkloader.
