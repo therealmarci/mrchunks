@@ -5,6 +5,7 @@ import at.marcelr.mrchunks.LoaderManager;
 import at.marcelr.mrchunks.MRChunks;
 import at.marcelr.mrchunks.Settings;
 import at.marcelr.mrchunks.Texts;
+import at.marcelr.mrchunks.util.MapAddress;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -231,20 +232,18 @@ final class SquaremapHook {
         }
     }
 
-    /** Address of the map: squaremap.public-url, otherwise squaremap's own web-address setting. */
-    String publicUrl() {
-        String configured = plugin.settings().squaremap().publicUrl();
-        if (!configured.isEmpty()) {
-            return configured;
-        }
+    /** Address of the map for players, see {@link MapAddress}. */
+    String publicUrl(String publicIp) {
+        Settings.SquaremapSettings settings = plugin.settings().squaremap();
+        String webAddress = "";
+        int port = 8080;
         Path config = api.webDir().getParent().resolve("config.yml");
         if (Files.exists(config)) {
-            String address = YamlConfiguration.loadConfiguration(config.toFile()).getString("settings.web-address", "");
-            if (!address.isBlank()) {
-                return address;
-            }
+            YamlConfiguration squaremapConfig = YamlConfiguration.loadConfiguration(config.toFile());
+            webAddress = squaremapConfig.getString("settings.web-address", "");
+            port = squaremapConfig.getInt("settings.internal-webserver.port", 8080);
         }
-        return "";
+        return MapAddress.build(settings.address(), settings.reverseProxy(), webAddress, Bukkit.getIp(), publicIp, port);
     }
 
     private Color colorOf(Loader loader, Settings.SquaremapSettings settings) {

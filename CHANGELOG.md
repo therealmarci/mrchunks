@@ -16,6 +16,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   Betrachter. Sie folgt der Höhe, lässt sich im Menü ausblenden und verschwindet beim Löschen des Loaders.
   Neue Optionen unter `border` (Farbe, Block, Dicke, Höhe), `particle` und `spacing` entfallen.
 - **Überschneidungen** wählbar über `loaders.overlap`: `allow`, `warn` (Standard: Hinweis + Grenze), `deny-own`, `deny-all`.
+- **Adresse der Webkarte** über `squaremap.address` (Domain/FQDN, IP oder komplette URL), automatisch mit squaremaps
+  `web-address`, `server-ip` oder der öffentlichen IP. `squaremap.reverse-proxy: true` für Links ohne Port per https,
+  auch Unterpfade hinter einem Proxy funktionieren. Ersetzt `squaremap.public-url` (wird automatisch übernommen).
 - Fehlende Loader-Blöcke (z.B. nach `/fill` oder `/setblock`) werden zusätzlich geprüft, sobald ihr Chunk lädt,
   also auch bei deaktivierten Loadern.
 - **Sprachdateien:** Alle Texte stehen in `plugins/MRchunks/lang/<sprache>.yml`, mitgeliefert werden Deutsch (`de`)
@@ -27,7 +30,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 - `/chunkloader info` ist jetzt eine reine Befehlshilfe; die eigenen Loader zeigt `/chunkloader list`.
   Die Permission `mrchunks.info` entfällt.
 - Admin-Befehle `tp`, `toggle` und `delete` nehmen `<spieler> <nr>` statt einer internen ID.
-- Config-Version 2.
+- Config-Version 3.
 - **Versionsschema mit Minecraft-Version:** `mc26.3-v0.2.0` (Git-Tag, JAR-Name, Modrinth), im Spiel `0.2.0+mc26.3`.
   Mehrere Minecraft-Versionen lassen sich parallel versorgen (Wartungs-Branches `mc/<version>`, siehe
   `docs/RELEASES.md`). Der Update-Checker meldet nur Versionen für dieselbe Minecraft-Version.

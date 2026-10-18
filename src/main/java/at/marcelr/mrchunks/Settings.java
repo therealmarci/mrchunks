@@ -57,7 +57,7 @@ public record Settings(
                                     String endName, boolean hidePlayers, String layerName, boolean defaultHidden, boolean showInactive,
                                     java.awt.Color color, java.awt.Color inactiveColor, double fillOpacity,
                                     boolean showIcon, String hoverTooltip, String clickTooltip, int updateSeconds,
-                                    String publicUrl, GridSettings grid) {
+                                    String address, boolean reverseProxy, boolean detectPublicIp, GridSettings grid) {
     }
 
     public record GridSettings(boolean enabled, boolean defaultVisible, String color, double opacity,
@@ -127,7 +127,9 @@ public record Settings(
                 texts.optional("map-hover-tooltip"),
                 texts.optional("map-click-tooltip"),
                 Math.clamp(c.getInt("squaremap.update-seconds", 60), 5, 3600),
-                c.getString("squaremap.public-url", "").trim(),
+                c.getString("squaremap.address", "").trim(),
+                c.getBoolean("squaremap.reverse-proxy", false),
+                c.getBoolean("squaremap.detect-public-ip", true),
                 new GridSettings(
                         c.getBoolean("squaremap.chunk-grid.enabled", true),
                         c.getBoolean("squaremap.chunk-grid.default-visible", true),

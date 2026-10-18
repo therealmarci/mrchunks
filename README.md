@@ -167,7 +167,35 @@ MRchunks zeigt die Chunkloader auf **[squaremap](https://modrinth.com/plugin/squ
    /squaremap fullrender minecraft:the_end
    ```
    Weiße Flächen sind Gebiete, die noch nie erzeugt wurden. Für eine vorab gefüllte Karte die Welt vorher mit [Chunky](https://modrinth.com/plugin/chunky) erzeugen (z.B. `/chunky world world_nether`, `/chunky radius 1000`, `/chunky start`).
-4. **Port 8080 beim Hoster freigeben** und den öffentlichen Link unter `squaremap.public-url` eintragen, z.B. `http://play.deinserver.de:8080`, oder in der squaremap-Config als `web-address`. Dann bekommen alle Spieler den Link mit **`/chunkloader map`** (auch in `/chunkloader info`).
+4. **Adresse festlegen**, damit Spieler mit **`/chunkloader map`** einen funktionierenden Link bekommen (siehe unten).
+
+### Adresse der Karte & Reverse Proxy
+`squaremap.address` in der MRchunks-Config bestimmt den Link:
+
+| `address` | `reverse-proxy` | Link |
+|---|---|---|
+| `""` (Standard) | – | automatisch: squaremaps `web-address` (falls geändert), sonst `server-ip` aus der `server.properties`, sonst die öffentliche IP → `http://1.2.3.4:8080/` |
+| `map.deinserver.de` | `false` | `http://map.deinserver.de:8080/` (Port von squaremaps internem Webserver) |
+| `map.deinserver.de` | `true` | `https://map.deinserver.de/` |
+| `https://deinserver.de/karte/` | egal | genau so, z.B. für einen Proxy mit Pfad |
+
+- **Ohne Proxy:** Port 8080 (bzw. `internal-webserver.port` in `plugins/squaremap/config.yml`) beim Hoster freigeben.
+- **Öffentliche IP:** Wird nur ermittelt, wenn `address` leer ist und keine `server-ip` gesetzt ist, einmal beim Start über `checkip.amazonaws.com`. Abschalten: `squaremap.detect-public-ip: false`.
+- **Reverse Proxy (nginx, Caddy, Traefik, Cloudflare Tunnel …):** Der Proxy leitet auf squaremaps Port weiter. Die Karte und das Chunkraster laden alles über relative Pfade und funktionieren deshalb auch unter einem Unterpfad wie `/karte/`. Läuft der Proxy auf demselben Rechner, squaremap am besten nur lokal lauschen lassen (`internal-webserver.bind: 127.0.0.1`), dann ist Port 8080 von außen zu. Beispiel nginx:
+  ```nginx
+  server {
+      server_name map.deinserver.de;
+      # listen 443 ssl; + Zertifikat (z.B. per certbot)
+      location / {
+          proxy_pass http://127.0.0.1:8080/;
+          proxy_set_header Host $host;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+      }
+  }
+  ```
+  Unter einem Pfad: `location /karte/ { proxy_pass http://127.0.0.1:8080/; }`, dazu in MRchunks `address: "https://deinserver.de/karte/"`.
+- **Eigener Webserver statt squaremaps internem:** Liefert nginx o.ä. den Ordner `plugins/squaremap/web` direkt aus (`internal-webserver.enabled: false`), funktioniert das Chunkraster ebenfalls, weil MRchunks seine Datei direkt in diesen Ordner schreibt.
 
 ### Was MRchunks auf der Karte zeigt
 - **Ebene „Chunkloader“:** pro Loader der 7×7-Bereich als farbige Fläche, eine Farbe pro Owner, deaktivierte Loader grau. Dazu ein Chunkloader-Symbol und Infos beim Darüberfahren oder Anklicken (Owner, Position, Bereich, Status). Änderungen erscheinen sofort.

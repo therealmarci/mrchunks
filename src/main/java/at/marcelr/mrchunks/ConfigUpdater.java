@@ -22,12 +22,14 @@ import java.util.logging.Level;
  */
 public final class ConfigUpdater {
 
-    public static final int CURRENT_VERSION = 2;
+    public static final int CURRENT_VERSION = 3;
     public static final String BOM = "\uFEFF";
     /** Texts whose content changed with new features; the new default replaces the old value. */
     private static final Set<String> REPLACED_KEYS = Set.of();
     /** Keys that were renamed: old path -> new path (the value is carried over). */
-    private static final Map<String, String> RENAMED_KEYS = Map.of();
+    private static final Map<String, String> RENAMED_KEYS = Map.of(
+            // v3
+            "squaremap.public-url", "squaremap.address");
 
     private ConfigUpdater() {
     }

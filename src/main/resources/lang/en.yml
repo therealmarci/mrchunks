@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Do not change - tells the plugin which texts need to be renewed on updates.
-lang-version: 3
+lang-version: 4
 
 # Discord log texts (Discord markdown). Placeholders: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {time} {reason} {count} {type} {limit}. On/off and colour are set in config.yml.
@@ -165,7 +165,7 @@ bans-entry: "<dark_gray> - <white><player></white> <gray>(<duration>, reason: <r
 bans-empty: "<prefix><gray>Nobody is banned."
 map-status-on: "<prefix><green>Web map active <gray>(squaremap, layer \"Chunk Loaders\"): <link>"
 map-status-off: "<prefix><gray>No web map: squaremap is <white><status></white>. <dark_gray>(https://modrinth.com/plugin/squaremap)"
-map-url-unknown: "<gray>address unknown - set squaremap.public-url"
+map-url-unknown: "<gray>address unknown - set squaremap.address"
 map-squaremap-missing: "<prefix><red>squaremap is not installed."
 map-setup-done: "<prefix><green>squaremap set up: <white><changes></white>. <gray>Reloading squaremap."
 map-setup-nothing: "<prefix><gray>squaremap is already set up correctly."

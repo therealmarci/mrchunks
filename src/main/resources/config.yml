@@ -15,7 +15,7 @@
 # ==============================================================================
 
 # Nicht ändern - wird für automatische Config-Updates verwendet.
-config-version: 2
+config-version: 3
 
 # Sprache aller Texte: de = Deutsch, en = English. Die Texte stehen in plugins/MRchunks/lang/<sprache>.yml
 # und können dort angepasst werden. Eigene Sprache: Datei kopieren (z.B. fr.yml), übersetzen, language: fr.
@@ -133,9 +133,18 @@ squaremap:
   show-icon: true
   # Spätestens so oft werden die Markierungen neu abgeglichen (Änderungen erscheinen sonst sofort).
   update-seconds: 60
-  # Öffentlicher Link zur Karte für /chunkloader map, z.B. "http://play.deinserver.de:8080".
-  # Leer = die "web-address" aus der squaremap-Config wird verwendet.
-  public-url: ""
+  # Adresse der Webkarte für Spieler (/chunkloader map, Link im Chat):
+  #   ""                             = automatisch: "web-address" aus der squaremap-Config (falls geändert),
+  #                                    sonst server-ip aus der server.properties, sonst die öffentliche IP
+  #   "map.deinserver.de"            = eigene Domain (FQDN) oder IP - der squaremap-Port wird angehängt
+  #   "https://deinserver.de/karte/" = komplette URL, wird genau so verwendet (z.B. Reverse Proxy mit Pfad)
+  address: ""
+  # true = die Karte läuft hinter einem Reverse Proxy (nginx, Caddy, Traefik, Cloudflare ...):
+  #        der Link wird zu https://<address>/ ohne Port. Den Proxy auf squaremaps Port weiterleiten lassen.
+  reverse-proxy: false
+  # Öffentliche IP einmal beim Start über checkip.amazonaws.com ermitteln, falls address leer ist und in der
+  # server.properties keine server-ip steht (es wird nur abgefragt, nichts gesendet).
+  detect-public-ip: true
 
   # Chunkraster auf der Karte (MRchunks ergänzt squaremap um ein eigenes Raster-Overlay).
   chunk-grid:
