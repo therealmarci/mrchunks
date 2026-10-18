@@ -53,7 +53,6 @@ public final class Messages {
     private volatile YamlConfiguration lang = new YamlConfiguration();
     /** The bundled English texts - the console is always English, whatever language players get. */
     private volatile YamlConfiguration english = new YamlConfiguration();
-    private String language = BUNDLED.getFirst();
 
     /** Loads the language file for the given tag (e.g. "de", "en", "eng", "de_DE"). */
     public void load(JavaPlugin plugin, String tag) {
@@ -116,7 +115,6 @@ public final class Messages {
                 plugin.getLogger().log(Level.WARNING, "Could not update lang/" + code + ".yml: " + e.getMessage());
             }
         }
-        language = code;
         english = code.equals("en") ? defaults : bundled(plugin, "en");
         lang = loaded;
     }
@@ -145,11 +143,6 @@ public final class Messages {
             plugin.getLogger().log(Level.WARNING, "Bundled language file " + code + " is invalid: " + e.getMessage());
         }
         return config;
-    }
-
-    /** The active language code, e.g. "de". */
-    public String language() {
-        return language;
     }
 
     /** Texts for the current recipient: English while something is sent to the console, otherwise the language file. */

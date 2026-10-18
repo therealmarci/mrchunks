@@ -8,13 +8,13 @@ group = "at.marcelr"
 // Versionen kommen aus gradle.properties: "version" ist die Plugin-Version (SemVer), "mcVersion" die
 // Minecraft-Version dieses Branches. Veröffentlicht wird beides zusammen, z.B. "mc26.3-v1.2.0".
 val pluginVersion = project.version.toString()
-val mcVersion: String by project
-val paperApi: String by project
+val mcVersion = providers.gradleProperty("mcVersion").get()
+val paperApi = providers.gradleProperty("paperApi").get()
 version = "mc$mcVersion-v$pluginVersion"
 
-val modrinthProjectId: String by project
-val githubRepository: String by project
-val supportedGameVersions: String by project
+val modrinthProjectId = providers.gradleProperty("modrinthProjectId").get()
+val githubRepository = providers.gradleProperty("githubRepository").get()
+val supportedGameVersions = providers.gradleProperty("supportedGameVersions").get()
 val isPrerelease = pluginVersion.let { it.startsWith("0.") || it.contains("-") }
 
 repositories {
