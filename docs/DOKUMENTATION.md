@@ -124,7 +124,7 @@ bans:
 
 ## 9. Entwicklung
 ```text
-gradlew.bat build     Kompilieren + Tests + JAR  → build/libs/MRchunks-<version>.jar
+gradlew.bat build     Kompilieren + Tests + JAR  → build/libs/MRchunks-mc<minecraft>-v<version>.jar
 ```
 Der Release-Ablauf entspricht MRsleep, siehe **[RELEASES.md](RELEASES.md)**: Versionen heißen `mc<minecraft>-v<version>` (z.B. `mc26.3-v0.2.0`), entwickelt wird auf `beta`, stabile Versionen kommen von `main` oder einem Wartungs-Branch `mc/<version>`, und `release.yml` lädt auf GitHub und Modrinth hoch (Secret `MODRINTH_TOKEN`). Die Konsole ist immer englisch (`Messages#as`, `Messages#console`), Spieler bekommen die Sprache aus `language`.
 

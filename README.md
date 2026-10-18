@@ -6,9 +6,10 @@ Chunkloader-Plugin für **Paper 26.3** (Java 25).
 > Befehle und Permissions noch ändern. Fehler bitte als [Issue](https://github.com/therealmarci/mrchunks/issues) melden.
 
 - **Chunkloader-Blöcke** (Aussehen: Emeraldblock): Einmal platziert, bleibt ein **7×7-Chunk-Bereich** dauerhaft geladen, auch wenn der Spieler offline ist. Das funktioniert in **allen Dimensionen**.
-- **Limit pro Spieler** aus der Config, mehr per Permission oder Admin-Befehl.
+- **Zwei Limits pro Spieler** (setzbar / gleichzeitig aktiv) aus der Config, mehr per Permission oder Admin-Befehl.
+- **Mitspieler einladen**, die Loader an- und auszuschalten, für einen oder alle Loader, befristet oder dauerhaft.
 - **Unzerstörbar:** kein Abbauen, keine Explosionen, Kolben, Wither oder Endermen.
-- **Menü per Rechtsklick:** Infos, umbenennen, Grenze anzeigen, an/aus, löschen.
+- **Menü per Rechtsklick:** Infos, umbenennen, Mitglieder, Grenze anzeigen, an/aus, löschen.
 - **Admin-Menü:** alle Spieler und ihre Chunkloader, mit Teleport, an/aus, löschen, Limit und Sperre.
 - **Webkarte mit echtem Gelände** über [squaremap](https://modrinth.com/plugin/squaremap): alle Bereiche, Chunkraster, Overworld/Nether/End. squaremap wird automatisch erkannt und eingerichtet.
 - **Discord-Logs**, **Update-Prüfung**, alles einstellbar in einer `config.yml`, eine Permission für jede Funktion.
@@ -17,7 +18,7 @@ Chunkloader-Plugin für **Paper 26.3** (Java 25).
 ---
 
 ## Installation
-1. `MRchunks-<version>.jar` in den Ordner `plugins/` legen und den Server starten.
+1. Die JAR für deine Minecraft-Version in den Ordner `plugins/` legen, z.B. `MRchunks-mc26.3-v0.1.0.jar` für Minecraft 26.3, und den Server starten.
 2. `plugins/MRchunks/config.yml` anpassen und `/mrchunks reload` ausführen.
 
 Bei Updates wird die Config automatisch migriert: Deine Werte bleiben erhalten, und eine Sicherung `config.v<N>.backup.yml` wird angelegt.
