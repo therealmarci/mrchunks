@@ -71,7 +71,7 @@ jobs:
           { echo 'CHANGELOG<<EOF_CHANGELOG'; cat release-notes.md; echo 'EOF_CHANGELOG'; } >> "$GITHUB_ENV"
 
       - name: GitHub-Release erstellen
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: MRchunks ${{ env.VERSION }} (MC ${{ env.MC }})
           body_path: release-notes.md
