@@ -8,9 +8,6 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 > Befehle und Permissions noch ändern.
 
 ## [Unveröffentlicht]
-### Behoben
-- Zu lange Fenstertitel ragten aus dem Menü (z.B. bei langen Loader- oder Spielernamen). Die Titel sind kürzer und
-  werden bei Bedarf automatisch mit „…“ gekürzt.
 
 ## [0.2.0] - 2026-10-18
 Zweite Testversion für Minecraft **26.3** (`mc26.3-v0.2.0`) mit den Rückmeldungen aus dem Alpha-Test.
@@ -29,6 +26,10 @@ Zweite Testversion für Minecraft **26.3** (`mc26.3-v0.2.0`) mit den Rückmeldun
   `activelimit`; `/mrchunks list` entfällt (das Admin-Menü zeigt alles), ebenso die Permission `mrchunks.admin.list` (#9).
 - **Neue Anordnung im Chunkloader-Menü:** An/Aus, Mitglieder, Grenze, Umbenennen, Löschen; Teleport nur für Admins
   unten rechts (#10).
+
+### Behoben
+- Zu lange Fenstertitel ragten aus dem Menü (z.B. bei langen Loader- oder Spielernamen). Die Titel sind kürzer und
+  werden bei Bedarf automatisch mit „…“ gekürzt.
 
 ## [0.1.0] - 2026-10-18
 **Erste Testversion (Alpha)** für Minecraft **26.3** (`mc26.3-v0.1.0`).
