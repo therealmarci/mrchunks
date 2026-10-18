@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 
@@ -35,6 +37,15 @@ public final class Messages {
     private static final Map<String, String> ALIASES = Map.of(
             "eng", "en", "english", "en", "englisch", "en",
             "deu", "de", "ger", "de", "german", "de", "deutsch", "de");
+
+    /** Version of the bundled language files (lang-version); raise it together with {@link #CHANGED_TEXTS}. */
+    public static final int LANG_VERSION = 2;
+    /**
+     * Texts whose default changed, per lang-version. Older bundled-language files get these texts renewed;
+     * new texts are added anyway. Example: v2 added the Minecraft version to the version display.
+     */
+    private static final Map<Integer, Set<String>> CHANGED_TEXTS = new TreeMap<>(Map.of(
+            2, Set.of("version", "gui-info-name")));
 
     private final MiniMessage mini = MiniMessage.miniMessage();
     /** Set while texts for the console are built (see {@link #as}). */
@@ -69,18 +80,38 @@ public final class Messages {
                     + e.getMessage());
         }
         YamlConfiguration defaults = bundled(plugin, BUNDLED.contains(code) ? code : BUNDLED.getFirst());
+        int fileVersion = loaded.getInt("lang-version", 1);
         int added = 0;
+        int replaced = 0;
+        // Texts whose default changed: renew them in the bundled languages (a custom language keeps its own).
+        if (BUNDLED.contains(code) && fileVersion < LANG_VERSION) {
+            for (Map.Entry<Integer, Set<String>> update : CHANGED_TEXTS.entrySet()) {
+                if (update.getKey() <= fileVersion) {
+                    continue;
+                }
+                for (String key : update.getValue()) {
+                    if (defaults.contains(key)) {
+                        loaded.set(key, defaults.get(key));
+                        replaced++;
+                    }
+                }
+            }
+        }
         for (String key : defaults.getKeys(true)) {
             if (!defaults.isConfigurationSection(key) && !loaded.contains(key, true)) {
                 loaded.set(key, defaults.get(key));
                 added++;
             }
         }
-        if (added > 0) {
+        if (fileVersion < LANG_VERSION) {
+            loaded.set("lang-version", LANG_VERSION);
+        }
+        if (added > 0 || fileVersion < LANG_VERSION) {
             try {
                 loaded.options().width(10_000);
                 Files.writeString(file.toPath(), ConfigUpdater.BOM + loaded.saveToString(), StandardCharsets.UTF_8);
-                plugin.getLogger().info("lang/" + code + ".yml: added " + added + " new texts.");
+                plugin.getLogger().info("lang/" + code + ".yml: added " + added + " new texts, updated " + replaced
+                        + " changed texts (lang-version " + fileVersion + " -> " + LANG_VERSION + ").");
             } catch (IOException e) {
                 plugin.getLogger().log(Level.WARNING, "Could not update lang/" + code + ".yml: " + e.getMessage());
             }

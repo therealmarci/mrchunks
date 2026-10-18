@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 #   MRchunks - language file: English (en)
 # ==============================================================================
 #   Activate: in config.yml  language: en
@@ -8,6 +8,9 @@
 #   Format: MiniMessage - https://docs.advntr.dev/minimessage/format.html
 #   Empty text ("") = the message is not sent.
 # ==============================================================================
+
+# Do not change - tells the plugin which texts need to be renewed on updates.
+lang-version: 2
 
 # Discord log texts (Discord markdown). Placeholders: {player} {admin} {id} {world} {x} {y} {z}
 # {state} {time} {reason} {count} {type} {limit}. On/off and colour are set in config.yml.
