@@ -8,6 +8,10 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 > Befehle und Permissions noch ändern.
 
 ## [Unveröffentlicht]
+
+## [0.2.0] - 2026-10-18
+Zweite Testversion für Minecraft **26.3** (`mc26.3-v0.2.0`) mit den Rückmeldungen aus dem Alpha-Test.
+
 ### Neu
 - **Einladen per Klick:** „Spieler einladen“ zeigt die Köpfe der Online-Spieler, die Dauer wird per Uhr gewählt.
   Offline-Spieler weiterhin über „Namen eingeben“ (#7).
