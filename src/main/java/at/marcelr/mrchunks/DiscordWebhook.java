@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 
 /**
@@ -48,7 +49,8 @@ public final class DiscordWebhook {
     private volatile Config config = Config.DISABLED;
     /** Language key of the reason why the webhook is off, or null if it is on. */
     private volatile String disabledReason = "discord-reason-disabled";
-    private volatile String lastResult;
+    /** Last delivery result, rendered when shown so it appears in the reader's language. */
+    private volatile Supplier<String> lastResult;
     private final Set<String> missingEventsLogged = ConcurrentHashMap.newKeySet();
 
     private record Event(boolean enabled, int color) {
@@ -153,7 +155,8 @@ public final class DiscordWebhook {
 
     /** Result of the last delivery attempt, e.g. "OK (HTTP 204) at 14:31:02", or null if nothing was sent yet. */
     public String lastResult() {
-        return lastResult;
+        Supplier<String> result = lastResult;
+        return result == null ? null : result.get();
     }
 
     /**
@@ -234,7 +237,6 @@ public final class DiscordWebhook {
 
     /** @return null on success, otherwise a description of the error (also logged and kept as {@link #lastResult}) */
     private String send(URI url, String payload) {
-        Messages messages = plugin.messages();
         HttpRequest request = HttpRequest.newBuilder(url)
                 .timeout(Duration.ofSeconds(15))
                 .header("Content-Type", "application/json")
@@ -246,7 +248,8 @@ public final class DiscordWebhook {
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 int status = response.statusCode();
                 if (status / 100 == 2) {
-                    lastResult = messages.plain("discord-result-ok", "status", status, "time", now());
+                    String time = now();
+                    lastResult = () -> plugin.messages().plain("discord-result-ok", "status", status, "time", time);
                     return null;
                 }
                 if (status != 429) {
@@ -271,7 +274,9 @@ public final class DiscordWebhook {
     private String fail(String key, String before, String after) {
         Messages messages = plugin.messages();
         String error = before + (key == null ? "" : messages.plain(key)) + after;
-        lastResult = messages.plain("discord-result-error", "time", now(), "error", error);
+        String time = now();
+        lastResult = () -> plugin.messages().plain("discord-result-error", "time", time,
+                "error", before + (key == null ? "" : plugin.messages().plain(key)) + after);
         plugin.getLogger().log(Level.WARNING, "Discord webhook: " + before + (key == null ? "" : messages.console(key)) + after);
         return error;
     }
