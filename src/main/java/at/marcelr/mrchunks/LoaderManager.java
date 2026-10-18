@@ -33,15 +33,14 @@ import java.util.logging.Level;
  */
 public final class LoaderManager {
 
-    public static final String PERM_LIMIT_PREFIX = "mrchunks.limit.";
-    public static final String PERM_UNLIMITED = "mrchunks.limit.unlimited";
-
     private final MRChunks plugin;
     private final File dataFile;
 
     private final Map<Integer, Loader> loaders = new LinkedHashMap<>();
     /** "world-uuid:x:y:z" -> loader, so block lookups (explosions, clicks) don't scan all loaders */
     private final Map<String, Loader> byPosition = new HashMap<>();
+    /** world -> chunk key -> loaders whose block is in that chunk (block checks on chunk load) */
+    private final Map<UUID, Map<Long, List<Loader>>> byChunk = new HashMap<>();
     private int nextId = 1;
 
     /** world -> chunk key -> number of active loaders covering that chunk */
@@ -53,7 +52,12 @@ public final class LoaderManager {
     private Settings.LoadMethod appliedMethod;
 
     private final Map<UUID, Integer> limitOverrides = new HashMap<>();
+    private final Map<UUID, Integer> activeOverrides = new HashMap<>();
     private final Map<UUID, Ban> bans = new HashMap<>();
+    /** loader id -> invited player -> valid until (ms, Long.MAX_VALUE = permanent) */
+    private final Map<Integer, Map<UUID, Long>> loaderMembers = new HashMap<>();
+    /** owner -> invited player -> valid until; such an invite covers all loaders of the owner, also future ones */
+    private final Map<UUID, Map<UUID, Long>> ownerMembers = new HashMap<>();
 
     /** Exclusion from chunk loaders. {@code until == Long.MAX_VALUE} means permanent. */
     public record Ban(long until, String reason, String by) {
@@ -92,6 +96,84 @@ public final class LoaderManager {
 
     private void index(Loader loader) {
         byPosition.put(positionKey(loader.worldId(), loader.x(), loader.y(), loader.z()), loader);
+        byChunk.computeIfAbsent(loader.worldId(), k -> new HashMap<>())
+                .computeIfAbsent(Loader.chunkKey(loader.chunkX(), loader.chunkZ()), k -> new ArrayList<>()).add(loader);
+    }
+
+    private void unindex(Loader loader) {
+        byPosition.remove(positionKey(loader.worldId(), loader.x(), loader.y(), loader.z()));
+        Map<Long, List<Loader>> chunks = byChunk.get(loader.worldId());
+        if (chunks != null) {
+            List<Loader> list = chunks.get(Loader.chunkKey(loader.chunkX(), loader.chunkZ()));
+            if (list != null && list.remove(loader) && list.isEmpty()) {
+                chunks.remove(Loader.chunkKey(loader.chunkX(), loader.chunkZ()));
+            }
+        }
+    }
+
+    /** Loaders whose block lies in the given chunk. */
+    public List<Loader> inChunk(World world, int cx, int cz) {
+        Map<Long, List<Loader>> chunks = byChunk.get(world.getUID());
+        List<Loader> list = chunks == null ? null : chunks.get(Loader.chunkKey(cx, cz));
+        return list == null ? List.of() : List.copyOf(list);
+    }
+
+    /** The owner's loader with that number, or null. */
+    public Loader byNumber(UUID owner, int number) {
+        for (Loader loader : loaders.values()) {
+            if (loader.owner().equals(owner) && loader.number() == number) {
+                return loader;
+            }
+        }
+        return null;
+    }
+
+    /** Lowest number the owner does not use yet (1, 2, 3 ... - a deleted number is used again). */
+    private int nextNumber(UUID owner) {
+        Set<Integer> used = new HashSet<>();
+        for (Loader loader : loaders.values()) {
+            if (loader.owner().equals(owner)) {
+                used.add(loader.number());
+            }
+        }
+        int number = 1;
+        while (used.contains(number)) {
+            number++;
+        }
+        return number;
+    }
+
+    /**
+     * Loaders whose area overlaps the area a loader at chunk {@code cx}/{@code cz} would have (same world).
+     * Two areas overlap if the centres are at most 2 * radius chunks apart on both axes.
+     */
+    public List<Loader> overlapping(World world, int cx, int cz, Loader except) {
+        int reach = plugin.settings().loaders().radius() * 2;
+        List<Loader> result = new ArrayList<>();
+        for (Loader loader : loaders.values()) {
+            if (loader != except && loader.worldId().equals(world.getUID())
+                    && Math.abs(loader.chunkX() - cx) <= reach && Math.abs(loader.chunkZ() - cz) <= reach) {
+                result.add(loader);
+            }
+        }
+        return result;
+    }
+
+    /** How many chunks of the area around {@code cx}/{@code cz} are also covered by one of {@code others}. */
+    public int sharedChunks(int cx, int cz, Collection<Loader> others) {
+        int r = plugin.settings().loaders().radius();
+        int shared = 0;
+        for (int x = cx - r; x <= cx + r; x++) {
+            for (int z = cz - r; z <= cz + r; z++) {
+                for (Loader other : others) {
+                    if (Math.abs(other.chunkX() - x) <= r && Math.abs(other.chunkZ() - z) <= r) {
+                        shared++;
+                        break;
+                    }
+                }
+            }
+        }
+        return shared;
     }
 
     public boolean isLoaderBlock(Block block) {
@@ -117,6 +199,7 @@ public final class LoaderManager {
         Set<UUID> players = new HashSet<>();
         loaders.values().forEach(l -> players.add(l.owner()));
         players.addAll(limitOverrides.keySet());
+        players.addAll(activeOverrides.keySet());
         players.addAll(activeBans().keySet());
         return players;
     }
@@ -136,13 +219,17 @@ public final class LoaderManager {
 
     // --------------------------------------------------------- create/delete
 
-    public Loader create(UUID owner, Block block) {
+    /** @param active false if the owner already has as many active loaders as allowed */
+    public Loader create(UUID owner, Block block, boolean active) {
         Loader loader = new Loader(nextId++, owner, block.getWorld().getUID(), block.getWorld().getName(),
-                block.getX(), block.getY(), block.getZ(), System.currentTimeMillis(), true);
+                block.getX(), block.getY(), block.getZ(), System.currentTimeMillis(), nextNumber(owner), null, active);
         loaders.put(loader.id(), loader);
         index(loader);
-        cover(loader);
+        if (active) {
+            cover(loader);
+        }
         save();
+        plugin.maps().refreshSoon();
         return loader;
     }
 
@@ -152,7 +239,9 @@ public final class LoaderManager {
             uncover(loader);
         }
         loaders.remove(loader.id());
-        byPosition.remove(positionKey(loader.worldId(), loader.x(), loader.y(), loader.z()));
+        unindex(loader);
+        loaderMembers.remove(loader.id());
+        plugin.border().loaderRemoved(loader);
         World world = loader.world();
         if (world != null) {
             Block block = world.getBlockAt(loader.x(), loader.y(), loader.z());
@@ -161,6 +250,7 @@ public final class LoaderManager {
             }
         }
         save();
+        plugin.maps().refreshSoon();
     }
 
     /** @return number of deleted loaders */
@@ -181,6 +271,15 @@ public final class LoaderManager {
             uncover(loader);
         }
         save();
+        plugin.maps().refreshSoon();
+        plugin.border().loaderChanged(loader);
+    }
+
+    /** Sets or (with null) removes the name the player gave the loader. */
+    public void rename(Loader loader, String name) {
+        loader.setName(name);
+        save();
+        plugin.maps().refreshSoon();
     }
 
     // ------------------------------------------------------------- tickets
@@ -287,12 +386,18 @@ public final class LoaderManager {
      * @return loaders whose block was missing, with true = restored, false = deleted
      */
     public Map<Loader, Boolean> validate() {
+        return validate(List.copyOf(loaders.values()));
+    }
+
+    /** Like {@link #validate()} for some loaders only (e.g. those in a chunk that just loaded). */
+    public Map<Loader, Boolean> validate(Collection<Loader> candidates) {
         Map<Loader, Boolean> result = new LinkedHashMap<>();
         Material material = plugin.settings().item().material();
         boolean restore = plugin.settings().loaders().restoreMissingBlocks();
-        for (Loader loader : List.copyOf(loaders.values())) {
+        for (Loader loader : candidates) {
             World world = loader.world();
-            if (world == null || !world.isChunkLoaded(loader.chunkX(), loader.chunkZ())) {
+            if (!loaders.containsKey(loader.id()) || world == null
+                    || !world.isChunkLoaded(loader.chunkX(), loader.chunkZ())) {
                 continue;
             }
             Block block = world.getBlockAt(loader.x(), loader.y(), loader.z());
@@ -312,18 +417,36 @@ public final class LoaderManager {
 
     // -------------------------------------------------------------- limits
 
-    /** @return the admin-set limit, or null if the player uses the default/permission limit */
-    public Integer limitOverride(UUID player) {
-        return limitOverrides.get(player);
+    /** The two caps per player: how many loaders may be placed, and how many of them may be active at once. */
+    public enum LimitKind {
+        PLACE("mrchunks.limit.", "mrchunks.limit.unlimited"),
+        ACTIVE("mrchunks.active.", "mrchunks.active.unlimited");
+
+        final String permPrefix;
+        final String permUnlimited;
+
+        LimitKind(String permPrefix, String permUnlimited) {
+            this.permPrefix = permPrefix;
+            this.permUnlimited = permUnlimited;
+        }
     }
 
-    public void setLimitOverride(UUID player, Integer limit) {
+    /** @return the admin-set limit, or null if the player uses the default/permission limit */
+    public Integer limitOverride(UUID player, LimitKind kind) {
+        return overrides(kind).get(player);
+    }
+
+    public void setLimitOverride(UUID player, LimitKind kind, Integer limit) {
         if (limit == null) {
-            limitOverrides.remove(player);
+            overrides(kind).remove(player);
         } else {
-            limitOverrides.put(player, Math.max(0, limit));
+            overrides(kind).put(player, Math.max(0, limit));
         }
         save();
+    }
+
+    private Map<UUID, Integer> overrides(LimitKind kind) {
+        return kind == LimitKind.PLACE ? limitOverrides : activeOverrides;
     }
 
     /** Where the effective limit comes from (for display). */
@@ -332,35 +455,82 @@ public final class LoaderManager {
     public record Limit(int value, LimitSource source) {
     }
 
+    /** How many loaders the player may place. */
+    public Limit limit(OfflinePlayer player) {
+        return limit(player, LimitKind.PLACE);
+    }
+
+    /** How many loaders of the player may be active at the same time. */
+    public Limit activeLimit(OfflinePlayer player) {
+        return limit(player, LimitKind.ACTIVE);
+    }
+
     /**
-     * Effective limit: an admin override wins; otherwise the highest {@code mrchunks.limit.<n>} permission
+     * Effective limit: an admin override wins; otherwise the highest {@code <prefix><n>} permission
      * (only known while the player is online), but never less than the config default.
      */
-    public Limit limit(OfflinePlayer player) {
-        Integer override = limitOverrides.get(player.getUniqueId());
+    public Limit limit(OfflinePlayer player, LimitKind kind) {
+        Integer override = overrides(kind).get(player.getUniqueId());
         if (override != null) {
             return new Limit(override, LimitSource.CUSTOM);
         }
-        int base = plugin.settings().loaders().defaultLimit();
+        Settings.LoaderSettings settings = plugin.settings().loaders();
+        int base = kind == LimitKind.PLACE ? settings.defaultLimit() : settings.defaultActiveLimit();
         Player online = player.getPlayer();
         if (online == null) {
             return new Limit(base, LimitSource.DEFAULT);
         }
-        if (online.hasPermission(PERM_UNLIMITED)) {
+        if (online.hasPermission(kind.permUnlimited)) {
             return new Limit(Integer.MAX_VALUE, LimitSource.UNLIMITED);
         }
         int best = -1;
         for (PermissionAttachmentInfo info : online.getEffectivePermissions()) {
             String perm = info.getPermission();
-            if (info.getValue() && perm.startsWith(PERM_LIMIT_PREFIX)) {
+            if (info.getValue() && perm.startsWith(kind.permPrefix)) {
                 try {
-                    best = Math.max(best, Integer.parseInt(perm.substring(PERM_LIMIT_PREFIX.length())));
+                    best = Math.max(best, Integer.parseInt(perm.substring(kind.permPrefix.length())));
                 } catch (NumberFormatException ignored) {
-                    // e.g. mrchunks.limit.unlimited or a typo
+                    // e.g. "...unlimited" or a typo
                 }
             }
         }
         return best > base ? new Limit(best, LimitSource.PERMISSION) : new Limit(base, LimitSource.DEFAULT);
+    }
+
+    public int activeCount(UUID owner) {
+        int count = 0;
+        for (Loader loader : loaders.values()) {
+            if (loader.active() && loader.owner().equals(owner)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /** True if one more of the player's loaders may be activated. */
+    public boolean canActivate(OfflinePlayer player) {
+        return activeCount(player.getUniqueId()) < activeLimit(player).value();
+    }
+
+    /**
+     * Deactivates the newest active loaders until the player is within their active limit.
+     * @return the deactivated loaders
+     */
+    public List<Loader> enforceActiveLimit(OfflinePlayer player) {
+        int limit = activeLimit(player).value();
+        List<Loader> active = new ArrayList<>();
+        for (Loader loader : byOwner(player.getUniqueId())) {
+            if (loader.active()) {
+                active.add(loader);
+            }
+        }
+        List<Loader> deactivated = new ArrayList<>();
+        // byOwner keeps creation order: keep the oldest ones running
+        for (int i = active.size() - 1; i >= 0 && active.size() - deactivated.size() > limit; i--) {
+            setActive(active.get(i), false);
+            deactivated.add(active.get(i));
+        }
+        return deactivated;
     }
 
     // ---------------------------------------------------------------- bans
@@ -400,13 +570,77 @@ public final class LoaderManager {
         return result;
     }
 
+    // ------------------------------------------------------------- invites
+
+    /**
+     * Invites {@code member} to switch loaders on and off: one loader, or with {@code loader == null} all loaders of
+     * {@code owner}. Invites never count towards anyone's limits.
+     * @param durationMillis duration, or {@link Settings#PERMANENT}
+     */
+    public void invite(UUID owner, Loader loader, UUID member, long durationMillis) {
+        long until = durationMillis == Settings.PERMANENT ? Long.MAX_VALUE : System.currentTimeMillis() + durationMillis;
+        membersOf(owner, loader, true).put(member, until);
+        save();
+    }
+
+    /** @return true if the player was invited */
+    public boolean uninvite(UUID owner, Loader loader, UUID member) {
+        Map<UUID, Long> members = membersOf(owner, loader, false);
+        boolean had = members != null && members.remove(member) != null;
+        if (had) {
+            save();
+        }
+        return had;
+    }
+
+    /** Current invites (not expired) of one loader, or with {@code loader == null} the owner-wide ones. */
+    public Map<UUID, Long> members(UUID owner, Loader loader) {
+        Map<UUID, Long> members = membersOf(owner, loader, false);
+        if (members == null) {
+            return Map.of();
+        }
+        long now = System.currentTimeMillis();
+        members.values().removeIf(until -> until <= now);
+        return Map.copyOf(members);
+    }
+
+    private Map<UUID, Long> membersOf(UUID owner, Loader loader, boolean create) {
+        if (loader == null) {
+            return create ? ownerMembers.computeIfAbsent(owner, k -> new HashMap<>()) : ownerMembers.get(owner);
+        }
+        return create ? loaderMembers.computeIfAbsent(loader.id(), k -> new HashMap<>()) : loaderMembers.get(loader.id());
+    }
+
+    /** Whether {@code player} is invited to this loader (directly or for all loaders of its owner). */
+    public boolean isMember(UUID player, Loader loader) {
+        long now = System.currentTimeMillis();
+        Map<UUID, Long> direct = loaderMembers.get(loader.id());
+        Map<UUID, Long> owner = ownerMembers.get(loader.owner());
+        return (direct != null && direct.getOrDefault(player, 0L) > now) || (owner != null && owner.getOrDefault(player, 0L) > now);
+    }
+
+    /** Loaders of other players that {@code player} may switch on and off. */
+    public List<Loader> sharedWith(UUID player) {
+        List<Loader> result = new ArrayList<>();
+        for (Loader loader : loaders.values()) {
+            if (!loader.owner().equals(player) && isMember(player, loader)) {
+                result.add(loader);
+            }
+        }
+        return result;
+    }
+
     // --------------------------------------------------------- persistence
 
     public void load() {
         loaders.clear();
         byPosition.clear();
+        byChunk.clear();
         limitOverrides.clear();
+        activeOverrides.clear();
         bans.clear();
+        loaderMembers.clear();
+        ownerMembers.clear();
         nextId = 1;
         if (!dataFile.exists()) {
             return;
@@ -426,14 +660,15 @@ public final class LoaderManager {
                     world = Bukkit.getWorld(rawWorld).getUID();
                 }
                 if (owner == null || world == null) {
-                    plugin.getLogger().warning("Chunkloader #" + key + " in data.yml ist unvollständig und wird übersprungen.");
+                    plugin.getLogger().warning("Chunk loader #" + key + " in data.yml is incomplete and is skipped.");
                     continue;
                 }
                 int id = Integer.parseInt(key);
+                String name = s.getString("name");
                 loaders.put(id, new Loader(id, owner, world, s.getString("world-name", "?"),
-                        s.getInt("x"), s.getInt("y"), s.getInt("z"),
-                        s.getLong("created"), s.getBoolean("active", true)));
-                index(loaders.get(id));
+                        s.getInt("x"), s.getInt("y"), s.getInt("z"), s.getLong("created"),
+                        s.getInt("number", 0), name == null || name.isBlank() ? null : name,
+                        s.getBoolean("active", true)));
                 nextId = Math.max(nextId, id + 1);
             }
         }
@@ -443,6 +678,15 @@ public final class LoaderManager {
                 UUID uuid = parseUuid(key);
                 if (uuid != null) {
                     limitOverrides.put(uuid, limitSection.getInt(key));
+                }
+            }
+        }
+        ConfigurationSection activeSection = data.getConfigurationSection("active-limits");
+        if (activeSection != null) {
+            for (String key : activeSection.getKeys(false)) {
+                UUID uuid = parseUuid(key);
+                if (uuid != null) {
+                    activeOverrides.put(uuid, activeSection.getInt(key));
                 }
             }
         }
@@ -456,6 +700,72 @@ public final class LoaderManager {
                 }
             }
         }
+        readMembers(data.getConfigurationSection("members.loaders"), true);
+        readMembers(data.getConfigurationSection("members.owners"), false);
+        // Only now (limits and bans are read), because it may save.
+        assignMissingNumbers();
+        loaders.values().forEach(this::index);
+    }
+
+    private void readMembers(ConfigurationSection section, boolean perLoader) {
+        if (section == null) {
+            return;
+        }
+        for (String key : section.getKeys(false)) {
+            ConfigurationSection entries = section.getConfigurationSection(key);
+            if (entries == null) {
+                continue;
+            }
+            Map<UUID, Long> members = new HashMap<>();
+            for (String member : entries.getKeys(false)) {
+                UUID uuid = parseUuid(member);
+                if (uuid != null) {
+                    members.put(uuid, entries.getLong(member));
+                }
+            }
+            if (perLoader) {
+                try {
+                    loaderMembers.put(Integer.parseInt(key), members);
+                } catch (NumberFormatException ignored) {
+                    // hand-edited garbage
+                }
+            } else {
+                UUID owner = parseUuid(key);
+                if (owner != null) {
+                    ownerMembers.put(owner, members);
+                }
+            }
+        }
+    }
+
+    /**
+     * Older data.yml files have no per-owner numbers (and a hand-edited one may contain duplicates):
+     * number those loaders in creation order with the lowest free numbers.
+     */
+    private void assignMissingNumbers() {
+        Map<UUID, Set<Integer>> used = new HashMap<>();
+        List<Loader> missing = new ArrayList<>();
+        for (Loader loader : loaders.values()) {
+            if (loader.number() > 0 && used.computeIfAbsent(loader.owner(), k -> new HashSet<>()).add(loader.number())) {
+                continue;
+            }
+            missing.add(loader);
+        }
+        if (missing.isEmpty()) {
+            return;
+        }
+        missing.sort(java.util.Comparator.comparingLong(Loader::created).thenComparingInt(Loader::id));
+        for (Loader old : missing) {
+            Set<Integer> taken = used.computeIfAbsent(old.owner(), k -> new HashSet<>());
+            int number = 1;
+            while (taken.contains(number)) {
+                number++;
+            }
+            taken.add(number);
+            loaders.put(old.id(), new Loader(old.id(), old.owner(), old.worldId(), old.worldName(), old.x(), old.y(),
+                    old.z(), old.created(), number, old.name(), old.active()));
+        }
+        save();
     }
 
     public void save() {
@@ -471,18 +781,33 @@ public final class LoaderManager {
             data.set(p + "y", loader.y());
             data.set(p + "z", loader.z());
             data.set(p + "created", loader.created());
+            data.set(p + "number", loader.number());
+            data.set(p + "name", loader.name());
             data.set(p + "active", loader.active());
         }
         limitOverrides.forEach((uuid, limit) -> data.set("limits." + uuid, limit));
+        activeOverrides.forEach((uuid, limit) -> data.set("active-limits." + uuid, limit));
         bans.forEach((uuid, ban) -> {
             data.set("bans." + uuid + ".until", ban.until());
             data.set("bans." + uuid + ".reason", ban.reason());
             data.set("bans." + uuid + ".by", ban.by());
         });
+        long now = System.currentTimeMillis();
+        loaderMembers.keySet().removeIf(id -> !loaders.containsKey(id));
+        loaderMembers.forEach((id, members) -> members.forEach((uuid, until) -> {
+            if (until > now) {
+                data.set("members.loaders." + id + "." + uuid, until);
+            }
+        }));
+        ownerMembers.forEach((owner, members) -> members.forEach((uuid, until) -> {
+            if (until > now) {
+                data.set("members.owners." + owner + "." + uuid, until);
+            }
+        }));
         try {
             data.save(dataFile);
         } catch (IOException e) {
-            plugin.getLogger().log(Level.WARNING, "Konnte data.yml nicht speichern", e);
+            plugin.getLogger().log(Level.WARNING, "Could not save data.yml", e);
         }
     }
 

@@ -1,32 +1,42 @@
 name: MRchunks
 version: '${version}'
 main: at.marcelr.mrchunks.MRChunks
-api-version: '26.3'
+api-version: '${mcVersion}'
+softdepend: [squaremap]
 author: _therealmarci
 website: https://github.com/${githubRepository}
-description: Chunkloader-Blöcke mit Limits, Menüs, Admin-GUI, Webkarte und Discord-Logs.
+description: Chunkloader-Blöcke mit Limits, Menüs, Admin-GUI, squaremap-Anbindung und Discord-Logs.
 
 commands:
   chunkloader:
     description: Chunkloader holen, entfernen, auflisten und Infos anzeigen.
-    usage: /chunkloader <give|remove|list|info>
+    usage: /chunkloader <give|remove|list|info|map>
     aliases: [cl, chunkloaders]
   mrchunks:
     description: Verwaltung von MRchunks.
-    usage: /mrchunks <gui|list|tp|toggle|delete|limit|ban|unban|bans|web|discord|reload|version>
+    usage: /mrchunks <gui|list|tp|toggle|delete|limit|activelimit|ban|unban|bans|map|discord|reload|version>
 
 permissions:
   mrchunks.use:
     description: Chunkloader holen (/chunkloader give|remove|list), setzen und die eigenen verwalten.
     default: true
-  mrchunks.info:
-    description: /chunkloader info
+  mrchunks.map:
+    description: /chunkloader map - Link zur Webkarte.
     default: true
   mrchunks.view:
     description: Das Menü fremder Chunkloader öffnen (nur ansehen und Grenze anzeigen).
     default: true
+  mrchunks.invite:
+    description: Andere Spieler einladen, die eigenen Chunkloader an- und auszuschalten.
+    default: true
+  mrchunks.exempt:
+    description: Schließt vom Chunkloading komplett aus (z.B. Zweit-Accounts) - keine Loader, keine Einladungen. Vorhandene Loader werden gelöscht. Achtung, "*" in LuckPerms enthält das auch!
+    default: false
   mrchunks.limit.unlimited:
     description: Beliebig viele Chunkloader. Feste Grenzen gehen per mrchunks.limit.<anzahl>, z.B. mrchunks.limit.10.
+    default: false
+  mrchunks.active.unlimited:
+    description: Beliebig viele gleichzeitig aktive Chunkloader. Feste Grenzen per mrchunks.active.<anzahl>, z.B. mrchunks.active.3.
     default: false
   mrchunks.admin:
     description: Alle Admin-Rechte von MRchunks.
@@ -38,7 +48,7 @@ permissions:
       mrchunks.admin.teleport: true
       mrchunks.admin.limit: true
       mrchunks.admin.ban: true
-      mrchunks.admin.web: true
+      mrchunks.admin.map: true
       mrchunks.admin.discord: true
       mrchunks.admin.reload: true
       mrchunks.admin.update: true
@@ -55,13 +65,13 @@ permissions:
     description: Zu Chunkloadern teleportieren.
     default: op
   mrchunks.admin.limit:
-    description: Individuelle Limits vergeben (/mrchunks limit).
+    description: Individuelle Limits vergeben (/mrchunks limit und /mrchunks activelimit).
     default: op
   mrchunks.admin.ban:
     description: Spieler für Chunkloader sperren und entsperren.
     default: op
-  mrchunks.admin.web:
-    description: /mrchunks web - Link zur Webkarte.
+  mrchunks.admin.map:
+    description: /mrchunks map [setup] - Status der Webkarte, squaremap einrichten.
     default: op
   mrchunks.admin.discord:
     description: /mrchunks discord [test]

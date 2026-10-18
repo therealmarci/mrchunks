@@ -1,12 +1,13 @@
 package at.marcelr.mrchunks.command;
 
 import at.marcelr.mrchunks.AdminActions;
-import at.marcelr.mrchunks.Loader;
 import at.marcelr.mrchunks.LoaderManager;
 import at.marcelr.mrchunks.MRChunks;
 import at.marcelr.mrchunks.Messages;
 import at.marcelr.mrchunks.Texts;
 import at.marcelr.mrchunks.gui.MyLoadersMenu;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
@@ -24,11 +25,12 @@ import static at.marcelr.mrchunks.Messages.tag;
  * /chunkloader give [anzahl]       - loader items into the inventory (within the limit)
  * /chunkloader remove [anzahl|all] - take loader items out of the inventory
  * /chunkloader list                - menu with the own loaders
- * /chunkloader info                - how it works + own loaders
+ * /chunkloader info                - command help (the own loaders are in /chunkloader list)
+ * /chunkloader map                 - link to the web map
  */
 public final class ChunkloaderCommand implements TabExecutor {
 
-    private static final String PERM_INFO = "mrchunks.info";
+    private static final String PERM_MAP = "mrchunks.map";
 
     private final MRChunks plugin;
 
@@ -38,6 +40,11 @@ public final class ChunkloaderCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        // From the console every text is English, also values built along the way.
+        return plugin.messages().as(sender, () -> handle(sender, command, label, args));
+    }
+
+    private boolean handle(CommandSender sender, Command command, String label, String[] args) {
         Messages messages = plugin.messages();
         if (!(sender instanceof Player player)) {
             messages.send(sender, "players-only");
@@ -52,9 +59,10 @@ public final class ChunkloaderCommand implements TabExecutor {
                     new MyLoadersMenu(plugin, player).open();
                 }
             }
-            case "info", "help" -> {
-                if (check(player, PERM_INFO)) {
-                    info(player);
+            case "info", "help", "hilfe" -> messages.send(player, "usage");
+            case "map", "karte" -> {
+                if (check(player, PERM_MAP)) {
+                    sendMapLink(player);
                 }
             }
             default -> messages.send(player, "usage");
@@ -65,6 +73,10 @@ public final class ChunkloaderCommand implements TabExecutor {
     private void give(Player player, String[] args) {
         Messages messages = plugin.messages();
         if (!check(player, AdminActions.PERM_USE)) {
+            return;
+        }
+        if (AdminActions.isExempt(player)) {
+            messages.send(player, "exempt");
             return;
         }
         LoaderManager loaders = plugin.loaders();
@@ -123,25 +135,15 @@ public final class ChunkloaderCommand implements TabExecutor {
         messages.send(player, removed == 0 ? "remove-none" : "remove-ok", tag("count", removed));
     }
 
-    private void info(Player player) {
-        Messages messages = plugin.messages();
-        LoaderManager loaders = plugin.loaders();
-        List<Loader> own = loaders.byOwner(player.getUniqueId());
-        messages.send(player, "info",
-                tag("size", plugin.settings().loaders().size()),
-                tag("placed", own.size()),
-                tag("held", plugin.loaderItem().count(player)),
-                tag("limit", Texts.limit(loaders.limit(player))));
-        if (own.isEmpty()) {
-            messages.send(player, "info-none");
+    /** Clickable link to the squaremap web map (only if squaremap is installed and its address is known). */
+    private void sendMapLink(Player player) {
+        String url = plugin.maps().mapUrl();
+        if (url.isEmpty()) {
+            plugin.messages().send(player, "map-unavailable");
+            return;
         }
-        for (Loader loader : own) {
-            messages.send(player, "info-entry", Texts.loader(plugin, loader));
-        }
-        LoaderManager.Ban ban = loaders.ban(player.getUniqueId());
-        if (ban != null) {
-            messages.send(player, "banned", tag("duration", Texts.banDuration(plugin, ban)), tag("reason", ban.reason()));
-        }
+        Component link = plugin.messages().get("map-link-label", tag("url", url)).clickEvent(ClickEvent.openUrl(url));
+        plugin.messages().send(player, "map-link", tag("link", link));
     }
 
     private boolean check(CommandSender sender, String permission) {
@@ -159,8 +161,9 @@ public final class ChunkloaderCommand implements TabExecutor {
             if (sender.hasPermission(AdminActions.PERM_USE)) {
                 options.addAll(List.of("give", "remove", "list"));
             }
-            if (sender.hasPermission(PERM_INFO)) {
-                options.add("info");
+            options.add("info");
+            if (sender.hasPermission(PERM_MAP)) {
+                options.add("map");
             }
         } else if (args.length == 2 && args[0].equalsIgnoreCase("remove")) {
             options.addAll(List.of("1", "all"));

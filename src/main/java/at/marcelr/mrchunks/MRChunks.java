@@ -3,7 +3,7 @@ package at.marcelr.mrchunks;
 import at.marcelr.mrchunks.command.ChunkloaderCommand;
 import at.marcelr.mrchunks.command.MRChunksCommand;
 import at.marcelr.mrchunks.gui.MenuListener;
-import at.marcelr.mrchunks.web.WebMap;
+import at.marcelr.mrchunks.map.MapHooks;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.command.TabExecutor;
@@ -13,12 +13,22 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public final class MRChunks extends JavaPlugin {
 
     private FileConfiguration config;
     private Settings settings;
-    private final Messages messages = new Messages();
+    /** lang-version 2: version display with MC version; 3: loaders by name/number; 4: squaremap.address. */
+    private final Messages messages = new Messages(4, Map.of(
+            2, Set.of("version", "gui-info-name"),
+            3, Set.of("discord.loader-placed", "discord.loader-deleted", "discord.loader-toggled",
+                    "discord.loader-restored", "discord.loader-removed-missing", "discord.admin-delete",
+                    "map-hover-tooltip", "map-click-tooltip", "loader-not-found", "usage", "placed", "placed-inactive",
+                    "toggled", "deleted", "delete-confirm", "owner-notify-toggled", "owner-notify-deleted",
+                    "border-shown", "teleported", "admin-usage", "list-entry", "gui-loader-name", "gui-loader-lore",
+                    "gui-title-loader"),
+            4, Set.of("map-url-unknown")));
     private final DiscordWebhook discord = new DiscordWebhook(this);
     private final AdminActions adminActions = new AdminActions(this);
     private LoaderManager loaders;
@@ -26,7 +36,7 @@ public final class MRChunks extends JavaPlugin {
     private BorderDisplay border;
     private UpdateChecker updateChecker;
     private MenuListener menuListener;
-    private WebMap webMap;
+    private MapHooks maps;
     private BukkitTask validationTask;
 
     @Override
@@ -35,6 +45,7 @@ public final class MRChunks extends JavaPlugin {
         loadConfiguration();
 
         loaderItem = new LoaderItem(this);
+        maps = new MapHooks(this);
         border = new BorderDisplay(this);
         loaders = new LoaderManager(this);
         loaders.load();
@@ -45,15 +56,15 @@ public final class MRChunks extends JavaPlugin {
         updateChecker.start();
         menuListener = new MenuListener(this);
         menuListener.start();
-        webMap = new WebMap(this);
-        webMap.start();
+        maps.start();
 
         getServer().getPluginManager().registerEvents(new LoaderListener(this), this);
+        getServer().getPluginManager().registerEvents(border, this);
         getServer().getPluginManager().registerEvents(menuListener, this);
         register("chunkloader", new ChunkloaderCommand(this));
         register("mrchunks", new MRChunksCommand(this));
 
-        getLogger().info(loaders.all().size() + " Chunkloader geladen, " + loaders.loadedChunkCount() + " Chunks werden geladen gehalten.");
+        getLogger().info(loaders.all().size() + " chunk loader(s) loaded, " + loaders.loadedChunkCount() + " chunks are kept loaded.");
     }
 
     @Override
@@ -65,8 +76,8 @@ public final class MRChunks extends JavaPlugin {
         if (border != null) {
             border.stopAll();
         }
-        if (webMap != null) {
-            webMap.stop();
+        if (maps != null) {
+            maps.stop();
         }
         if (updateChecker != null) {
             updateChecker.stop();
@@ -90,13 +101,15 @@ public final class MRChunks extends JavaPlugin {
         startValidation();
         updateChecker.start();
         menuListener.start();
-        webMap.start();
+        maps.start();
+        // Permissions may have changed (e.g. mrchunks.exempt given via LuckPerms).
+        Bukkit.getOnlinePlayers().forEach(adminActions::enforceExempt);
     }
 
     private void loadConfiguration() {
         config = ConfigUpdater.load(this);
-        settings = Settings.from(config, getLogger());
-        messages.load(config);
+        messages.load(this, config.getString("language", "de"));
+        settings = Settings.from(config, messages, getLogger());
         discord.load(config.getConfigurationSection("discord"));
     }
 
@@ -106,18 +119,22 @@ public final class MRChunks extends JavaPlugin {
             validationTask.cancel();
         }
         long interval = settings.loaders().checkIntervalSeconds() * 20L;
-        validationTask = Bukkit.getScheduler().runTaskTimer(this, () -> {
-            for (Map.Entry<Loader, Boolean> entry : loaders.validate().entrySet()) {
-                Loader loader = entry.getKey();
-                if (entry.getValue()) {
-                    getLogger().info("Block von Chunkloader #" + loader.id() + " fehlte und wurde wiederhergestellt.");
-                    discord.log("loader-restored", adminActions.discordTags(loader));
-                } else {
-                    getLogger().info("Chunkloader #" + loader.id() + " wurde gelöscht, weil sein Block fehlte.");
-                    discord.log("loader-removed-missing", adminActions.discordTags(loader));
-                }
+        validationTask = Bukkit.getScheduler().runTaskTimer(this, () -> reportValidation(loaders.validate()),
+                interval, interval);
+    }
+
+    /** Logs and reports the result of {@link LoaderManager#validate}. */
+    public void reportValidation(Map<Loader, Boolean> result) {
+        for (Map.Entry<Loader, Boolean> entry : result.entrySet()) {
+            Loader loader = entry.getKey();
+            if (entry.getValue()) {
+                getLogger().info("Block of chunk loader " + Texts.consoleName(this, loader) + " was missing and has been restored.");
+                discord.log("loader-restored", adminActions.discordTags(loader));
+            } else {
+                getLogger().info("Chunk loader " + Texts.consoleName(this, loader) + " was deleted because its block was missing.");
+                discord.log("loader-removed-missing", adminActions.discordTags(loader));
             }
-        }, interval, interval);
+        }
     }
 
     @Override
@@ -171,7 +188,7 @@ public final class MRChunks extends JavaPlugin {
         return updateChecker;
     }
 
-    public WebMap webMap() {
-        return webMap;
+    public MapHooks maps() {
+        return maps;
     }
 }

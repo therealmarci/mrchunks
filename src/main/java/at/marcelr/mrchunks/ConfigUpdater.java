@@ -22,12 +22,14 @@ import java.util.logging.Level;
  */
 public final class ConfigUpdater {
 
-    public static final int CURRENT_VERSION = 1;
-    private static final String BOM = "\uFEFF";
+    public static final int CURRENT_VERSION = 4;
+    public static final String BOM = "\uFEFF";
     /** Texts whose content changed with new features; the new default replaces the old value. */
     private static final Set<String> REPLACED_KEYS = Set.of();
     /** Keys that were renamed: old path -> new path (the value is carried over). */
-    private static final Map<String, String> RENAMED_KEYS = Map.of();
+    private static final Map<String, String> RENAMED_KEYS = Map.of(
+            // v3
+            "squaremap.public-url", "squaremap.address");
 
     private ConfigUpdater() {
     }
@@ -76,10 +78,10 @@ public final class ConfigUpdater {
             File backup = new File(plugin.getDataFolder(), "config.v" + version + ".backup.yml");
             Files.copy(file.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING);
             Files.writeString(file.toPath(), BOM + template.saveToString(), StandardCharsets.UTF_8);
-            plugin.getLogger().info("config.yml von Version " + version + " auf " + CURRENT_VERSION + " aktualisiert ("
-                    + carried + " Einstellungen übernommen, Sicherung: " + backup.getName() + ").");
+            plugin.getLogger().info("Updated config.yml from version " + version + " to " + CURRENT_VERSION + " ("
+                    + carried + " settings carried over, backup: " + backup.getName() + ").");
         } catch (IOException | InvalidConfigurationException e) {
-            plugin.getLogger().log(Level.WARNING, "config.yml konnte nicht aktualisiert werden: " + e.getMessage());
+            plugin.getLogger().log(Level.WARNING, "Could not update config.yml: " + e.getMessage());
         }
     }
 
@@ -92,21 +94,28 @@ public final class ConfigUpdater {
                 config.loadFromString(stripBom(Files.readString(file.toPath(), StandardCharsets.UTF_8)));
             }
         } catch (IOException | InvalidConfigurationException e) {
-            plugin.getLogger().log(Level.SEVERE, "config.yml ist fehlerhaft, verwende Standardwerte: " + e.getMessage());
+            plugin.getLogger().log(Level.SEVERE, "config.yml is invalid, using defaults: " + e.getMessage());
         }
         try (InputStream in = plugin.getResource("config.yml")) {
             if (in != null) {
                 YamlConfiguration defaults = new YamlConfiguration();
                 defaults.loadFromString(stripBom(new String(in.readAllBytes(), StandardCharsets.UTF_8)));
                 config.setDefaults(defaults);
+                // Fill in values missing from the file. Bukkit ignores the defaults whenever code passes its own
+                // fallback (getString(path, "...")), so missing keys would otherwise get those fallbacks.
+                for (String key : defaults.getKeys(true)) {
+                    if (!defaults.isConfigurationSection(key) && !config.isSet(key)) {
+                        config.set(key, defaults.get(key));
+                    }
+                }
             }
         } catch (IOException | InvalidConfigurationException e) {
-            plugin.getLogger().log(Level.WARNING, "Standard-Config konnte nicht gelesen werden: " + e.getMessage());
+            plugin.getLogger().log(Level.WARNING, "Could not read the bundled config: " + e.getMessage());
         }
         return config;
     }
 
-    private static String stripBom(String text) {
+    public static String stripBom(String text) {
         return text.startsWith(BOM) ? text.substring(1) : text;
     }
 }

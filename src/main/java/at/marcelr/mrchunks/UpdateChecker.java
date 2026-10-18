@@ -50,6 +50,8 @@ public final class UpdateChecker {
     private volatile String latestVersion;
     private volatile String downloadUrl;
     private volatile String error;
+    private volatile String errorKey;
+    private final String minecraft;
     private String announcedVersion;
     private BukkitTask task;
 
@@ -64,6 +66,8 @@ public final class UpdateChecker {
             // fall back to defaults below
         }
         this.currentVersion = plugin.getPluginMeta().getVersion();
+        String mc = info.getProperty("mcVersion", "");
+        this.minecraft = mc.isBlank() || mc.contains("$") ? Versions.minecraft(currentVersion) : mc;
         this.modrinthProject = info.getProperty("modrinthProjectId", "mrchunks");
         this.githubRepository = info.getProperty("githubRepository", "");
     }
@@ -97,14 +101,22 @@ public final class UpdateChecker {
     }
 
     public void sendStatus(CommandSender sender) {
+        // Runs after the command has finished (async result), so set the console language here again.
+        plugin.messages().as(sender, () -> {
+            sendStatusNow(sender);
+            return null;
+        });
+    }
+
+    private void sendStatusNow(CommandSender sender) {
         Messages messages = plugin.messages();
         switch (state) {
             case UP_TO_DATE -> messages.send(sender, "version-latest");
             case OUTDATED -> messages.send(sender, "version-outdated",
-                    tag("latest", latestVersion), tag("current", currentVersion), tag("download", downloadLink()));
-            case DISABLED -> messages.send(sender, "version-unknown", tag("reason", "Update-Check ist deaktiviert"));
+                    tag("latest", latestVersion()), tag("current", currentVersion()), tag("download", downloadLink()));
+            case DISABLED -> messages.send(sender, "version-unknown", tag("reason", messages.plain("update-reason-disabled")));
             case CHECKING -> messages.send(sender, "version-checking");
-            case FAILED -> messages.send(sender, "version-unknown", tag("reason", error == null ? "?" : error));
+            case FAILED -> messages.send(sender, "version-unknown", tag("reason", errorText()));
         }
     }
 
@@ -112,8 +124,16 @@ public final class UpdateChecker {
     public void notifyIfOutdated(Player player) {
         if (state == State.OUTDATED && plugin.settings().update().notifyOnJoin() && player.hasPermission(PERM_NOTIFY)) {
             plugin.messages().send(player, "update-join-notify",
-                    tag("latest", latestVersion), tag("current", currentVersion), tag("download", downloadLink()));
+                    tag("latest", latestVersion()), tag("current", currentVersion()), tag("download", downloadLink()));
         }
+    }
+
+    /** The last error in the configured language. */
+    private String errorText() {
+        if (errorKey != null) {
+            return plugin.messages().plain(errorKey);
+        }
+        return error == null ? "?" : error;
     }
 
     public Component downloadLink() {
@@ -133,12 +153,19 @@ public final class UpdateChecker {
         return state;
     }
 
+    /** Newest plugin version for this Minecraft version, without prefix (e.g. "1.2.0"), or null if unknown. */
     public String latestVersion() {
-        return latestVersion;
+        return latestVersion == null ? null : Versions.plugin(latestVersion);
     }
 
+    /** Installed plugin version without prefix, e.g. "1.2.0". */
     public String currentVersion() {
-        return currentVersion;
+        return Versions.plugin(currentVersion);
+    }
+
+    /** Minecraft version this build is made for, e.g. "26.3". */
+    public String minecraftVersion() {
+        return minecraft;
     }
 
     // ------------------------------------------------------------------ check
@@ -160,12 +187,13 @@ public final class UpdateChecker {
                     ? fetchGithub(prereleases)
                     : fetchModrinth(prereleases);
             if (release == null) {
-                fail("Keine veröffentlichte Version gefunden");
+                fail("update-reason-no-release", null);
                 return;
             }
             latestVersion = release.version();
             downloadUrl = release.url();
             error = null;
+            errorKey = null;
             if (Versions.compare(release.version(), currentVersion) > 0) {
                 state = State.OUTDATED;
                 announce(release);
@@ -174,22 +202,46 @@ public final class UpdateChecker {
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        } catch (ReasonException e) {
+            fail(e.key, null);
         } catch (Exception e) {
-            fail(e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+            fail(null, e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
         }
     }
 
-    private void fail(String reason) {
+    /**
+     * @param key    language key of the reason, or null
+     * @param detail raw error text if there is no key
+     */
+    private void fail(String key, String detail) {
         // Log only when the reason changes, so a missing project does not spam the console every few hours.
-        boolean newReason = state != State.FAILED || !reason.equals(error);
+        boolean newReason = state != State.FAILED || !java.util.Objects.equals(key, errorKey)
+                || !java.util.Objects.equals(detail, error);
         state = State.FAILED;
-        error = reason;
+        errorKey = key;
+        error = detail;
         if (newReason) {
-            plugin.getLogger().info("Update-Check nicht möglich: " + reason);
+            plugin.getLogger().info("Update check not possible: " + (key != null ? plugin.messages().console(key) : detail));
+        }
+    }
+
+    /** An expected failure with a translatable reason. */
+    private static final class ReasonException extends IOException {
+        final String key;
+
+        ReasonException(String key) {
+            super(key);
+            this.key = key;
         }
     }
 
     private record Release(String version, String url) {
+    }
+
+    /** Releases for another Minecraft version are ignored; old tags without "mc..." prefix count as this one. */
+    private boolean sameMinecraft(String version) {
+        String mc = Versions.minecraft(version);
+        return mc == null || minecraft == null || mc.equals(minecraft);
     }
 
     private Release fetchModrinth(boolean prereleases) throws IOException, InterruptedException {
@@ -203,6 +255,9 @@ public final class UpdateChecker {
                 continue;
             }
             String number = version.get("version_number").getAsString();
+            if (!sameMinecraft(number) || (minecraft != null && !supports(version.getAsJsonArray("game_versions")))) {
+                continue;
+            }
             if (best == null || Versions.compare(number, best.version()) > 0) {
                 best = new Release(number, modrinthPage() + "/version/" + number);
             }
@@ -210,9 +265,23 @@ public final class UpdateChecker {
         return best;
     }
 
+    /** Whether a Modrinth version lists our Minecraft version (or a patch of it, e.g. 26.3.1 for 26.3). */
+    private boolean supports(JsonArray gameVersions) {
+        if (gameVersions == null) {
+            return true;
+        }
+        for (JsonElement v : gameVersions) {
+            String game = v.getAsString();
+            if (game.equals(minecraft) || game.startsWith(minecraft + ".")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private Release fetchGithub(boolean prereleases) throws IOException, InterruptedException {
         if (githubRepository.isBlank()) {
-            throw new IOException("Kein GitHub-Repository hinterlegt");
+            throw new ReasonException("update-reason-no-repository");
         }
         String body = get("https://api.github.com/repos/" + githubRepository + "/releases?per_page=30");
         JsonArray releases = JsonParser.parseString(body).getAsJsonArray();
@@ -222,7 +291,10 @@ public final class UpdateChecker {
             if (release.get("draft").getAsBoolean() || (!prereleases && release.get("prerelease").getAsBoolean())) {
                 continue;
             }
-            String number = release.get("tag_name").getAsString().replaceFirst("^[vV]", "");
+            String number = release.get("tag_name").getAsString();
+            if (!sameMinecraft(number)) {
+                continue;
+            }
             if (best == null || Versions.compare(number, best.version()) > 0) {
                 best = new Release(number, release.get("html_url").getAsString());
             }
@@ -240,7 +312,7 @@ public final class UpdateChecker {
                 .build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == 404) {
-            throw new IOException("Projekt nicht gefunden (HTTP 404) - noch nicht veröffentlicht?");
+            throw new ReasonException("update-reason-not-found");
         }
         if (response.statusCode() / 100 != 2) {
             throw new IOException("HTTP " + response.statusCode());
@@ -255,8 +327,9 @@ public final class UpdateChecker {
         announcedVersion = release.version();
         Logger log = plugin.getLogger();
         log.warning("==========================================================");
-        log.warning(" Eine neue Version von MRchunks ist verfügbar!");
-        log.warning(" Installiert: " + currentVersion + "   |   Neu: " + release.version());
+        log.warning(" A new version of MRchunks is available!");
+        log.warning(" Installed: " + Versions.full(minecraft, currentVersion())
+                + "   |   New: " + Versions.full(minecraft, Versions.plugin(release.version())));
         log.warning(" Download: " + release.url());
         log.warning("==========================================================");
         Bukkit.getScheduler().runTask(plugin, () -> {

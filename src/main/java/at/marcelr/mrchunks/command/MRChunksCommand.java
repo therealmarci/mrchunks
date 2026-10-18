@@ -10,7 +10,6 @@ import at.marcelr.mrchunks.Settings;
 import at.marcelr.mrchunks.Texts;
 import at.marcelr.mrchunks.UpdateChecker;
 import at.marcelr.mrchunks.gui.AdminMenu;
-import at.marcelr.mrchunks.web.WebMap;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -37,9 +36,9 @@ public final class MRChunksCommand implements TabExecutor {
     private static final String PERM_GUI = "mrchunks.admin.gui";
     private static final String PERM_LIST = "mrchunks.admin.list";
     private static final String PERM_RELOAD = "mrchunks.admin.reload";
-    private static final String PERM_WEB = "mrchunks.admin.web";
+    private static final String PERM_MAP = "mrchunks.admin.map";
     private static final String PERM_DISCORD = "mrchunks.admin.discord";
-    private static final List<String> ADMIN_PERMS = List.of(PERM_GUI, PERM_LIST, PERM_RELOAD, PERM_WEB, PERM_DISCORD,
+    private static final List<String> ADMIN_PERMS = List.of(PERM_GUI, PERM_LIST, PERM_RELOAD, PERM_MAP, PERM_DISCORD,
             AdminActions.PERM_MANAGE, AdminActions.PERM_TELEPORT, AdminActions.PERM_LIMIT, AdminActions.PERM_BAN);
 
     private final MRChunks plugin;
@@ -58,6 +57,11 @@ public final class MRChunksCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        // From the console every text is English, also values built along the way.
+        return plugin.messages().as(sender, () -> handle(sender, command, label, args));
+    }
+
+    private boolean handle(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
             messages().send(sender, ADMIN_PERMS.stream().anyMatch(sender::hasPermission) ? "admin-usage" : "no-permission");
             return true;
@@ -85,7 +89,8 @@ public final class MRChunksCommand implements TabExecutor {
             }
             case "toggle" -> withLoader(sender, args, loader -> actions().toggle(sender, loader));
             case "delete", "remove" -> withLoader(sender, args, loader -> actions().delete(sender, loader));
-            case "limit" -> limit(sender, args);
+            case "limit" -> limit(sender, args, LoaderManager.LimitKind.PLACE);
+            case "activelimit", "active" -> limit(sender, args, LoaderManager.LimitKind.ACTIVE);
             case "ban" -> ban(sender, args);
             case "unban" -> withPlayer(sender, args, 1, target -> actions().unban(sender, target));
             case "bans" -> {
@@ -93,9 +98,9 @@ public final class MRChunksCommand implements TabExecutor {
                     bans(sender);
                 }
             }
-            case "web" -> {
-                if (check(sender, PERM_WEB)) {
-                    web(sender);
+            case "map", "web" -> {
+                if (check(sender, PERM_MAP)) {
+                    map(sender, args);
                 }
             }
             case "discord" -> {
@@ -124,7 +129,7 @@ public final class MRChunksCommand implements TabExecutor {
                 return;
             }
             loaders = plugin.loaders().byOwner(target.getUniqueId());
-            filter = " von " + AdminActions.name(target);
+            filter = messages().plain("list-filter-player", "player", AdminActions.name(target));
         }
         if (loaders.isEmpty()) {
             messages().send(sender, "list-empty");
@@ -136,7 +141,7 @@ public final class MRChunksCommand implements TabExecutor {
         }
     }
 
-    private void limit(CommandSender sender, String[] args) {
+    private void limit(CommandSender sender, String[] args, LoaderManager.LimitKind kind) {
         if (!check(sender, AdminActions.PERM_LIMIT)) {
             return;
         }
@@ -154,7 +159,7 @@ public final class MRChunksCommand implements TabExecutor {
             }
         }
         Integer finalLimit = limit;
-        withPlayer(sender, args, 1, target -> actions().setLimit(sender, target, finalLimit));
+        withPlayer(sender, args, 1, target -> actions().setLimit(sender, target, kind, finalLimit));
     }
 
     /** /mrchunks ban <player> [duration|permanent] [reason...] - without a duration the ban is permanent. */
@@ -192,16 +197,23 @@ public final class MRChunksCommand implements TabExecutor {
 
     // ---------------------------------------------------------------- misc
 
-    private void web(CommandSender sender) {
-        WebMap web = plugin.webMap();
-        if (web.running()) {
-            String url = web.url();
-            Component link = messages().get("web-link-label", tag("url", url)).clickEvent(ClickEvent.openUrl(url));
-            messages().send(sender, "web-status-on", tag("link", link));
-        } else if (web.error() != null) {
-            messages().send(sender, "web-status-error", tag("reason", web.error()));
+    /** /mrchunks map - squaremap status; /mrchunks map setup - apply the recommended squaremap settings again. */
+    private void map(CommandSender sender, String[] args) {
+        if (args.length > 1 && args[1].equalsIgnoreCase("setup")) {
+            if (!plugin.maps().squaremapInstalled()) {
+                messages().send(sender, "map-squaremap-missing");
+                return;
+            }
+            plugin.maps().runSetup(sender, true);
+            return;
+        }
+        if (plugin.maps().squaremapActive()) {
+            String url = plugin.maps().mapUrl();
+            Component link = url.isEmpty() ? messages().get("map-url-unknown")
+                    : messages().get("map-link-label", tag("url", url)).clickEvent(ClickEvent.openUrl(url));
+            messages().send(sender, "map-status-on", tag("link", link));
         } else {
-            messages().send(sender, "web-status-off");
+            messages().send(sender, "map-status-off", tag("status", plugin.maps().squaremapStatus()));
         }
     }
 
@@ -225,7 +237,7 @@ public final class MRChunksCommand implements TabExecutor {
             return;
         }
         messages().send(sender, "discord-test-sending");
-        discord.test().whenComplete((error, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
+        discord.test(sender).whenComplete((error, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
             String problem = throwable != null ? throwable.getMessage() : error;
             if (problem == null) {
                 messages().send(sender, "discord-test-ok");
@@ -238,7 +250,7 @@ public final class MRChunksCommand implements TabExecutor {
     private void version(CommandSender sender) {
         UpdateChecker updates = plugin.updateChecker();
         messages().send(sender, "version",
-                tag("version", updates.currentVersion()),
+                tag("version", updates.currentVersion()), tag("mc", updates.minecraftVersion()),
                 tag("author", String.join(", ", plugin.getPluginMeta().getAuthors())));
         Runnable links = () -> {
             sender.sendMessage(Component.empty());
@@ -261,21 +273,28 @@ public final class MRChunksCommand implements TabExecutor {
 
     // ------------------------------------------------------------- helpers
 
+    /** Resolves {@code <player> <number>} (the number players see, e.g. 3 for "Chunkloader 3"). */
     private void withLoader(CommandSender sender, String[] args, Consumer<Loader> action) {
-        if (args.length < 2) {
+        if (args.length < 3) {
             messages().send(sender, "admin-usage");
             return;
         }
+        OfflinePlayer owner = resolvePlayer(sender, args[1]);
+        if (owner == null) {
+            return;
+        }
+        int number;
         try {
-            int id = Integer.parseInt(args[1].replace("#", ""));
-            Loader loader = plugin.loaders().byId(id);
-            if (loader == null) {
-                messages().send(sender, "loader-not-found", tag("id", id));
-            } else {
-                action.accept(loader);
-            }
+            number = Integer.parseInt(args[2].replace("#", ""));
         } catch (NumberFormatException e) {
-            messages().send(sender, "invalid-number", tag("input", args[1]));
+            messages().send(sender, "invalid-number", tag("input", args[2]));
+            return;
+        }
+        Loader loader = plugin.loaders().byNumber(owner.getUniqueId(), number);
+        if (loader == null) {
+            messages().send(sender, "loader-not-found", tag("player", AdminActions.name(owner)), tag("number", number));
+        } else {
+            action.accept(loader);
         }
     }
 
@@ -318,9 +337,9 @@ public final class MRChunksCommand implements TabExecutor {
             addIf(sender, PERM_LIST, options, "list");
             addIf(sender, AdminActions.PERM_TELEPORT, options, "tp");
             addIf(sender, AdminActions.PERM_MANAGE, options, "toggle", "delete");
-            addIf(sender, AdminActions.PERM_LIMIT, options, "limit");
+            addIf(sender, AdminActions.PERM_LIMIT, options, "limit", "activelimit");
             addIf(sender, AdminActions.PERM_BAN, options, "ban", "unban", "bans");
-            addIf(sender, PERM_WEB, options, "web");
+            addIf(sender, PERM_MAP, options, "map");
             addIf(sender, PERM_DISCORD, options, "discord");
             addIf(sender, PERM_RELOAD, options, "reload");
         } else {
@@ -328,14 +347,20 @@ public final class MRChunksCommand implements TabExecutor {
             switch (sub) {
                 case "tp", "teleport", "toggle", "delete", "remove" -> {
                     if (args.length == 2) {
-                        plugin.loaders().all().forEach(l -> options.add(String.valueOf(l.id())));
+                        plugin.loaders().all().forEach(l -> options.add(LoaderManager.name(l.owner())));
+                    } else if (args.length == 3) {
+                        OfflinePlayer owner = Bukkit.getOfflinePlayerIfCached(args[1]);
+                        if (owner != null) {
+                            plugin.loaders().byOwner(owner.getUniqueId())
+                                    .forEach(l -> options.add(String.valueOf(l.number())));
+                        }
                     }
                 }
-                case "list", "limit", "ban" -> {
+                case "list", "limit", "activelimit", "ban" -> {
                     if (args.length == 2) {
                         Bukkit.getOnlinePlayers().forEach(p -> options.add(p.getName()));
                         plugin.loaders().knownPlayers().forEach(u -> options.add(LoaderManager.name(u)));
-                    } else if (args.length == 3 && sub.equals("limit")) {
+                    } else if (args.length == 3 && (sub.equals("limit") || sub.equals("activelimit"))) {
                         options.addAll(List.of("5", "10", "reset"));
                     } else if (args.length == 3 && sub.equals("ban")) {
                         options.addAll(List.of("permanent", "1d", "7d", "30d"));
@@ -349,6 +374,11 @@ public final class MRChunksCommand implements TabExecutor {
                 case "discord" -> {
                     if (args.length == 2) {
                         options.add("test");
+                    }
+                }
+                case "map" -> {
+                    if (args.length == 2) {
+                        options.add("setup");
                     }
                 }
                 default -> {

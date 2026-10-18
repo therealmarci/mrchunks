@@ -1,10 +1,10 @@
-# Erstellt beim Pushen eines Tags "v<version>" ein GitHub-Release mit der JAR
-# und lädt die Version auf Modrinth hoch (wenn das Secret MODRINTH_TOKEN gesetzt ist).
+# Erstellt beim Pushen eines Tags "mc<minecraft>-v<version>" (z.B. mc26.3-v1.1.0) ein GitHub-Release mit der JAR
+# und lädt die Version auf Modrinth hoch (wenn das Secret MODRINTH_TOKEN gesetzt ist). Ablauf: docs/RELEASES.md
 name: Release
 
 on:
   push:
-    tags: ['v*']
+    tags: ['mc*-v*']
 
 permissions:
   contents: write
@@ -26,25 +26,37 @@ jobs:
 
       - name: Tag mit gradle.properties abgleichen
         run: |
-          VERSION=$(grep '^version=' gradle.properties | cut -d= -f2 | tr -d '[:space:]')
-          if [ "v$VERSION" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME passt nicht zu version=$VERSION in gradle.properties"
+          prop() { grep "^$1=" gradle.properties | cut -d= -f2 | tr -d '[:space:]'; }
+          VERSION=$(prop version)
+          MC=$(prop mcVersion)
+          EXPECTED="mc$MC-v$VERSION"
+          if [ "$EXPECTED" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME passt nicht zu gradle.properties (erwartet: $EXPECTED)"
             exit 1
           fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "MC=$MC" >> "$GITHUB_ENV"
+          echo "FULL=$EXPECTED" >> "$GITHUB_ENV"
           # 0.x und Versionen mit Suffix (1.0.0-rc.1) sind Vorabversionen.
           case "$VERSION" in
             0.*|*-*) echo "PRERELEASE=true" >> "$GITHUB_ENV" ;;
             *)       echo "PRERELEASE=false" >> "$GITHUB_ENV" ;;
           esac
 
-      - name: Stabile Versionen nur von main
-        if: ${{ env.PRERELEASE == 'false' }}
+      # Stabile Versionen kommen von main (neueste Minecraft-Version) oder vom Wartungs-Branch mc/<version>.
+      # Nur Releases von main werden auf GitHub als "Latest" markiert.
+      - name: Branch prüfen
         run: |
-          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
-            echo "::error::Stabile Version $VERSION muss auf main getaggt werden (Vorabversionen wie 1.0.0-rc.1 dürfen von beta kommen)."
+          on() { git merge-base --is-ancestor "$GITHUB_SHA" "origin/$1" 2>/dev/null; }
+          LATEST=false
+          if on main; then
+            LATEST=true
+          elif [ "$PRERELEASE" = "false" ] && ! on "mc/$MC"; then
+            echo "::error::Stabile Version $FULL muss auf main oder mc/$MC getaggt werden (Vorabversionen dürfen von beta kommen)."
             exit 1
           fi
+          [ "$PRERELEASE" = "true" ] && LATEST=false
+          echo "LATEST=$LATEST" >> "$GITHUB_ENV"
 
       - name: Bauen
         run: chmod +x gradlew && ./gradlew build
@@ -61,10 +73,11 @@ jobs:
       - name: GitHub-Release erstellen
         uses: softprops/action-gh-release@v2
         with:
-          name: MRsleep ${{ env.VERSION }}
+          name: MRchunks ${{ env.VERSION }} (MC ${{ env.MC }})
           body_path: release-notes.md
-          files: build/libs/MRsleep-${{ env.VERSION }}.jar
+          files: build/libs/MRchunks-${{ env.FULL }}.jar
           prerelease: ${{ env.PRERELEASE == 'true' }}
+          make_latest: ${{ env.LATEST }}
 
       - name: Auf Modrinth veröffentlichen
         if: ${{ env.MODRINTH_TOKEN != '' }}

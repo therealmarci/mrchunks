@@ -6,6 +6,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.Map;
 import java.util.UUID;
 
 import static at.marcelr.mrchunks.Messages.tag;
@@ -22,6 +23,9 @@ public final class AdminActions {
     public static final String PERM_TELEPORT = "mrchunks.admin.teleport";
     public static final String PERM_LIMIT = "mrchunks.admin.limit";
     public static final String PERM_BAN = "mrchunks.admin.ban";
+    public static final String PERM_INVITE = "mrchunks.invite";
+    /** Excludes a player from chunk loaders completely (e.g. second accounts). Strict: also for admins. */
+    public static final String PERM_EXEMPT = "mrchunks.exempt";
 
     private final MRChunks plugin;
 
@@ -51,19 +55,54 @@ public final class AdminActions {
         return (isOwner(sender, loader) && sender.hasPermission(PERM_USE)) || sender.hasPermission(PERM_MANAGE);
     }
 
-    /** Owner, admins and everyone with mrchunks.view may open a loader's menu. */
-    public static boolean canView(CommandSender sender, Loader loader) {
-        return isOwner(sender, loader) || sender.hasPermission(PERM_VIEW) || sender.hasPermission(PERM_MANAGE);
+    /** Owner, invited players, admins and everyone with mrchunks.view may open a loader's menu. */
+    public boolean canView(CommandSender sender, Loader loader) {
+        return isOwner(sender, loader) || isMember(sender, loader) || sender.hasPermission(PERM_VIEW)
+                || sender.hasPermission(PERM_MANAGE);
+    }
+
+    public static boolean isExempt(CommandSender sender) {
+        return sender instanceof Player && sender.hasPermission(PERM_EXEMPT);
+    }
+
+    /** Invited (directly or for all loaders of the owner) and not excluded via mrchunks.exempt. */
+    public boolean isMember(CommandSender sender, Loader loader) {
+        return sender instanceof Player player && !isExempt(player)
+                && plugin.loaders().isMember(player.getUniqueId(), loader);
+    }
+
+    /** Loaders of other players the viewer was invited to (none if excluded via mrchunks.exempt). */
+    public java.util.List<Loader> sharedWith(Player player) {
+        return isExempt(player) ? java.util.List.of() : plugin.loaders().sharedWith(player.getUniqueId());
+    }
+
+    /** Switching on/off: owner, admins - and invited players (only this, never deleting or renaming). */
+    public boolean canToggle(CommandSender sender, Loader loader) {
+        return canManage(sender, loader) || isMember(sender, loader);
+    }
+
+    /** Managing the invites of a loader / of all loaders of {@code owner}: the owner (mrchunks.invite) or admins. */
+    public static boolean canManageInvites(CommandSender sender, UUID owner) {
+        boolean isOwner = sender instanceof Player player && player.getUniqueId().equals(owner);
+        return (isOwner && sender.hasPermission(PERM_INVITE) && !isExempt(sender)) || sender.hasPermission(PERM_MANAGE);
     }
 
     // ------------------------------------------------------------- loaders
 
     public void toggle(CommandSender sender, Loader loader) {
-        if (!canManage(sender, loader)) {
+        if (!canToggle(sender, loader)) {
             messages().send(sender, isOwner(sender, loader) ? "no-permission" : "not-owner");
             return;
         }
         boolean active = !loader.active();
+        OfflinePlayer owner = org.bukkit.Bukkit.getOfflinePlayer(loader.owner());
+        // Owners stay within their active limit; admins (mrchunks.admin.manage) may go beyond it.
+        if (active && !sender.hasPermission(PERM_MANAGE) && !loaders().canActivate(owner)) {
+            messages().send(sender, "active-limit-reached",
+                    tag("active", loaders().activeCount(loader.owner())),
+                    tag("active-limit", Texts.limit(loaders().activeLimit(owner))));
+            return;
+        }
         loaders().setActive(loader, active);
         String state = Texts.state(plugin, active);
         messages().send(sender, "toggled", Texts.loader(plugin, loader), tag("state", state));
@@ -91,6 +130,34 @@ public final class AdminActions {
         }
     }
 
+    /**
+     * Gives the loader a name, or with an empty name the default name back ("Chunkloader 3").
+     * The name is plain text: no formatting, no control characters, at most gui.max-name-length characters.
+     */
+    public void rename(CommandSender sender, Loader loader, String raw) {
+        if (!canManage(sender, loader)) {
+            messages().send(sender, isOwner(sender, loader) ? "no-permission" : "not-owner");
+            return;
+        }
+        String clean = raw == null ? "" : raw.replaceAll("\\p{Cntrl}", "").replaceAll("\\s+", " ").strip();
+        int max = plugin.settings().gui().maxNameLength();
+        if (clean.codePointCount(0, clean.length()) > max) {
+            clean = clean.substring(0, clean.offsetByCodePoints(0, max)).strip();
+        }
+        String name = clean.isEmpty() ? null : clean;
+        String oldName = Texts.name(plugin, loader);
+        if (java.util.Objects.equals(name, loader.name())) {
+            return;
+        }
+        loaders().rename(loader, name);
+        TagResolver tags = TagResolver.resolver(Texts.loader(plugin, loader), tag("old", oldName));
+        messages().send(sender, name == null ? "rename-reset" : "renamed", tags);
+        if (!isOwner(sender, loader)) {
+            notifyOwner(loader.owner(), "owner-notify-renamed", tags, tag("admin", sender.getName()));
+        }
+        plugin.discord().log("loader-renamed", discordTags(loader, "old", oldName, "admin", sender.getName()));
+    }
+
     public void teleport(Player player, Loader loader) {
         if (!player.hasPermission(PERM_TELEPORT)) {
             messages().send(player, "no-permission");
@@ -98,7 +165,7 @@ public final class AdminActions {
         }
         Location location = loader.location();
         if (location == null) {
-            messages().send(player, "loader-not-found", tag("id", loader.id()));
+            messages().send(player, "world-not-loaded", Texts.loader(plugin, loader));
             return;
         }
         // Stand on top of the block, looking in the same direction as before.
@@ -109,20 +176,131 @@ public final class AdminActions {
         messages().send(player, "teleported", Texts.loader(plugin, loader));
     }
 
+    // ------------------------------------------------------------- invites
+
+    /** "Farm" or "alle deine Chunkloader" - what an invite covers, for messages. */
+    private String scope(Loader loader, String allKey, UUID owner) {
+        return loader != null ? Texts.name(plugin, loader)
+                : messages().plain(allKey, "owner", LoaderManager.name(owner));
+    }
+
+    /**
+     * Invites a player to switch one loader ({@code loader}) or all loaders of {@code owner} ({@code loader == null})
+     * on and off. Only the owner (or an admin) may invite; the invited player must have been on the server before.
+     * @param durationMillis duration, or {@link Settings#PERMANENT}
+     */
+    public void invite(CommandSender sender, UUID owner, Loader loader, String targetName, long durationMillis) {
+        if (!canManageInvites(sender, owner)) {
+            messages().send(sender, "no-permission");
+            return;
+        }
+        String name = targetName == null ? "" : targetName.trim();
+        OfflinePlayer target = name.isEmpty() ? null : org.bukkit.Bukkit.getPlayerExact(name);
+        if (target == null && !name.isEmpty()) {
+            target = org.bukkit.Bukkit.getOfflinePlayerIfCached(name);
+        }
+        if (target == null) {
+            messages().send(sender, "player-not-found", tag("player", name));
+            return;
+        }
+        if (target.getUniqueId().equals(owner)) {
+            messages().send(sender, "invite-self");
+            return;
+        }
+        Player online = target.getPlayer();
+        if (online != null && isExempt(online)) {
+            messages().send(sender, "invite-exempt", tag("player", name(target)));
+            return;
+        }
+        Map<UUID, Long> members = loaders().members(owner, loader);
+        int max = plugin.settings().invites().maxMembers();
+        if (!members.containsKey(target.getUniqueId()) && members.size() >= max) {
+            messages().send(sender, "invite-full", tag("max", max));
+            return;
+        }
+        loaders().invite(owner, loader, target.getUniqueId(), durationMillis);
+        long until = loaders().members(owner, loader).getOrDefault(target.getUniqueId(), Long.MAX_VALUE);
+        String duration = Texts.until(plugin, until);
+        messages().send(sender, "invited", tag("player", name(target)),
+                tag("scope", scope(loader, "invite-scope-all", owner)), tag("duration", duration));
+        if (online != null) {
+            messages().send(online, "invite-notify", tag("owner", LoaderManager.name(owner)),
+                    tag("scope", scope(loader, "invite-scope-all-of", owner)), tag("duration", duration));
+        }
+        plugin.discord().log("loader-invite", "owner", LoaderManager.name(owner), "player", name(target),
+                "scope", loader == null ? messages().plain("invite-scope-all-of", "owner", LoaderManager.name(owner))
+                        : Texts.name(plugin, loader),
+                "time", duration, "admin", sender.getName());
+    }
+
+    public void uninvite(CommandSender sender, UUID owner, Loader loader, UUID member) {
+        if (!canManageInvites(sender, owner)) {
+            messages().send(sender, "no-permission");
+            return;
+        }
+        if (!loaders().uninvite(owner, loader, member)) {
+            return;
+        }
+        String memberName = LoaderManager.name(member);
+        messages().send(sender, "uninvited", tag("player", memberName),
+                tag("scope", scope(loader, "invite-scope-all", owner)));
+        Player online = org.bukkit.Bukkit.getPlayer(member);
+        if (online != null) {
+            messages().send(online, "uninvite-notify", tag("owner", LoaderManager.name(owner)),
+                    tag("scope", scope(loader, "invite-scope-all-of", owner)));
+        }
+        plugin.discord().log("loader-uninvite", "owner", LoaderManager.name(owner), "player", memberName,
+                "scope", loader == null ? messages().plain("invite-scope-all-of", "owner", LoaderManager.name(owner))
+                        : Texts.name(plugin, loader),
+                "admin", sender.getName());
+    }
+
+    /**
+     * mrchunks.exempt: the player may not have chunk loaders at all. Deletes their loaders and takes their loader
+     * items (on join and on reload). Permissions are only known while the player is online.
+     */
+    public void enforceExempt(Player player) {
+        if (!isExempt(player)) {
+            return;
+        }
+        int items = plugin.loaderItem().remove(player, Integer.MAX_VALUE);
+        int deleted = loaders().deleteAll(player.getUniqueId());
+        if (deleted == 0 && items == 0) {
+            return;
+        }
+        messages().send(player, "exempt-cleared-notify", tag("count", deleted));
+        plugin.getLogger().info(player.getName() + " has mrchunks.exempt: " + deleted + " chunk loader(s) deleted, "
+                + items + " item(s) removed.");
+        plugin.discord().log("exempt-cleared", "player", player.getName(), "count", deleted);
+    }
+
     // ------------------------------------------------------------- players
 
-    /** @param limit new limit, or null to reset to default/permission */
-    public void setLimit(CommandSender sender, OfflinePlayer target, Integer limit) {
+    /**
+     * Sets one of the two caps. Lowering the active limit switches off the player's newest active loaders.
+     * @param limit new limit, or null to reset to default/permission
+     */
+    public void setLimit(CommandSender sender, OfflinePlayer target, LoaderManager.LimitKind kind, Integer limit) {
         if (!sender.hasPermission(PERM_LIMIT)) {
             messages().send(sender, "no-permission");
             return;
         }
-        loaders().setLimitOverride(target.getUniqueId(), limit);
+        loaders().setLimitOverride(target.getUniqueId(), kind, limit);
         String name = name(target);
-        String effective = Texts.limit(loaders().limit(target));
-        messages().send(sender, limit == null ? "limit-reset" : "limit-set", tag("player", name), tag("limit", effective));
-        notifyOwner(target.getUniqueId(), "limit-notify", tag("limit", effective));
-        plugin.discord().log("admin-limit", "admin", sender.getName(), "player", name, "limit", effective);
+        String effective = Texts.limit(loaders().limit(target, kind));
+        String type = messages().plain(kind == LoaderManager.LimitKind.PLACE ? "limit-type-place" : "limit-type-active");
+        messages().send(sender, limit == null ? "limit-reset" : "limit-set",
+                tag("player", name), tag("limit", effective), tag("type", type));
+        notifyOwner(target.getUniqueId(), "limit-notify", tag("limit", effective), tag("type", type));
+        plugin.discord().log("admin-limit", "admin", sender.getName(), "player", name, "limit", effective, "type", type);
+
+        if (kind == LoaderManager.LimitKind.ACTIVE) {
+            int switchedOff = loaders().enforceActiveLimit(target).size();
+            if (switchedOff > 0) {
+                messages().send(sender, "active-limit-enforced", tag("player", name), tag("count", switchedOff));
+                notifyOwner(target.getUniqueId(), "active-limit-enforced-notify", tag("count", switchedOff));
+            }
+        }
     }
 
     /** Bans the player: all their loaders are deleted and their loader items taken away. */
@@ -192,7 +370,9 @@ public final class AdminActions {
     /** Discord placeholders of a loader plus extra key/value pairs. */
     public Object[] discordTags(Loader loader, Object... extra) {
         Object[] base = {
-                "id", loader.id(),
+                "name", Texts.name(plugin, loader),
+                "number", loader.number(),
+                "id", loader.number(),
                 "player", LoaderManager.name(loader.owner()),
                 "world", loader.worldName(),
                 "x", loader.x(), "y", loader.y(), "z", loader.z(),

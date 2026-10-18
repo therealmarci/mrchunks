@@ -42,6 +42,7 @@ final class PlayerIcons {
                         tag("placed", owned.size()),
                         tag("active", owned.stream().filter(Loader::active).count()),
                         tag("limit", Texts.limit(limit)),
+                        tag("active-limit", Texts.limit(loaders.activeLimit(target))),
                         tag("limit-source", source),
                         tag("status", status)))
                 .glint(ban != null);
