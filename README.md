@@ -113,17 +113,63 @@ Owner können ihre eigenen Loader auch mit `toggle` und `delete` steuern.
 ---
 
 ## Permissions
-| Permission | Standard | Beschreibung |
+Alle Permissions mit ihrem Standard. „alle“ = jeder Spieler hat sie ohne Zutun, „OP“ = nur Operatoren, „niemand“ = muss vergeben werden.
+
+### Spieler
+| Permission | Standard | Erlaubt |
 |---|---|---|
-| `mrchunks.use` | alle | Chunkloader holen, setzen und die eigenen verwalten |
-| `mrchunks.map` | alle | `/chunkloader map` |
-| `mrchunks.view` | alle | Menü fremder Chunkloader ansehen und deren Grenze anzeigen |
-| `mrchunks.invite` | alle | Andere Spieler zu den eigenen Loadern einladen (nur an/aus) |
-| `mrchunks.exempt` | niemand | Vom Chunkloading komplett ausgeschlossen, vorhandene Loader werden gelöscht (siehe oben, Vorsicht mit `*`) |
-| `mrchunks.limit.<anzahl>` / `mrchunks.active.<anzahl>` | – | Mehr setzbare bzw. gleichzeitig aktive Loader, siehe [Limits](#limits-setzen-und-gleichzeitig-aktiv) |
-| `mrchunks.limit.unlimited` / `mrchunks.active.unlimited` | niemand | Beliebig viele |
-| `mrchunks.admin` | OP | Enthält alle `mrchunks.admin.*` |
-| `mrchunks.admin.gui` / `.list` / `.manage` / `.teleport` / `.limit` / `.ban` / `.map` / `.discord` / `.reload` / `.update` | OP | wie in den Tabellen oben |
+| `mrchunks.use` | alle | `/chunkloader give\|remove\|list`, Chunkloader setzen, eigene an/aus schalten, umbenennen, löschen |
+| `mrchunks.map` | alle | `/chunkloader map` (Link zur Webkarte) |
+| `mrchunks.view` | alle | Menü **fremder** Chunkloader öffnen: nur ansehen und Grenze anzeigen |
+| `mrchunks.invite` | alle | Andere Spieler zu den eigenen Loadern einladen (Eingeladene dürfen nur an/aus schalten) |
+| `mrchunks.limit.<anzahl>` | – | So viele Loader darf der Spieler **setzen**, z.B. `mrchunks.limit.15` (höchste Zahl zählt, mindestens `loaders.default-limit`) |
+| `mrchunks.active.<anzahl>` | – | So viele dürfen **gleichzeitig aktiv** sein, z.B. `mrchunks.active.3` (mindestens `loaders.default-active-limit`) |
+| `mrchunks.limit.unlimited` | niemand | Beliebig viele Loader setzen |
+| `mrchunks.active.unlimited` | niemand | Beliebig viele gleichzeitig aktiv |
+| `mrchunks.exempt` | niemand | **Ausschluss:** keine Loader, keine Einladungen, vorhandene Loader und Items werden beim Join gelöscht |
+
+`/chunkloader info` (Befehlshilfe) und `/mrchunks version` brauchen keine Permission.
+
+### Admin
+| Permission | Standard | Erlaubt |
+|---|---|---|
+| `mrchunks.admin` | OP | **alle** folgenden `mrchunks.admin.*` auf einmal |
+| `mrchunks.admin.gui` | OP | `/mrchunks gui` öffnen (die Aktionen darin brauchen ihre eigene Permission) |
+| `mrchunks.admin.list` | OP | `/mrchunks list [spieler]` |
+| `mrchunks.admin.manage` | OP | **Fremde** Loader an/aus schalten, umbenennen, löschen, ihre Einladungen verwalten, über das Aktiv-Limit hinaus aktivieren (`toggle`, `delete`, „alle löschen“ im Menü) |
+| `mrchunks.admin.teleport` | OP | `/mrchunks tp` und Teleport-Button im Menü |
+| `mrchunks.admin.limit` | OP | `/mrchunks limit` / `activelimit` und Limit-Buttons im Admin-Menü |
+| `mrchunks.admin.ban` | OP | `/mrchunks ban\|unban\|bans` und Sperr-Buttons |
+| `mrchunks.admin.map` | OP | `/mrchunks map [setup]` |
+| `mrchunks.admin.discord` | OP | `/mrchunks discord [test]` |
+| `mrchunks.admin.reload` | OP | `/mrchunks reload` und Reload-Button |
+| `mrchunks.admin.update` | OP | Update-Hinweis beim Betreten des Servers |
+
+### Beispiel LuckPerms
+```text
+# Normale Spieler brauchen nichts - use, map, view und invite haben alle.
+# Mehr Loader für VIPs: 15 setzen, davon 3 gleichzeitig aktiv
+/lp group vip permission set mrchunks.limit.15 true
+/lp group vip permission set mrchunks.active.3 true
+
+# Moderatoren: Menü, Liste, Teleport, Sperren - aber keine fremden Loader löschen
+/lp group mod permission set mrchunks.admin.gui true
+/lp group mod permission set mrchunks.admin.list true
+/lp group mod permission set mrchunks.admin.teleport true
+/lp group mod permission set mrchunks.admin.ban true
+
+# Admins: alles
+/lp group admin permission set mrchunks.admin true
+
+# Zweit-Accounts komplett ausschließen
+/lp group alt permission set mrchunks.exempt true
+```
+
+> ⚠️ **Gruppen mit `*` oder `mrchunks.*`** bekommen in LuckPerms **alles**, auch `mrchunks.exempt` (Ausschluss, Loader werden gelöscht!) und `mrchunks.limit.unlimited`. Dort deshalb ausdrücklich setzen:
+> ```text
+> /lp group admin permission set mrchunks.exempt false
+> ```
+> und, falls die Limits trotzdem gelten sollen, `mrchunks.limit.unlimited false` und `mrchunks.active.unlimited false`.
 
 ---
 
