@@ -8,12 +8,18 @@
 #   Zeitangaben: d = Tage, h = Stunden, m = Minuten, s = Sekunden,
 #                z.B. "30m", "1h30m", "7d". Eine reine Zahl zählt als Minuten.
 #
+#   Texte & Nachrichten (auch Item, Karte, Discord): lang/de.yml bzw. lang/en.yml.
+#
 #   Diese Datei ist UTF-8-kodiert. Falls Umlaute (ä, ö, ü) falsch angezeigt werden,
 #   im Editor die Kodierung auf "UTF-8" stellen.
 # ==============================================================================
 
 # Nicht ändern - wird für automatische Config-Updates verwendet.
 config-version: 1
+
+# Sprache aller Texte: de = Deutsch, en = English. Die Texte stehen in plugins/MRchunks/lang/<sprache>.yml
+# und können dort angepasst werden. Eigene Sprache: Datei kopieren (z.B. fr.yml), übersetzen, language: fr.
+language: de
 
 
 # ------------------------------------------------------------------------------
@@ -60,15 +66,8 @@ loaders:
 item:
   # Aussehen des Chunkloaders als Block und als Item.
   # Normale Blöcke dieses Typs sind KEINE Chunkloader - nur die per /chunkloader give.
+  # Name und Beschreibung des Items stehen in der Sprachdatei (item-name, item-lore).
   material: EMERALD_BLOCK
-  name: "<green><bold>Chunkloader"
-  # Platzhalter: <size> (z.B. 7), <chunks> (z.B. 49)
-  lore:
-    - "<gray>Hält <white><size>x<size> Chunks</white> um sich geladen."
-    - "<gray>Einfach platzieren - fertig."
-    - ""
-    - "<dark_gray>Rechtsklick auf den Block: Menü"
-    - "<dark_gray>Sneak + Rechtsklick: normal bauen"
   # Verzauberungs-Glanz auf dem Item.
   glint: true
 
@@ -100,18 +99,11 @@ squaremap:
   enabled: true
   # Beim ersten Start mit squaremap stellt MRchunks dessen Config einmalig passend ein:
   # Karte aktualisiert alle 5 Sekunden, keine Spieler-Standorte, Welt-Auswahl immer sichtbar,
-  # Nether von innen statt der Bedrock-Decke und die Dimensionsnamen unten.
+  # Nether von innen statt der Bedrock-Decke und die Dimensionsnamen aus der Sprachdatei (map-dimension-*).
   # Danach kannst du in plugins/squaremap/config.yml alles frei ändern. Erneut ausführen: /mrchunks map setup
   auto-configure: true
-  # Namen der Dimensionen in der Welt-Auswahl der Karte (werden bei der Einrichtung gesetzt).
-  dimension-names:
-    overworld: "Overworld"
-    nether: "Nether"
-    end: "End"
   # Spieler weder auf der Karte noch in der Seitenleiste anzeigen.
   hide-players: true
-  # Name der Ebene in der Ebenen-Auswahl der Karte.
-  layer-name: "Chunkloader"
   # true = Ebene ist beim Öffnen der Karte ausgeblendet (in der Ebenen-Auswahl einschaltbar).
   default-hidden: false
   # Deaktivierte Chunkloader (grau) ebenfalls anzeigen.
@@ -123,9 +115,6 @@ squaremap:
   fill-opacity: 0.25
   # Kleines Chunkloader-Symbol in der Mitte des Bereichs.
   show-icon: true
-  # Texte auf der Karte (HTML erlaubt). Platzhalter: {id} {player} {world} {x} {y} {z} {size} {chunks} {state}
-  hover-tooltip: "Chunkloader #{id} - {player}"
-  click-tooltip: "<b>Chunkloader #{id}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br>Bereich: {size}x{size} Chunks<br>Status: {state}"
   # Spätestens so oft werden die Markierungen neu abgeglichen (Änderungen erscheinen sonst sofort).
   update-seconds: 60
   # Öffentlicher Link zur Karte für /chunkloader map, z.B. "http://play.deinserver.de:8080".
@@ -147,8 +136,6 @@ squaremap:
     region-color: "#FFD54F"
     # Chunk-Koordinaten bei starkem Zoom in jeden Chunk schreiben.
     labels: true
-    # Name im Ebenen-Menü der Karte.
-    label: "Chunkraster"
 
 
 # ------------------------------------------------------------------------------
@@ -156,8 +143,8 @@ squaremap:
 # ------------------------------------------------------------------------------
 # Webhook anlegen: Discord-Kanal -> Kanal bearbeiten -> Integrationen -> Webhooks
 #                  -> Neuer Webhook -> Webhook-URL kopieren.
-# Platzhalter: {player} {admin} {id} {world} {x} {y} {z} {chunks} {limit} {time} {reason} {count}
-# Ein Event mit "enabled: false" oder leerer Nachricht wird nicht gesendet.
+# Die Texte der Events stehen in der Sprachdatei (lang/<sprache>.yml, Abschnitt discord).
+# Ein Event mit "enabled: false" oder leerem Text wird nicht gesendet.
 # Funktioniert es nicht? -> /mrchunks discord zeigt den Status, /mrchunks discord test schickt eine Testnachricht.
 discord:
   enabled: false
@@ -167,48 +154,37 @@ discord:
   avatar-url: ""
   use-embeds: true
   footer: "Minecraft-Server"
-  test-message: "🔧 Testnachricht von MRchunks - der Webhook funktioniert!"
   events:
     loader-placed:
       enabled: true
       color: "#2ECC71"
-      message: "🟩 **{player}** hat Chunkloader **#{id}** gesetzt ({world} {x}, {y}, {z})."
     loader-deleted:
       enabled: true
       color: "#E67E22"
-      message: "🗑️ **{player}** hat Chunkloader **#{id}** gelöscht ({world} {x}, {y}, {z})."
     loader-toggled:
       enabled: true
       color: "#3498DB"
-      message: "🔁 Chunkloader **#{id}** von **{player}** ist jetzt **{state}** (geändert von {admin})."
     loader-restored:
       enabled: true
       color: "#F1C40F"
-      message: "🧱 Der Block von Chunkloader **#{id}** ({world} {x}, {y}, {z}) fehlte und wurde wiederhergestellt."
     loader-removed-missing:
       enabled: true
       color: "#95A5A6"
-      message: "❔ Chunkloader **#{id}** von **{player}** wurde gelöscht, weil sein Block fehlte."
     admin-delete:
       enabled: true
       color: "#C0392B"
-      message: "🛠️ **{admin}** hat Chunkloader **#{id}** von **{player}** gelöscht."
     admin-ban:
       enabled: true
       color: "#C0392B"
-      message: "🔒 **{admin}** hat **{player}** gesperrt ({time}, Grund: {reason}). {count} Chunkloader gelöscht."
     admin-unban:
       enabled: true
       color: "#27AE60"
-      message: "🔓 **{admin}** hat die Sperre von **{player}** aufgehoben."
     admin-limit:
       enabled: true
       color: "#9B59B6"
-      message: "🛠️ **{admin}** hat das {type} von **{player}** auf **{limit}** gesetzt."
     admin-reload:
       enabled: true
       color: "#3498DB"
-      message: "🔄 **{admin}** hat die MRchunks-Konfiguration neu geladen."
 
 
 # ------------------------------------------------------------------------------
@@ -235,241 +211,4 @@ gui:
   confirm-seconds: 5
   # Schnellauswahl für Sperren im Admin-Menü ("permanent" = dauerhaft, genau 3 Einträge).
   ban-durations: ["1d", "7d", "permanent"]
-  ban-reason: "über das Admin-Menü"
   sounds: true
-
-
-# ------------------------------------------------------------------------------
-#   8) NACHRICHTEN
-# ------------------------------------------------------------------------------
-# Format: MiniMessage - https://docs.advntr.dev/minimessage/format.html
-# Leere Nachricht ("") = wird nicht gesendet.
-messages:
-  prefix: "<dark_gray>[<green>MRchunks</green>]</dark_gray> "
-
-  # --- Allgemein ---------------------------------------------------------------
-  no-permission: "<prefix><red>Dazu hast du keine Berechtigung."
-  players-only: "<prefix><red>Dieser Befehl kann nur von Spielern genutzt werden."
-  player-not-found: "<prefix><red>Spieler <white><player></white> wurde nicht gefunden."
-  loader-not-found: "<prefix><red>Chunkloader <white>#<id></white> gibt es nicht."
-  invalid-duration: "<prefix><red>Ungültige Dauer <white><input></white>. Beispiele: 1h, 7d, permanent"
-  invalid-number: "<prefix><red><white><input></white> ist keine gültige Zahl."
-  state-active: "aktiv"
-  state-inactive: "deaktiviert"
-  ban-duration-permanent: "dauerhaft"
-  ban-duration-temporary: "noch <time>"
-  ban-no-reason: "kein Grund angegeben"
-
-  # --- /chunkloader ------------------------------------------------------------
-  usage: |-
-    <prefix><gray>Befehle:
-    <green>/chunkloader give [anzahl]</green> <dark_gray>- <gray>Chunkloader ins Inventar holen
-    <green>/chunkloader remove [anzahl|all]</green> <dark_gray>- <gray>Chunkloader-Items aus dem Inventar entfernen
-    <green>/chunkloader list</green> <dark_gray>- <gray>Menü mit deinen Chunkloadern
-    <green>/chunkloader info</green> <dark_gray>- <gray>So funktioniert's + deine Chunkloader
-    <green>/chunkloader map</green> <dark_gray>- <gray>Link zur Webkarte
-  give-ok: "<prefix><green>Du hast <white><count></white> Chunkloader bekommen. <gray>(<used>/<limit> belegt)"
-  give-none-left: "<prefix><red>Du hast kein Chunkloader-Kontingent mehr frei <gray>(<placed> gesetzt, <held> im Inventar, Limit <limit>)."
-  give-partial: "<prefix><yellow>Es war nur noch Platz für <white><count></white> Chunkloader."
-  give-inventory-full: "<prefix><red>Dein Inventar ist voll."
-  remove-ok: "<prefix><green><white><count></white> Chunkloader-Item(s) aus deinem Inventar entfernt."
-  remove-none: "<prefix><gray>Du hast keine Chunkloader-Items im Inventar."
-  banned: "<prefix><red>Du bist für Chunkloader gesperrt <dark_gray>(<duration>, Grund: <reason>)<red>."
-  info: |-
-    <prefix><gray>So funktionieren Chunkloader:
-    <dark_gray> » <gray>Hol dir einen mit <white>/chunkloader give</white> und platziere ihn.
-    <dark_gray> » <gray>Er hält <white><size>x<size> Chunks</white> um sich dauerhaft geladen - auch wenn du offline bist.
-    <dark_gray> » <gray>Dort laufen Redstone, Hopper, Öfen, Tiere und Pflanzenwachstum weiter.
-    <dark_gray> » <gray>Mob-Spawning braucht weiterhin einen Spieler in der Nähe (Minecraft-Regel).
-    <dark_gray> » <gray>Rechtsklick auf den Block öffnet das Menü: Grenze anzeigen, an/aus, löschen.
-    <dark_gray> » <gray>Chunkloader sind unzerstörbar - entfernen nur über das Menü.
-    <prefix><gray>Deine Chunkloader: <white><placed></white>/<white><limit></white> gesetzt, <white><active></white>/<white><active-limit></white> aktiv <dark_gray>(<held> als Item im Inventar)
-  info-entry: "<dark_gray>   #<id> <gray><world> <white><x> <y> <z></white> <dark_gray>- <state>"
-  map-link: "<prefix><gray>Webkarte mit allen Chunkloadern: <link>"
-  map-link-label: "<aqua><u><url></u></aqua>"
-  map-unavailable: "<prefix><gray>Für diesen Server gibt es gerade keine öffentliche Webkarte."
-  info-none: "<dark_gray>   (noch keine gesetzt)"
-
-  # --- Setzen / Block ----------------------------------------------------------
-  placed: "<prefix><green>Chunkloader <white>#<id></white> gesetzt - <white><chunks></white> Chunks bleiben jetzt geladen. <gray>(<placed>/<limit> gesetzt, <active>/<active-limit> aktiv)"
-  placed-inactive: "<prefix><yellow>Chunkloader <white>#<id></white> gesetzt, aber <white>deaktiviert</white>: Du hast schon <white><active>/<active-limit></white> aktive Chunkloader. <gray>Schalte im MenÃ¼ einen anderen aus, um diesen zu aktivieren."
-  active-limit-reached: "<prefix><red>Du hast schon <white><active>/<active-limit></white> aktive Chunkloader. <gray>Deaktiviere zuerst einen anderen."
-  place-limit: "<prefix><red>Du hast dein Limit von <white><limit></white> Chunkloadern erreicht."
-  place-world-disabled: "<prefix><red>In dieser Welt sind keine Chunkloader erlaubt."
-  break-denied: "<prefix><red>Chunkloader sind unzerstörbar. <gray>Rechtsklick auf den Block öffnet das Menü zum Löschen."
-  toggled: "<prefix><green>Chunkloader <white>#<id></white> ist jetzt <white><state></white>."
-  deleted: "<prefix><green>Chunkloader <white>#<id></white> gelöscht."
-  delete-confirm: "<prefix><yellow>Zum Löschen von <white>#<id></white> noch einmal klicken."
-  not-owner: "<prefix><red>Das ist nicht dein Chunkloader."
-  owner-notify-toggled: "<prefix><gray>Dein Chunkloader <white>#<id></white> wurde von <white><admin></white> auf <white><state></white> gestellt."
-  owner-notify-deleted: "<prefix><gray>Dein Chunkloader <white>#<id></white> wurde von <white><admin></white> gelöscht."
-  border-shown: "<prefix><gray>Grenze von <white>#<id></white> wird <white><seconds>s</white> lang angezeigt."
-  teleported: "<prefix><gray>Zu Chunkloader <white>#<id></white> teleportiert."
-
-  # --- Admin -------------------------------------------------------------------
-  admin-usage: |-
-    <prefix><gray>Admin-Befehle:
-    <green>/mrchunks gui</green> <dark_gray>- <gray>Admin-Menü mit allen Spielern und Chunkloadern
-    <green>/mrchunks list [spieler]</green> <dark_gray>- <gray>Chunkloader auflisten
-    <green>/mrchunks tp <id></green> <dark_gray>- <gray>Zu einem Chunkloader teleportieren
-    <green>/mrchunks toggle <id></green> <dark_gray>- <gray>Chunkloader an/aus
-    <green>/mrchunks delete <id></green> <dark_gray>- <gray>Chunkloader löschen
-    <green>/mrchunks limit <spieler> <anzahl|reset></green> <dark_gray>- <gray>Wie viele Loader ein Spieler setzen darf
-    <green>/mrchunks activelimit <spieler> <anzahl|reset></green> <dark_gray>- <gray>Wie viele davon gleichzeitig aktiv sein dürfen
-    <green>/mrchunks ban <spieler> [dauer] [grund]</green> <dark_gray>- <gray>Sperren (löscht alle seine Loader)
-    <green>/mrchunks unban <spieler></green> <dark_gray>- <gray>Sperre aufheben
-    <green>/mrchunks bans</green> <dark_gray>- <gray>Alle Sperren
-    <green>/mrchunks map [setup]</green> <dark_gray>- <gray>Status der Webkarte / squaremap neu einrichten
-    <green>/mrchunks discord [test]</green> <dark_gray>- <gray>Discord-Status / Testnachricht
-    <green>/mrchunks reload</green> <dark_gray>- <gray>Konfiguration neu laden
-    <green>/mrchunks version</green> <dark_gray>- <gray>Version & Update-Status
-  reloaded: "<prefix><green>Konfiguration neu geladen."
-  list-header: "<prefix><gray>Chunkloader<filter>: <white><count></white>"
-  list-entry: "<dark_gray> #<id> <white><player></white> <gray><world> <x> <y> <z> <dark_gray>- <state>"
-  list-empty: "<prefix><gray>Keine Chunkloader gefunden."
-  limit-set: "<prefix><green><type> von <white><player></white> ist jetzt <white><limit></white>."
-  limit-reset: "<prefix><green><type> von <white><player></white> zurückgesetzt <gray>(gilt jetzt: <limit>)."
-  limit-notify: "<prefix><green>Dein <type> ist jetzt <white><limit></white>."
-  limit-type-place: "Limit (setzbare Loader)"
-  limit-type-active: "Aktiv-Limit (gleichzeitig aktive Loader)"
-  active-limit-enforced: "<prefix><yellow><white><count></white> Chunkloader von <white><player></white> wurden deaktiviert, weil das neue Aktiv-Limit niedriger ist."
-  active-limit-enforced-notify: "<prefix><yellow><white><count></white> deiner Chunkloader wurden deaktiviert, weil dein Aktiv-Limit gesenkt wurde."
-  ban-set: "<prefix><green><white><player></white> ist gesperrt <dark_gray>(<duration>, Grund: <reason>)<green>. <white><count></white> Chunkloader gelöscht."
-  ban-notify: "<prefix><red>Du wurdest für Chunkloader gesperrt <dark_gray>(<duration>, Grund: <reason>)<red>. Deine Chunkloader wurden gelöscht."
-  unban-set: "<prefix><green>Sperre von <white><player></white> aufgehoben."
-  unban-none: "<prefix><gray><white><player></white> ist nicht gesperrt."
-  unban-notify: "<prefix><green>Du darfst wieder Chunkloader setzen."
-  bans-header: "<prefix><gray>Gesperrte Spieler:"
-  bans-entry: "<dark_gray> - <white><player></white> <gray>(<duration>, Grund: <reason>, von <by>)"
-  bans-empty: "<prefix><gray>Niemand ist gesperrt."
-  map-status-on: "<prefix><green>Webkarte aktiv <gray>(squaremap, Ebene \"Chunkloader\"): <link>"
-  map-status-off: "<prefix><gray>Keine Webkarte: squaremap ist <white><status></white>. <dark_gray>(https://modrinth.com/plugin/squaremap)"
-  map-url-unknown: "<gray>Adresse unbekannt - trage squaremap.public-url ein"
-  map-squaremap-missing: "<prefix><red>squaremap ist nicht installiert."
-  map-setup-done: "<prefix><green>squaremap eingerichtet: <white><changes></white>. <gray>squaremap wird neu geladen."
-  map-setup-nothing: "<prefix><gray>squaremap ist bereits passend eingerichtet."
-  map-setup-failed: "<prefix><red>squaremap konnte nicht eingerichtet werden: <white><reason>"
-
-  # --- Discord -----------------------------------------------------------------
-  discord-status-active: "<prefix><green>Discord-Webhook aktiv <gray>(<white><events></white>/<white><total></white> Events eingeschaltet)"
-  discord-status-inactive: "<prefix><red>Discord-Webhook inaktiv: <white><reason>"
-  discord-status-last: "<prefix><gray>Letzter Versand: <white><result>"
-  discord-status-never: "seit dem Start noch nichts gesendet"
-  discord-test-hint: "<prefix><gray>Mit <white>/mrchunks discord test</white> eine Testnachricht schicken."
-  discord-test-sending: "<prefix><gray>Sende Testnachricht an Discord ..."
-  discord-test-ok: "<prefix><green>✔ Testnachricht ist in Discord angekommen."
-  discord-test-failed: "<prefix><red>✘ Testnachricht fehlgeschlagen: <white><reason>"
-
-  # --- Version & Updates -------------------------------------------------------
-  version: "<prefix><gray>MRchunks <white>v<version></white> von <white><author></white>"
-  version-latest: "<prefix><green>Du nutzt die aktuellste Version."
-  version-outdated: "<prefix><gold>Neue Version verfügbar: <white><latest></white> <gray>(installiert: <current>) <download>"
-  version-unknown: "<prefix><gray>Update-Status unbekannt: <reason>"
-  version-checking: "<prefix><gray>Suche nach Updates ..."
-  version-links: "<prefix><modrinth> <dark_gray>| <github>"
-  update-download-label: "<aqua><u>[Download]</u></aqua>"
-  update-join-notify: "<prefix><gold>Für MRchunks gibt es ein Update: <white><latest></white> <gray>(installiert: <current>) <download>"
-
-  # --- Menüs -------------------------------------------------------------------
-  gui-no-permission: "<red>✘ Keine Berechtigung"
-  gui-close: "<red>Schließen"
-  gui-back: "<yellow>« Zurück"
-  gui-prev: "<yellow>« Vorherige Seite"
-  gui-next: "<yellow>Nächste Seite »"
-  gui-page-lore:
-    - "<gray>Seite <white><page></white>/<white><pages>"
-  gui-empty: "<gray>Nichts gefunden"
-
-  # Ein Chunkloader (in Listen und als Info-Item)
-  gui-loader-name: "<green>Chunkloader #<id>"
-  gui-loader-lore:
-    - "<dark_gray>Owner: <gray><player>"
-    - "<gray>Welt: <white><world>"
-    - "<gray>Position: <white><x> <y> <z>"
-    - "<gray>Chunks: <white><size>x<size></white> <dark_gray>(Mitte <cx>, <cz>)"
-    - "<gray>Status: <state>"
-    - "<gray>Gesetzt: <white><created>"
-  gui-loader-click: "<yellow>» Klicken für Aktionen"
-  gui-state-active: "<green>● aktiv"
-  gui-state-inactive: "<red>● deaktiviert"
-
-  # Menü eines Chunkloaders
-  gui-title-loader: "<dark_gray>Chunkloader <dark_green>#<id>"
-  gui-toggle-off-name: "<red>Deaktivieren"
-  gui-toggle-off-lore:
-    - "<gray>Die Chunks werden nicht mehr"
-    - "<gray>geladen gehalten. Der Block bleibt."
-  gui-toggle-on-name: "<green>Aktivieren"
-  gui-toggle-on-lore:
-    - "<gray>Hält die <white><size>x<size></white> Chunks"
-    - "<gray>wieder geladen."
-  gui-border-name: "<aqua>Grenze anzeigen"
-  gui-border-lore:
-    - "<gray>Zeigt <white><seconds>s</white> lang die Außengrenze"
-    - "<gray>der geladenen Chunks."
-  gui-delete-name: "<red>Löschen"
-  gui-delete-lore:
-    - "<gray>Entfernt den Block und den Chunkloader."
-    - "<gray>Er zählt danach nicht mehr zu deinem Limit."
-    - "<dark_red>Ersatzlos - es gibt kein Item zurück."
-  gui-delete-confirm-name: "<dark_red><bold>Wirklich löschen?"
-  gui-delete-confirm-lore:
-    - "<red>Noch einmal klicken zum Löschen."
-  gui-teleport-name: "<aqua>Hinteleportieren"
-
-  # Eigene Chunkloader (/chunkloader list)
-  gui-title-mine: "<dark_gray>Meine Chunkloader <gray>(<placed>/<limit>, <active>/<active-limit> aktiv)"
-
-  # Admin-Menü
-  gui-title-admin: "<dark_gray>MRchunks <gray>» <dark_green>Übersicht"
-  gui-title-player: "<dark_gray>MRchunks <gray>» <dark_green><player>"
-  gui-stats-name: "<green>Übersicht"
-  gui-stats-lore:
-    - "<gray>Chunkloader: <white><loaders></white> <dark_gray>(<active> aktiv)"
-    - "<gray>Geladene Chunks: <white><chunks>"
-    - "<gray>Spieler mit Loadern: <white><owners>"
-    - "<gray>Gesperrt: <white><banned>"
-  gui-info-name: "<green>MRchunks <white>v<version>"
-  gui-info-lore:
-    - "<gray>Version: <update>"
-    - "<gray>squaremap-Karte: <squaremap>"
-  gui-update-ok: "<green>Aktuell"
-  gui-update-outdated: "<red>Veraltet <dark_gray>(neu: <latest>)"
-  gui-update-unknown: "<gray>Unbekannt"
-  gui-web-on: "<green>an"
-  gui-web-off: "<gray>aus"
-  gui-filter-name: "<yellow>Filter: <white><filter>"
-  gui-filter-lore:
-    - "<gray>Klicken zum Wechseln"
-  gui-filter-all: "Alle mit Loadern"
-  gui-filter-online: "Online"
-  gui-filter-banned: "Gesperrte"
-  gui-reload-name: "<aqua>Konfiguration neu laden"
-  gui-player-name: "<white><player>"
-  gui-player-lore:
-    - "<gray>Gesetzt: <white><placed></white>/<white><limit></white>"
-    - "<gray>Aktiv: <white><active></white>/<white><active-limit></white>"
-    - "<gray>Limit: <limit-source>"
-    - "<gray>Status: <status>"
-  gui-player-click: "<yellow>» Klicken für Chunkloader & Aktionen"
-  gui-online: "<green>online"
-  gui-offline: "<gray>offline"
-  gui-banned: "<red>gesperrt, <duration> <dark_gray>(<reason>)"
-  gui-limit-default: "<white>Standard"
-  gui-limit-permission: "<white>Permission"
-  gui-limit-custom: "<light_purple>individuell"
-  gui-limit-name: "<light_purple>Setzbar: <white><limit></white> <gray>Loader"
-  gui-active-limit-name: "<aqua>Gleichzeitig aktiv: <white><limit></white> <gray>Loader"
-  gui-limit-lore:
-    - "<gray>Linksklick: <white>+1"
-    - "<gray>Rechtsklick: <white>-1"
-    - "<gray>Shift-Klick: <white>zurücksetzen"
-  gui-ban-name: "<red>Sperren: <white><time>"
-  gui-ban-lore:
-    - "<gray>Löscht alle Chunkloader von <white><player></white>"
-    - "<gray>und verhindert neue (<white><time></white>)."
-  gui-unban-name: "<green>Entsperren"
-  gui-delete-all-name: "<red>Alle Chunkloader löschen"
-  gui-delete-all-lore:
-    - "<gray>Löscht alle <white><placed></white> Chunkloader"
-    - "<gray>von <white><player></white> (ohne Sperre)."

@@ -12,6 +12,7 @@ Chunkloader-Plugin für **Paper 26.3** (Java 25).
 - **Admin-Menü:** alle Spieler und ihre Chunkloader, mit Teleport, an/aus, löschen, Limit und Sperre.
 - **Webkarte mit echtem Gelände** über [squaremap](https://modrinth.com/plugin/squaremap): alle Bereiche, Chunkraster, Overworld/Nether/End. squaremap wird automatisch erkannt und eingerichtet.
 - **Discord-Logs**, **Update-Prüfung**, alles einstellbar in einer `config.yml`, eine Permission für jede Funktion.
+- **Sprachdateien** für alle Texte: Deutsch und Englisch mitgeliefert, eigene Sprachen möglich.
 
 ---
 
@@ -20,6 +21,15 @@ Chunkloader-Plugin für **Paper 26.3** (Java 25).
 2. `plugins/MRchunks/config.yml` anpassen und `/mrchunks reload` ausführen.
 
 Bei Updates wird die Config automatisch migriert: Deine Werte bleiben erhalten, und eine Sicherung `config.v<N>.backup.yml` wird angelegt.
+
+### Sprache & Texte
+In der `config.yml` steht nur die Sprache: **`language: de`** (Deutsch) oder **`language: en`** (English).
+Alle Texte stehen in `plugins/MRchunks/lang/<sprache>.yml`: Chat, Menüs, Item-Name und -Beschreibung,
+Texte auf der Webkarte (Ebenen-Namen, Tooltips, Dimensionsnamen), Discord-Logs und das Datumsformat.
+
+- Texte in der Sprachdatei ändern und `/mrchunks reload` ausführen. Ein leerer Text (`""`) schaltet die Nachricht ab.
+- **Eigene Sprache:** `lang/en.yml` kopieren, z.B. als `lang/fr.yml`, übersetzen und `language: fr` setzen.
+- Neue Texte aus Updates werden automatisch in deiner Sprachdatei ergänzt, deine Änderungen bleiben erhalten.
 
 ---
 
@@ -154,7 +164,7 @@ MRchunks zeigt die Chunkloader auf **[squaremap](https://modrinth.com/plugin/squ
 Webhook in Discord anlegen (*Kanal bearbeiten → Integrationen → Webhooks*), dann `discord.enabled: true` setzen, die `webhook-url` eintragen und `/mrchunks reload` ausführen.
 `/mrchunks discord test` prüft die Einrichtung.
 
-Diese Events gibt es: Loader gesetzt, gelöscht, an/aus geschaltet, Block wiederhergestellt oder fehlend, dazu die Admin-Aktionen Löschen, Sperren, Entsperren, Limit und Reload. Texte und Farben stellst du unter `discord.events` ein.
+Diese Events gibt es: Loader gesetzt, gelöscht, an/aus geschaltet, Block wiederhergestellt oder fehlend, dazu die Admin-Aktionen Löschen, Sperren, Entsperren, Limit und Reload. An/aus und Farben stellst du unter `discord.events` in der Config ein, die Texte unter `discord` in der Sprachdatei.
 
 ---
 

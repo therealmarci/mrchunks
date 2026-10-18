@@ -1,0 +1,307 @@
+# ==============================================================================
+#   MRchunks - language file: English (en)
+# ==============================================================================
+#   Activate: in config.yml  language: en
+#   Own language: copy this file (e.g. as fr.yml), translate it and set language: fr.
+#   Missing texts are added automatically on updates - your changes are kept.
+#
+#   Format: MiniMessage - https://docs.advntr.dev/minimessage/format.html
+#   Empty text ("") = the message is not sent.
+# ==============================================================================
+
+# Discord log texts (Discord markdown). Placeholders: {player} {admin} {id} {world} {x} {y} {z}
+# {state} {time} {reason} {count} {type} {limit}. On/off and colour are set in config.yml.
+discord:
+  test-message: "🔧 Test message from MRchunks - the webhook works!"
+  loader-placed: "🟩 **{player}** placed chunk loader **#{id}** ({world} {x}, {y}, {z})."
+  loader-deleted: "🗑️ **{player}** deleted chunk loader **#{id}** ({world} {x}, {y}, {z})."
+  loader-toggled: "🔁 Chunk loader **#{id}** of **{player}** is now **{state}** (changed by {admin})."
+  loader-restored: "🧱 The block of chunk loader **#{id}** ({world} {x}, {y}, {z}) was missing and has been restored."
+  loader-removed-missing: "❔ Chunk loader **#{id}** of **{player}** was deleted because its block was missing."
+  admin-delete: "🛠️ **{admin}** deleted chunk loader **#{id}** of **{player}**."
+  admin-ban: "🔒 **{admin}** banned **{player}** ({time}, reason: {reason}). {count} chunk loaders deleted."
+  admin-unban: "🔓 **{admin}** lifted the ban of **{player}**."
+  admin-limit: "🛠️ **{admin}** set the {type} of **{player}** to **{limit}**."
+  admin-reload: "🔄 **{admin}** reloaded the MRchunks configuration."
+
+# --- Chunk loader item ---------------------------------------------------------
+# Placeholders: <size> (e.g. 7), <chunks> (e.g. 49)
+item-name: "<green><bold>Chunk Loader"
+item-lore:
+  - "<gray>Keeps <white><size>x<size> chunks</white> around it loaded."
+  - "<gray>Just place it - done."
+  - ""
+  - "<dark_gray>Right-click the block: menu"
+  - "<dark_gray>Sneak + right-click: build normally"
+
+# --- Web map (squaremap) ---------------------------------------------------------
+# Names of the dimensions in the world selection (set when squaremap is configured).
+map-dimension-overworld: "Overworld"
+map-dimension-nether: "Nether"
+map-dimension-end: "End"
+# Name of the layer in the map's layer selection.
+map-layer-name: "Chunk Loaders"
+# Texts on the map (HTML allowed). Placeholders: {id} {player} {world} {x} {y} {z} {size} {chunks} {state}
+map-hover-tooltip: "Chunk loader #{id} - {player}"
+map-click-tooltip: "<b>Chunk loader #{id}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br>Area: {size}x{size} chunks<br>Status: {state}"
+# Name of the chunk grid in the map's layer menu.
+map-grid-label: "Chunk Grid"
+
+# Reason entered when banning via the admin menu.
+gui-ban-reason: "via the admin menu"
+
+prefix: "<dark_gray>[<green>MRchunks</green>]</dark_gray> "
+
+# --- General -----------------------------------------------------------------
+no-permission: "<prefix><red>You don't have permission to do that."
+players-only: "<prefix><red>This command can only be used by players."
+player-not-found: "<prefix><red>Player <white><player></white> was not found."
+loader-not-found: "<prefix><red>Chunk loader <white>#<id></white> does not exist."
+invalid-duration: "<prefix><red>Invalid duration <white><input></white>. Examples: 1h, 7d, permanent"
+invalid-number: "<prefix><red><white><input></white> is not a valid number."
+state-active: "active"
+state-inactive: "disabled"
+ban-duration-permanent: "permanent"
+ban-duration-temporary: "<time> left"
+ban-no-reason: "no reason given"
+# Date format (Java pattern), e.g. "dd.MM.yyyy HH:mm" or "yyyy-MM-dd HH:mm"
+date-format: "yyyy-MM-dd HH:mm"
+
+# --- /chunkloader ------------------------------------------------------------
+usage: |-
+  <prefix><gray>Commands:
+  <green>/chunkloader give [amount]</green> <dark_gray>- <gray>Get chunk loaders into your inventory
+  <green>/chunkloader remove [amount|all]</green> <dark_gray>- <gray>Remove chunk loader items from your inventory
+  <green>/chunkloader list</green> <dark_gray>- <gray>Menu with your chunk loaders
+  <green>/chunkloader info</green> <dark_gray>- <gray>How it works + your chunk loaders
+  <green>/chunkloader map</green> <dark_gray>- <gray>Link to the web map
+give-ok: "<prefix><green>You received <white><count></white> chunk loader(s). <gray>(<used>/<limit> used)"
+give-none-left: "<prefix><red>You have no chunk loaders left <gray>(<placed> placed, <held> in inventory, limit <limit>)."
+give-partial: "<prefix><yellow>There was only room for <white><count></white> chunk loader(s)."
+give-inventory-full: "<prefix><red>Your inventory is full."
+remove-ok: "<prefix><green>Removed <white><count></white> chunk loader item(s) from your inventory."
+remove-none: "<prefix><gray>You have no chunk loader items in your inventory."
+banned: "<prefix><red>You are banned from chunk loaders <dark_gray>(<duration>, reason: <reason>)<red>."
+info: |-
+  <prefix><gray>How chunk loaders work:
+  <dark_gray> » <gray>Get one with <white>/chunkloader give</white> and place it.
+  <dark_gray> » <gray>It keeps <white><size>x<size> chunks</white> around it loaded permanently - even while you are offline.
+  <dark_gray> » <gray>Redstone, hoppers, furnaces, animals and crop growth keep running there.
+  <dark_gray> » <gray>Mob spawning still needs a player nearby (Minecraft rule).
+  <dark_gray> » <gray>Right-click the block to open the menu: show border, on/off, delete.
+  <dark_gray> » <gray>Chunk loaders are indestructible - they can only be removed via the menu.
+  <prefix><gray>Your chunk loaders: <white><placed></white>/<white><limit></white> placed, <white><active></white>/<white><active-limit></white> active <dark_gray>(<held> as items in your inventory)
+info-entry: "<dark_gray>   #<id> <gray><world> <white><x> <y> <z></white> <dark_gray>- <state>"
+map-link: "<prefix><gray>Web map with all chunk loaders: <link>"
+map-link-label: "<aqua><u><url></u></aqua>"
+map-unavailable: "<prefix><gray>There is currently no public web map for this server."
+info-none: "<dark_gray>   (none placed yet)"
+
+# --- Placing / block ---------------------------------------------------------
+placed: "<prefix><green>Chunk loader <white>#<id></white> placed - <white><chunks></white> chunks now stay loaded. <gray>(<placed>/<limit> placed, <active>/<active-limit> active)"
+placed-inactive: "<prefix><yellow>Chunk loader <white>#<id></white> placed, but <white>disabled</white>: you already have <white><active>/<active-limit></white> active chunk loaders. <gray>Turn another one off in the menu to activate this one."
+active-limit-reached: "<prefix><red>You already have <white><active>/<active-limit></white> active chunk loaders. <gray>Disable another one first."
+place-limit: "<prefix><red>You have reached your limit of <white><limit></white> chunk loaders."
+place-world-disabled: "<prefix><red>Chunk loaders are not allowed in this world."
+break-denied: "<prefix><red>Chunk loaders are indestructible. <gray>Right-click the block to open the menu and delete it."
+toggled: "<prefix><green>Chunk loader <white>#<id></white> is now <white><state></white>."
+deleted: "<prefix><green>Chunk loader <white>#<id></white> deleted."
+delete-confirm: "<prefix><yellow>Click again to delete <white>#<id></white>."
+not-owner: "<prefix><red>This is not your chunk loader."
+owner-notify-toggled: "<prefix><gray>Your chunk loader <white>#<id></white> was set to <white><state></white> by <white><admin></white>."
+owner-notify-deleted: "<prefix><gray>Your chunk loader <white>#<id></white> was deleted by <white><admin></white>."
+border-shown: "<prefix><gray>Showing the border of <white>#<id></white> for <white><seconds>s</white>."
+teleported: "<prefix><gray>Teleported to chunk loader <white>#<id></white>."
+
+# --- Admin -------------------------------------------------------------------
+admin-usage: |-
+  <prefix><gray>Admin commands:
+  <green>/mrchunks gui</green> <dark_gray>- <gray>Admin menu with all players and chunk loaders
+  <green>/mrchunks list [player]</green> <dark_gray>- <gray>List chunk loaders
+  <green>/mrchunks tp <id></green> <dark_gray>- <gray>Teleport to a chunk loader
+  <green>/mrchunks toggle <id></green> <dark_gray>- <gray>Turn a chunk loader on/off
+  <green>/mrchunks delete <id></green> <dark_gray>- <gray>Delete a chunk loader
+  <green>/mrchunks limit <player> <amount|reset></green> <dark_gray>- <gray>How many loaders a player may place
+  <green>/mrchunks activelimit <player> <amount|reset></green> <dark_gray>- <gray>How many of them may be active at once
+  <green>/mrchunks ban <player> [duration] [reason]</green> <dark_gray>- <gray>Ban (deletes all their loaders)
+  <green>/mrchunks unban <player></green> <dark_gray>- <gray>Lift a ban
+  <green>/mrchunks bans</green> <dark_gray>- <gray>All bans
+  <green>/mrchunks map [setup]</green> <dark_gray>- <gray>Web map status / set up squaremap again
+  <green>/mrchunks discord [test]</green> <dark_gray>- <gray>Discord status / test message
+  <green>/mrchunks reload</green> <dark_gray>- <gray>Reload the configuration
+  <green>/mrchunks version</green> <dark_gray>- <gray>Version & update status
+reloaded: "<prefix><green>Configuration reloaded."
+list-header: "<prefix><gray>Chunk loaders<filter>: <white><count></white>"
+list-entry: "<dark_gray> #<id> <white><player></white> <gray><world> <x> <y> <z> <dark_gray>- <state>"
+list-empty: "<prefix><gray>No chunk loaders found."
+list-filter-player: " of <player>"
+limit-set: "<prefix><green><type> of <white><player></white> is now <white><limit></white>."
+limit-reset: "<prefix><green><type> of <white><player></white> reset <gray>(now applies: <limit>)."
+limit-notify: "<prefix><green>Your <type> is now <white><limit></white>."
+limit-type-place: "limit (placeable loaders)"
+limit-type-active: "active limit (loaders active at once)"
+active-limit-enforced: "<prefix><yellow><white><count></white> chunk loader(s) of <white><player></white> were disabled because the new active limit is lower."
+active-limit-enforced-notify: "<prefix><yellow><white><count></white> of your chunk loaders were disabled because your active limit was lowered."
+ban-set: "<prefix><green><white><player></white> is banned <dark_gray>(<duration>, reason: <reason>)<green>. <white><count></white> chunk loader(s) deleted."
+ban-notify: "<prefix><red>You were banned from chunk loaders <dark_gray>(<duration>, reason: <reason>)<red>. Your chunk loaders were deleted."
+unban-set: "<prefix><green>Ban of <white><player></white> lifted."
+unban-none: "<prefix><gray><white><player></white> is not banned."
+unban-notify: "<prefix><green>You may place chunk loaders again."
+bans-header: "<prefix><gray>Banned players:"
+bans-entry: "<dark_gray> - <white><player></white> <gray>(<duration>, reason: <reason>, by <by>)"
+bans-empty: "<prefix><gray>Nobody is banned."
+map-status-on: "<prefix><green>Web map active <gray>(squaremap, layer \"Chunk Loaders\"): <link>"
+map-status-off: "<prefix><gray>No web map: squaremap is <white><status></white>. <dark_gray>(https://modrinth.com/plugin/squaremap)"
+map-url-unknown: "<gray>address unknown - set squaremap.public-url"
+map-squaremap-missing: "<prefix><red>squaremap is not installed."
+map-setup-done: "<prefix><green>squaremap set up: <white><changes></white>. <gray>Reloading squaremap."
+map-setup-nothing: "<prefix><gray>squaremap is already set up correctly."
+map-setup-failed: "<prefix><red>squaremap could not be set up: <white><reason>"
+map-setup-change-interval: "map updates every 5 seconds"
+map-setup-change-tracker: "no player locations on the map"
+map-setup-change-sidebar: "world selection always visible"
+map-setup-change-name: "<world> is called \"<name>\""
+map-setup-change-nether: "<world> is shown from inside"
+map-state-active: "active"
+map-state-missing: "not installed"
+map-state-disabled: "disabled in the config"
+map-state-error: "error: <error>"
+
+# --- Discord -----------------------------------------------------------------
+discord-status-active: "<prefix><green>Discord webhook active <gray>(<white><events></white>/<white><total></white> events enabled)"
+discord-status-inactive: "<prefix><red>Discord webhook inactive: <white><reason>"
+discord-status-last: "<prefix><gray>Last delivery: <white><result>"
+discord-status-never: "nothing sent since startup"
+discord-test-hint: "<prefix><gray>Send a test message with <white>/mrchunks discord test</white>."
+discord-test-sending: "<prefix><gray>Sending test message to Discord ..."
+discord-test-ok: "<prefix><green>✔ The test message arrived in Discord."
+discord-test-failed: "<prefix><red>✘ Test message failed: <white><reason>"
+discord-reason-disabled: "discord.enabled is false"
+discord-reason-no-url: "discord.webhook-url is empty"
+discord-reason-bad-url: "discord.webhook-url is not a Discord webhook URL (must start with https://discord.com/api/webhooks/)"
+discord-reason-invalid-url: "discord.webhook-url contains invalid characters (spaces? quotes?)"
+discord-result-ok: "OK (HTTP <status>) at <time>"
+discord-result-error: "ERROR at <time>: <error>"
+discord-error-400: "Discord rejected the message (e.g. invalid name/avatar or text too long)."
+discord-error-401: "Webhook token invalid."
+discord-error-404: "Webhook does not exist (deleted? URL copied incorrectly?)."
+discord-error-rate-limit: "Discord rate limit, message dropped"
+discord-error-interrupted: "interrupted"
+
+# --- Version & updates -------------------------------------------------------
+version: "<prefix><gray>MRchunks <white>v<version></white> by <white><author></white>"
+version-latest: "<prefix><green>You are running the latest version."
+version-outdated: "<prefix><gold>New version available: <white><latest></white> <gray>(installed: <current>) <download>"
+version-unknown: "<prefix><gray>Update status unknown: <reason>"
+version-checking: "<prefix><gray>Checking for updates ..."
+version-links: "<prefix><modrinth> <dark_gray>| <github>"
+update-download-label: "<aqua><u>[Download]</u></aqua>"
+update-join-notify: "<prefix><gold>An update for MRchunks is available: <white><latest></white> <gray>(installed: <current>) <download>"
+update-reason-disabled: "the update check is disabled"
+update-reason-not-found: "project not found (HTTP 404) - not published yet?"
+update-reason-no-release: "no published version found"
+update-reason-no-repository: "no GitHub repository configured"
+
+# --- Menus -------------------------------------------------------------------
+gui-no-permission: "<red>✘ No permission"
+gui-close: "<red>Close"
+gui-back: "<yellow>« Back"
+gui-prev: "<yellow>« Previous page"
+gui-next: "<yellow>Next page »"
+gui-page-lore:
+  - "<gray>Page <white><page></white>/<white><pages>"
+gui-empty: "<gray>Nothing found"
+
+# A chunk loader (in lists and as info item)
+gui-loader-name: "<green>Chunk loader #<id>"
+gui-loader-lore:
+  - "<dark_gray>Owner: <gray><player>"
+  - "<gray>World: <white><world>"
+  - "<gray>Position: <white><x> <y> <z>"
+  - "<gray>Chunks: <white><size>x<size></white> <dark_gray>(centre <cx>, <cz>)"
+  - "<gray>Status: <state>"
+  - "<gray>Placed: <white><created>"
+gui-loader-click: "<yellow>» Click for actions"
+gui-state-active: "<green>● active"
+gui-state-inactive: "<red>● disabled"
+
+# Menu of a chunk loader
+gui-title-loader: "<dark_gray>Chunk loader <dark_green>#<id>"
+gui-toggle-off-name: "<red>Disable"
+gui-toggle-off-lore:
+  - "<gray>The chunks are no longer"
+  - "<gray>kept loaded. The block stays."
+gui-toggle-on-name: "<green>Enable"
+gui-toggle-on-lore:
+  - "<gray>Keeps the <white><size>x<size></white> chunks"
+  - "<gray>loaded again."
+gui-border-name: "<aqua>Show border"
+gui-border-lore:
+  - "<gray>Shows the outer border of the loaded"
+  - "<gray>chunks for <white><seconds>s</white>."
+gui-delete-name: "<red>Delete"
+gui-delete-lore:
+  - "<gray>Removes the block and the chunk loader."
+  - "<gray>It no longer counts towards your limit."
+  - "<dark_red>Final - you do not get an item back."
+gui-delete-confirm-name: "<dark_red><bold>Really delete?"
+gui-delete-confirm-lore:
+  - "<red>Click again to delete."
+gui-teleport-name: "<aqua>Teleport there"
+
+# Own chunk loaders (/chunkloader list)
+gui-title-mine: "<dark_gray>My chunk loaders <gray>(<placed>/<limit>, <active>/<active-limit> active)"
+
+# Admin menu
+gui-title-admin: "<dark_gray>MRchunks <gray>» <dark_green>Overview"
+gui-title-player: "<dark_gray>MRchunks <gray>» <dark_green><player>"
+gui-stats-name: "<green>Overview"
+gui-stats-lore:
+  - "<gray>Chunk loaders: <white><loaders></white> <dark_gray>(<active> active)"
+  - "<gray>Loaded chunks: <white><chunks>"
+  - "<gray>Players with loaders: <white><owners>"
+  - "<gray>Banned: <white><banned>"
+gui-info-name: "<green>MRchunks <white>v<version>"
+gui-info-lore:
+  - "<gray>Version: <update>"
+  - "<gray>squaremap map: <squaremap>"
+gui-update-ok: "<green>Up to date"
+gui-update-outdated: "<red>Outdated <dark_gray>(new: <latest>)"
+gui-update-unknown: "<gray>Unknown"
+gui-web-on: "<green>on"
+gui-web-off: "<gray>off"
+gui-filter-name: "<yellow>Filter: <white><filter>"
+gui-filter-lore:
+  - "<gray>Click to change"
+gui-filter-all: "All with loaders"
+gui-filter-online: "Online"
+gui-filter-banned: "Banned"
+gui-reload-name: "<aqua>Reload configuration"
+gui-player-name: "<white><player>"
+gui-player-lore:
+  - "<gray>Placed: <white><placed></white>/<white><limit></white>"
+  - "<gray>Active: <white><active></white>/<white><active-limit></white>"
+  - "<gray>Limit: <limit-source>"
+  - "<gray>Status: <status>"
+gui-player-click: "<yellow>» Click for chunk loaders & actions"
+gui-online: "<green>online"
+gui-offline: "<gray>offline"
+gui-banned: "<red>banned, <duration> <dark_gray>(<reason>)"
+gui-limit-default: "<white>default"
+gui-limit-permission: "<white>permission"
+gui-limit-custom: "<light_purple>custom"
+gui-limit-name: "<light_purple>Placeable: <white><limit></white> <gray>loaders"
+gui-active-limit-name: "<aqua>Active at once: <white><limit></white> <gray>loaders"
+gui-limit-lore:
+  - "<gray>Left-click: <white>+1"
+  - "<gray>Right-click: <white>-1"
+  - "<gray>Shift-click: <white>reset"
+gui-ban-name: "<red>Ban: <white><time>"
+gui-ban-lore:
+  - "<gray>Deletes all chunk loaders of <white><player></white>"
+  - "<gray>and prevents new ones (<white><time></white>)."
+gui-unban-name: "<green>Unban"
+gui-delete-all-name: "<red>Delete all chunk loaders"
+gui-delete-all-lore:
+  - "<gray>Deletes all <white><placed></white> chunk loaders"
+  - "<gray>of <white><player></white> (without a ban)."

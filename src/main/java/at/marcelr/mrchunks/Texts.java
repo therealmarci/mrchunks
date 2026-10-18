@@ -12,10 +12,21 @@ import static at.marcelr.mrchunks.Messages.tag;
 /** Placeholders shared by all messages and menu items that show a loader or a ban. */
 public final class Texts {
 
-    private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
-            .withZone(ZoneId.systemDefault());
+    private static final String DEFAULT_DATE = "dd.MM.yyyy HH:mm";
 
     private Texts() {
+    }
+
+    /** Date format from the language file (date-format), e.g. "dd.MM.yyyy HH:mm" or "yyyy-MM-dd HH:mm". */
+    private static String date(Messages messages, long millis) {
+        String pattern = messages.optional("date-format");
+        DateTimeFormatter format;
+        try {
+            format = DateTimeFormatter.ofPattern(pattern.isBlank() ? DEFAULT_DATE : pattern);
+        } catch (IllegalArgumentException e) {
+            format = DateTimeFormatter.ofPattern(DEFAULT_DATE);
+        }
+        return format.withZone(ZoneId.systemDefault()).format(Instant.ofEpochMilli(millis));
     }
 
     /** id, player (owner), world, x, y, z, cx, cz, size, chunks, created, state */
@@ -33,7 +44,7 @@ public final class Texts {
                 tag("cz", loader.chunkZ()),
                 tag("size", settings.size()),
                 tag("chunks", settings.chunkCount()),
-                tag("created", DATE.format(Instant.ofEpochMilli(loader.created()))),
+                tag("created", date(messages, loader.created())),
                 tag("state", messages.get(loader.active() ? "gui-state-active" : "gui-state-inactive")));
     }
 

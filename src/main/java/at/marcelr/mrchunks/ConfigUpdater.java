@@ -23,7 +23,7 @@ import java.util.logging.Level;
 public final class ConfigUpdater {
 
     public static final int CURRENT_VERSION = 1;
-    private static final String BOM = "\uFEFF";
+    public static final String BOM = "\uFEFF";
     /** Texts whose content changed with new features; the new default replaces the old value. */
     private static final Set<String> REPLACED_KEYS = Set.of();
     /** Keys that were renamed: old path -> new path (the value is carried over). */
@@ -113,7 +113,7 @@ public final class ConfigUpdater {
         return config;
     }
 
-    private static String stripBom(String text) {
+    public static String stripBom(String text) {
         return text.startsWith(BOM) ? text.substring(1) : text;
     }
 }

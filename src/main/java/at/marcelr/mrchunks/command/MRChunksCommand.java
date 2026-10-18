@@ -124,7 +124,7 @@ public final class MRChunksCommand implements TabExecutor {
                 return;
             }
             loaders = plugin.loaders().byOwner(target.getUniqueId());
-            filter = " von " + AdminActions.name(target);
+            filter = messages().plain("list-filter-player", "player", AdminActions.name(target));
         }
         if (loaders.isEmpty()) {
             messages().send(sender, "list-empty");

@@ -70,7 +70,8 @@ public record Settings(
                               boolean sounds) {
     }
 
-    public static Settings from(FileConfiguration c, Logger log) {
+    /** Texts (item, map, ban reason) come from the language file, everything else from config.yml. */
+    public static Settings from(FileConfiguration c, Messages texts, Logger log) {
         LoaderSettings loaders = new LoaderSettings(
                 Math.clamp(c.getInt("loaders.radius", 3), 0, 10),
                 Math.max(0, c.getInt("loaders.default-limit", 3)),
@@ -87,8 +88,8 @@ public record Settings(
             material = Material.EMERALD_BLOCK;
         }
         ItemSettings item = new ItemSettings(material,
-                c.getString("item.name", "<green><bold>Chunkloader"),
-                c.getStringList("item.lore"),
+                texts.optional("item-name"),
+                texts.list("item-lore"),
                 c.getBoolean("item.glint", true));
 
         Particle particle = parseEnum(c.getString("border.particle"), Particle.HAPPY_VILLAGER, "border.particle", log);
@@ -109,19 +110,19 @@ public record Settings(
         SquaremapSettings squaremap = new SquaremapSettings(
                 c.getBoolean("squaremap.enabled", true),
                 c.getBoolean("squaremap.auto-configure", true),
-                c.getString("squaremap.dimension-names.overworld", "Overworld"),
-                c.getString("squaremap.dimension-names.nether", "Nether"),
-                c.getString("squaremap.dimension-names.end", "End"),
+                texts.optional("map-dimension-overworld"),
+                texts.optional("map-dimension-nether"),
+                texts.optional("map-dimension-end"),
                 c.getBoolean("squaremap.hide-players", true),
-                c.getString("squaremap.layer-name", "Chunkloader"),
+                texts.optional("map-layer-name"),
                 c.getBoolean("squaremap.default-hidden", false),
                 c.getBoolean("squaremap.show-inactive", true),
                 rawColor.equalsIgnoreCase("owner") ? null : parseColor(rawColor, "squaremap.color", log),
                 parseColor(c.getString("squaremap.inactive-color", "#8A958E"), "squaremap.inactive-color", log),
                 Math.clamp(c.getDouble("squaremap.fill-opacity", 0.25), 0.0, 1.0),
                 c.getBoolean("squaremap.show-icon", true),
-                c.getString("squaremap.hover-tooltip", "Chunkloader #{id} - {player}"),
-                c.getString("squaremap.click-tooltip", ""),
+                texts.optional("map-hover-tooltip"),
+                texts.optional("map-click-tooltip"),
                 Math.clamp(c.getInt("squaremap.update-seconds", 60), 5, 3600),
                 c.getString("squaremap.public-url", "").trim(),
                 new GridSettings(
@@ -133,7 +134,7 @@ public record Settings(
                         c.getBoolean("squaremap.chunk-grid.region-lines", true),
                         hexColor(c.getString("squaremap.chunk-grid.region-color", "#FFD54F"), "#FFD54F"),
                         c.getBoolean("squaremap.chunk-grid.labels", true),
-                        c.getString("squaremap.chunk-grid.label", "Chunkraster")));
+                        texts.optional("map-grid-label")));
 
         String source = c.getString("update-checker.source", "github").toLowerCase(Locale.ROOT);
         if (!source.equals("modrinth") && !source.equals("github")) {
@@ -151,7 +152,7 @@ public record Settings(
                 Math.max(5, c.getInt("gui.refresh-ticks", 20)),
                 Math.clamp(c.getInt("gui.confirm-seconds", 5), 1, 60),
                 banDurations(c.getStringList("gui.ban-durations"), log),
-                c.getString("gui.ban-reason", "über das Admin-Menü"),
+                texts.optional("gui-ban-reason"),
                 c.getBoolean("gui.sounds", true));
 
         return new Settings(loaders, item, border, squaremap, update, gui);

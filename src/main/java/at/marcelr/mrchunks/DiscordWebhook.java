@@ -29,6 +29,8 @@ import java.util.logging.Level;
 /**
  * Sends log events to a Discord webhook. Requests run one after another on a background thread,
  * so the main thread never waits and Discord's rate limit (HTTP 429) can be respected.
+ * <p>
+ * On/off and colour of each event come from config.yml, the texts from the language file ({@code discord.<event>}).
  */
 public final class DiscordWebhook {
 
@@ -43,16 +45,17 @@ public final class DiscordWebhook {
     });
 
     private volatile Config config = Config.DISABLED;
-    private volatile String disabledReason = "discord.enabled ist false";
+    /** Language key of the reason why the webhook is off, or null if it is on. */
+    private volatile String disabledReason = "discord-reason-disabled";
     private volatile String lastResult;
     private final Set<String> missingEventsLogged = ConcurrentHashMap.newKeySet();
 
-    private record Event(boolean enabled, String message, int color) {
+    private record Event(boolean enabled, int color) {
     }
 
     private record Config(boolean enabled, URI url, String username, String avatarUrl,
-                          boolean embeds, String footer, String testMessage, Map<String, Event> events) {
-        static final Config DISABLED = new Config(false, null, "", "", false, "", "", Map.of());
+                          boolean embeds, String footer, Map<String, Event> events) {
+        static final Config DISABLED = new Config(false, null, "", "", false, "", Map.of());
     }
 
     public DiscordWebhook(MRChunks plugin) {
@@ -61,26 +64,26 @@ public final class DiscordWebhook {
 
     public void load(ConfigurationSection section) {
         if (section == null || !section.getBoolean("enabled", false)) {
-            disable("discord.enabled ist false", false);
+            disable("discord-reason-disabled", false);
             return;
         }
         String rawUrl = section.getString("webhook-url", "").trim();
         if (rawUrl.isEmpty()) {
-            disable("discord.webhook-url ist leer", true);
+            disable("discord-reason-no-url", true);
             return;
         }
         if (!rawUrl.startsWith("https://discord.com/api/webhooks/")
                 && !rawUrl.startsWith("https://discordapp.com/api/webhooks/")
                 && !rawUrl.startsWith("https://canary.discord.com/api/webhooks/")
                 && !rawUrl.startsWith("https://ptb.discord.com/api/webhooks/")) {
-            disable("discord.webhook-url ist keine Discord-Webhook-URL (muss mit https://discord.com/api/webhooks/ beginnen)", true);
+            disable("discord-reason-bad-url", true);
             return;
         }
         URI url;
         try {
             url = URI.create(rawUrl);
         } catch (IllegalArgumentException e) {
-            disable("discord.webhook-url enthält ungültige Zeichen (Leerzeichen? Anführungszeichen?)", true);
+            disable("discord-reason-invalid-url", true);
             return;
         }
 
@@ -101,10 +104,7 @@ public final class DiscordWebhook {
                     ? fileEvents.getConfigurationSection(key)
                     : defaultEvents == null ? null : defaultEvents.getConfigurationSection(key);
             if (e != null) {
-                events.put(key, new Event(
-                        e.getBoolean("enabled", true),
-                        e.getString("message", ""),
-                        parseColor(e.getString("color", "#5865F2"))));
+                events.put(key, new Event(e.getBoolean("enabled", true), parseColor(e.getString("color", "#5865F2"))));
             }
         }
         config = new Config(true, url,
@@ -112,18 +112,17 @@ public final class DiscordWebhook {
                 section.getString("avatar-url", ""),
                 section.getBoolean("use-embeds", true),
                 section.getString("footer", ""),
-                section.getString("test-message", "MRchunks: Testnachricht"),
                 Map.copyOf(events));
         disabledReason = null;
-        long active = events.values().stream().filter(e -> e.enabled() && !e.message().isEmpty()).count();
-        plugin.getLogger().info("Discord-Webhook aktiv (" + active + "/" + events.size() + " Events eingeschaltet).");
+        int[] counts = eventCounts();
+        plugin.getLogger().info("Discord-Webhook aktiv (" + counts[0] + "/" + counts[1] + " Events eingeschaltet).");
     }
 
-    private void disable(String reason, boolean warn) {
+    private void disable(String reasonKey, boolean warn) {
         config = Config.DISABLED;
-        disabledReason = reason;
+        disabledReason = reasonKey;
         if (warn) {
-            plugin.getLogger().warning("Discord-Webhook deaktiviert: " + reason);
+            plugin.getLogger().warning("Discord-Webhook deaktiviert: " + plugin.messages().plain(reasonKey));
         }
     }
 
@@ -133,40 +132,46 @@ public final class DiscordWebhook {
         return config.enabled();
     }
 
-    /** Why the webhook is off, or null if it is on. */
+    /** Why the webhook is off (in the configured language), or null if it is on. */
     public String disabledReason() {
-        return disabledReason;
+        String key = disabledReason;
+        return key == null ? null : plugin.messages().plain(key);
     }
 
     /** @return [enabled events, all events] */
     public int[] eventCounts() {
         Map<String, Event> events = config.events();
-        int active = (int) events.values().stream().filter(e -> e.enabled() && !e.message().isEmpty()).count();
+        int active = (int) events.entrySet().stream().filter(e -> active(e.getKey(), e.getValue())).count();
         return new int[]{active, events.size()};
     }
 
-    /** Result of the last delivery attempt, e.g. "OK (HTTP 204) um 14:31:02", or null if nothing was sent yet. */
+    /** An event is sent if it is enabled in config.yml and has a text in the language file. */
+    private boolean active(String key, Event event) {
+        return event.enabled() && !plugin.messages().optional("discord." + key).isEmpty();
+    }
+
+    /** Result of the last delivery attempt, e.g. "OK (HTTP 204) at 14:31:02", or null if nothing was sent yet. */
     public String lastResult() {
         return lastResult;
     }
 
     /**
-     * Sends the configured test message and waits for Discord's answer ({@code ?wait=true}).
+     * Sends the test message ({@code discord.test-message}) and waits for Discord's answer ({@code ?wait=true}).
      * @return future with null on success, or the error description
      */
     public CompletableFuture<String> test() {
         Config current = config;
         if (!current.enabled()) {
-            return CompletableFuture.completedFuture(disabledReason == null ? "deaktiviert" : disabledReason);
+            return CompletableFuture.completedFuture(disabledReason());
         }
-        Event event = new Event(true, current.testMessage(), 0x2ECC71);
-        String payload = buildPayload(current, event, current.testMessage());
+        String text = plugin.messages().optional("discord.test-message");
+        String payload = buildPayload(current, 0x2ECC71, text.isEmpty() ? "MRchunks" : text);
         URI waitUrl = URI.create(current.url() + (current.url().getQuery() == null ? "?" : "&") + "wait=true");
         return CompletableFuture.supplyAsync(() -> send(waitUrl, payload), executor);
     }
 
     /**
-     * Sends the configured message of an event. {@code placeholders} alternates key and value,
+     * Sends the text of an event. {@code placeholders} alternates key and value,
      * e.g. {@code log("night-skipped", "world", "world", "sleeping", "2")} for {@code {world}} and {@code {sleeping}}.
      */
     public void log(String eventKey, Object... placeholders) {
@@ -182,18 +187,18 @@ public final class DiscordWebhook {
             }
             return;
         }
-        if (!event.enabled() || event.message().isEmpty()) {
+        String text = plugin.messages().optional("discord." + eventKey);
+        if (!event.enabled() || text.isEmpty()) {
             return;
         }
-        String text = event.message();
         for (int i = 0; i + 1 < placeholders.length; i += 2) {
             text = text.replace("{" + placeholders[i] + "}", escapeMarkdown(String.valueOf(placeholders[i + 1])));
         }
-        String payload = buildPayload(current, event, text);
+        String payload = buildPayload(current, event.color(), text);
         executor.execute(() -> send(current.url(), payload));
     }
 
-    private static String buildPayload(Config config, Event event, String text) {
+    private static String buildPayload(Config config, int color, String text) {
         JsonObject json = new JsonObject();
         if (!config.username().isEmpty()) {
             json.addProperty("username", config.username());
@@ -209,7 +214,7 @@ public final class DiscordWebhook {
         if (config.embeds()) {
             JsonObject embed = new JsonObject();
             embed.addProperty("description", text);
-            embed.addProperty("color", event.color());
+            embed.addProperty("color", color);
             embed.addProperty("timestamp", Instant.now().toString());
             if (!config.footer().isEmpty()) {
                 JsonObject footer = new JsonObject();
@@ -227,6 +232,7 @@ public final class DiscordWebhook {
 
     /** @return null on success, otherwise a description of the error (also logged and kept as {@link #lastResult}) */
     private String send(URI url, String payload) {
+        Messages messages = plugin.messages();
         HttpRequest request = HttpRequest.newBuilder(url)
                 .timeout(Duration.ofSeconds(15))
                 .header("Content-Type", "application/json")
@@ -239,18 +245,18 @@ public final class DiscordWebhook {
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 int status = response.statusCode();
                 if (status / 100 == 2) {
-                    lastResult = "OK (HTTP " + status + ") um " + now();
+                    lastResult = messages.plain("discord-result-ok", "status", status, "time", now());
                     return null;
                 }
                 if (status != 429) {
-                    return fail("HTTP " + status + " - " + explain(status) + " " + abbreviate(response.body()));
+                    return fail("HTTP " + status + " - " + explain(messages, status) + " " + abbreviate(response.body()));
                 }
                 Thread.sleep(retryAfterMillis(response));
             }
-            error = "Rate-Limit von Discord, Nachricht verworfen";
+            error = messages.plain("discord-error-rate-limit");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            error = "unterbrochen";
+            error = messages.plain("discord-error-interrupted");
         } catch (Exception e) {
             error = e.getClass().getSimpleName() + (e.getMessage() == null ? "" : ": " + e.getMessage());
         }
@@ -258,16 +264,16 @@ public final class DiscordWebhook {
     }
 
     private String fail(String error) {
-        lastResult = "FEHLER um " + now() + ": " + error;
+        lastResult = plugin.messages().plain("discord-result-error", "time", now(), "error", error);
         plugin.getLogger().log(Level.WARNING, "Discord-Webhook: " + error);
         return error;
     }
 
-    private static String explain(int status) {
+    private static String explain(Messages messages, int status) {
         return switch (status) {
-            case 400 -> "Discord lehnt die Nachricht ab (z.B. ungültiger Name/Avatar oder zu langer Text).";
-            case 401, 403 -> "Webhook-Token ungültig.";
-            case 404 -> "Webhook existiert nicht (gelöscht? URL falsch kopiert?).";
+            case 400 -> messages.plain("discord-error-400");
+            case 401, 403 -> messages.plain("discord-error-401");
+            case 404 -> messages.plain("discord-error-404");
             default -> "";
         };
     }

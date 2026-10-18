@@ -26,7 +26,9 @@ public final class MapHooks implements Listener {
     private SquaremapHook squaremap;
     private BukkitTask periodic;
     private boolean refreshQueued;
-    private String status = "nicht installiert";
+    /** Language key of the squaremap status (map-state-*). */
+    private String status = "map-state-missing";
+    private String error = "";
 
     public MapHooks(MRChunks plugin) {
         this.plugin = plugin;
@@ -41,22 +43,23 @@ public final class MapHooks implements Listener {
     public void start() {
         stop();
         if (!squaremapInstalled()) {
-            status = "nicht installiert";
+            status = "map-state-missing";
             return;
         }
         if (!plugin.settings().squaremap().enabled()) {
-            status = "in der Config ausgeschaltet";
+            status = "map-state-disabled";
             return;
         }
         try {
             squaremap = new SquaremapHook(plugin);
             squaremap.update();
             squaremap.hidePlayers(plugin.settings().squaremap().hidePlayers());
-            status = "aktiv";
+            status = "map-state-active";
             plugin.getLogger().info("squaremap gefunden - Chunkloader werden auf der Webkarte eingezeichnet.");
         } catch (LinkageError | RuntimeException e) {
             squaremap = null;
-            status = "Fehler: " + e.getClass().getSimpleName();
+            status = "map-state-error";
+            error = e.getClass().getSimpleName();
             plugin.getLogger().log(Level.WARNING, "squaremap-Anbindung fehlgeschlagen (passende squaremap-Version installiert?)", e);
             return;
         }
@@ -161,8 +164,8 @@ public final class MapHooks implements Listener {
         return squaremap != null;
     }
 
-    /** "aktiv", "nicht installiert", "in der Config ausgeschaltet" or an error. */
+    /** "active", "not installed", "disabled in the config" or an error - in the configured language. */
     public String squaremapStatus() {
-        return status;
+        return plugin.messages().plain(status, "error", error);
     }
 }

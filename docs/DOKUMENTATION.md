@@ -19,7 +19,7 @@ src/main/java/at/marcelr/mrchunks/
 ├─ MRChunks.java          Hauptklasse: Lebenszyklus, Prüf-Task, verbindet alles
 ├─ Settings.java          Record mit allen Config-Werten (validiert)
 ├─ ConfigUpdater.java     Config laden (BOM) und migrieren          ┐
-├─ Messages.java          MiniMessage-Texte                         │ aus MRsleep
+├─ Messages.java          Sprachdateien lang/*.yml (MiniMessage)    │ aus MRsleep
 ├─ DiscordWebhook.java    asynchrone Discord-Logs mit Diagnose      │ übernommen
 ├─ UpdateChecker.java     GitHub/Modrinth-Updateprüfung             ┘
 ├─ Loader.java            ein gesetzter Chunkloader
@@ -95,12 +95,12 @@ bans:
 ## 8. squaremap (`map/MapHooks.java`, `map/SquaremapHook.java`)
 - `compileOnly("xyz.jpenilla:squaremap-api:1.4.3")` und `softdepend: [squaremap]`. Dadurch startet squaremap vorher, ist aber nicht Pflicht.
 - **`MapHooks`** enthält keinen einzigen squaremap-Typ. Erst wenn `isPluginEnabled("squaremap")` gilt, wird `SquaremapHook` erzeugt (`LinkageError` wird abgefangen). So entsteht ohne squaremap kein `NoClassDefFoundError`.
-- **`SquaremapHook`** registriert pro Welt eine `SimpleLayerProvider`-Ebene `mrchunks_loaders` (Name aus `squaremap.layer-name`) und ein selbst gezeichnetes 16×16-Icon `mrchunks_loader`. Jeder Loader bekommt ein `Marker.rectangle` in Blockkoordinaten der vollen Chunks und optional `Marker.icon`. Tooltips sind HTML, die Werte werden escaped.
+- **`SquaremapHook`** registriert pro Welt eine `SimpleLayerProvider`-Ebene `mrchunks_loaders` (Name aus `map-layer-name` der Sprachdatei) und ein selbst gezeichnetes 16×16-Icon `mrchunks_loader`. Jeder Loader bekommt ein `Marker.rectangle` in Blockkoordinaten der vollen Chunks und optional `Marker.icon`. Tooltips sind HTML, die Werte werden escaped.
 - **Aktualisierung:** `LoaderManager` ruft nach jeder Änderung (setzen, löschen, an/aus) `maps().refreshSoon()` auf. Mehrere Änderungen in einem Tick führen zu einem einzigen Update. Zusätzlich gleicht ein Task alle `squaremap.update-seconds` ab. Fehlt die Ebene, etwa nach `/squaremap reload`, wird sie neu registriert. Bei jedem Update werden alle Marker der Welt neu aufgebaut, das ist einfach und driftet nie.
 - **Ohne squaremap gibt es keine Karte.** Die frühere eigene Webseite (Port 8130) ist entfallen.
 - **Automatische Einrichtung (`SquaremapSetup`):** Beim Start schreibt MRchunks, wenn squaremap aktiv ist und `squaremap.auto-configure` an ist, **einmal pro `SquaremapSetup.VERSION`** die empfohlenen Werte in `plugins/squaremap/config.yml`:
   - `background.interval-seconds: 5`, `player-tracker.enabled: false`, `ui.sidebar.pinned: pinned`
-  - pro Welt `world-settings.<welt-key>.map.display-name` (Overworld/Nether/End aus `squaremap.dimension-names`)
+  - pro Welt `world-settings.<welt-key>.map.display-name` (Overworld/Nether/End aus `map-dimension-*` der Sprachdatei)
   - im Nether `iterate-up: true` und `max-height: 127`
 
   Danach folgt `squaremap reload` per Konsole und nach 2 s ein Abgleich, der Ebene, Icon und Raster wieder herstellt, denn squaremap verwirft sie beim Reload. Erledigt ist erledigt: `plugins/MRchunks/squaremap-setup.yml` merkt sich die Version, spätere Änderungen des Admins bleiben also erhalten. `/mrchunks map setup` erzwingt einen neuen Lauf. **Ändern sich die empfohlenen Werte, `VERSION` erhöhen.**

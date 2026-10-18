@@ -7,6 +7,14 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 > Befehle und Permissions noch ändern.
 
 ## [Unveröffentlicht]
+### Neu
+- **Sprachdateien:** Alle Texte stehen in `plugins/MRchunks/lang/<sprache>.yml`, mitgeliefert werden Deutsch (`de`)
+  und Englisch (`en`). In der `config.yml` wird nur noch `language` gesetzt. Dazu gehören auch Item-Name und -Lore,
+  die squaremap-Texte (Ebenen, Tooltips, Dimensionsnamen), Discord-Texte, der Sperrgrund und das Datumsformat.
+  Fehlende Texte werden bei Updates automatisch ergänzt.
+
+### Behoben
+- Kaputtes „Ã¼“ in der Meldung, wenn ein Loader wegen des Aktiv-Limits deaktiviert gesetzt wird.
 
 ## [0.1.0] - 2026-10-18
 ### Neu

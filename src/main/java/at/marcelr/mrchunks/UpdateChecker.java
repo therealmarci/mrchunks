@@ -102,7 +102,7 @@ public final class UpdateChecker {
             case UP_TO_DATE -> messages.send(sender, "version-latest");
             case OUTDATED -> messages.send(sender, "version-outdated",
                     tag("latest", latestVersion), tag("current", currentVersion), tag("download", downloadLink()));
-            case DISABLED -> messages.send(sender, "version-unknown", tag("reason", "Update-Check ist deaktiviert"));
+            case DISABLED -> messages.send(sender, "version-unknown", tag("reason", messages.plain("update-reason-disabled")));
             case CHECKING -> messages.send(sender, "version-checking");
             case FAILED -> messages.send(sender, "version-unknown", tag("reason", error == null ? "?" : error));
         }
@@ -160,7 +160,7 @@ public final class UpdateChecker {
                     ? fetchGithub(prereleases)
                     : fetchModrinth(prereleases);
             if (release == null) {
-                fail("Keine veröffentlichte Version gefunden");
+                fail(plugin.messages().plain("update-reason-no-release"));
                 return;
             }
             latestVersion = release.version();
@@ -212,7 +212,7 @@ public final class UpdateChecker {
 
     private Release fetchGithub(boolean prereleases) throws IOException, InterruptedException {
         if (githubRepository.isBlank()) {
-            throw new IOException("Kein GitHub-Repository hinterlegt");
+            throw new IOException(plugin.messages().plain("update-reason-no-repository"));
         }
         String body = get("https://api.github.com/repos/" + githubRepository + "/releases?per_page=30");
         JsonArray releases = JsonParser.parseString(body).getAsJsonArray();
@@ -240,7 +240,7 @@ public final class UpdateChecker {
                 .build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == 404) {
-            throw new IOException("Projekt nicht gefunden (HTTP 404) - noch nicht veröffentlicht?");
+            throw new IOException(plugin.messages().plain("update-reason-not-found"));
         }
         if (response.statusCode() / 100 != 2) {
             throw new IOException("HTTP " + response.statusCode());
