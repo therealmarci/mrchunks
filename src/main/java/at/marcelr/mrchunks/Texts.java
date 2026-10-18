@@ -18,7 +18,7 @@ public final class Texts {
     }
 
     /** Date format from the language file (date-format), e.g. "dd.MM.yyyy HH:mm" or "yyyy-MM-dd HH:mm". */
-    private static String date(Messages messages, long millis) {
+    public static String date(Messages messages, long millis) {
         String pattern = messages.optional("date-format");
         DateTimeFormatter format;
         try {

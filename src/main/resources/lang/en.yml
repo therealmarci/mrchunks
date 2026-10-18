@@ -10,10 +10,10 @@
 # ==============================================================================
 
 # Do not change - tells the plugin which texts need to be renewed on updates.
-lang-version: 6
+lang-version: 7
 
 # Discord log texts (Discord markdown). Placeholders: {name} {number} {player} {admin} {world} {x} {y} {z}
-# {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit}. On/off and colour are set in config.yml.
+# {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. On/off and colour are set in config.yml.
 discord:
   test-message: "🔧 Test message from MRchunks - the webhook works!"
   loader-placed: "🟩 **{player}** placed **{name}** ({world} {x}, {y}, {z})."
@@ -30,6 +30,9 @@ discord:
   loader-invite: "🤝 **{owner}** invited **{player}** to switch {scope} on/off ({time})."
   loader-uninvite: "👋 **{owner}** withdrew the invite of **{player}** for {scope}."
   exempt-cleared: "🚫 **{player}** is excluded from chunk loading (mrchunks.exempt) - {count} chunk loaders deleted."
+  loader-lag-warning: "⚠️ **{name}** of **{player}** is conspicuous: {metric} {value} (warn limit {limit}) - {world} {x}, {y}, {z}"
+  loader-lag-locked: "🔒 **{name}** of **{player}** was locked because of lag: {metric} {value} (limit {limit}) - {world} {x}, {y}, {z}"
+  loader-lag-unlocked: "🔓 **{admin}** lifted the lag lock of **{name}** ({player})."
 
 # --- Chunk loader item ---------------------------------------------------------
 # Placeholders: <size> (e.g. 7), <chunks> (e.g. 49)
@@ -114,6 +117,25 @@ place-limit: "<prefix><red>You have reached your limit of <white><limit></white>
 place-world-disabled: "<prefix><red>Chunk loaders are not allowed in this world."
 break-denied: "<prefix><red>Chunk loaders are indestructible. <gray>Right-click the block to open the menu and delete it."
 toggled: "<prefix><green><white><name></white> is now <white><state></white>."
+lag-metric-entities: "Entities"
+lag-metric-items: "Items on the ground"
+lag-metric-redstone: "Redstone/s"
+lag-metric-hoppers: "Hopper transfers/s"
+lag-metric-pistons: "Pistons/s"
+lag-metric-spawns: "Spawns/s"
+lag-locked-owner: "<prefix><red>🔒 Your chunk loader <white><name></white> was locked because of lag</red> <gray>(<metric>: <white><value></white>, limit <limit>). It stays off until an admin lifts the lock - please check your farm."
+lag-locked-join: "<prefix><red>🔒 While you were away, your chunk loader <white><name></white> was locked because of lag</red> <gray>(<time>, <metric>: <white><value></white>, limit <limit>). An admin has to lift the lock."
+lag-locked-staff: "<prefix><red>🔒 <white><name></white> of <white><player></white> was locked because of lag</red> <gray>(<metric>: <white><value></white>, limit <limit>) <teleport>"
+lag-teleport-label: "<aqua>[Teleport]"
+lag-locked-toggle: "<prefix><red><white><name></white> is locked because of lag</red> <gray>(since <time>: <metric> <value>, limit <limit>). Only an admin can lift the lock."
+lag-unlocked: "<prefix><green>Lag lock of <white><name></white> lifted.</green> <gray>The loader is still off - the owner can switch it on again."
+lag-unlocked-owner: "<prefix><green>The lag lock of <white><name></white> was lifted by <white><admin></white>.</green> <gray>You can switch it on again - please make sure the farm no longer lags."
+lag-not-locked: "<prefix><gray><white><name></white> is not locked."
+lag-disabled: "<prefix><yellow>Lag protection is switched off (lag-protection.enabled) - nothing is measured."
+lag-list-header: "<prefix><gray>Conspicuous and locked chunk loaders:"
+lag-list-entry: "<dark_gray>- <gold><name></gold> <gray>of <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray><metric>: <white><value></white> <dark_gray>(warn limit <limit>)"
+lag-list-locked: "<dark_gray>- <red>🔒 <name></red> <gray>of <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray>locked since <time>: <metric> <value>"
+lag-list-empty: "<prefix><green>No chunk loader is conspicuous or locked."
 deleted: "<prefix><green><white><name></white> deleted."
 delete-confirm: "<prefix><yellow>Click again to delete <white><name></white>."
 not-owner: "<prefix><red>This is not your chunk loader."
@@ -156,6 +178,8 @@ admin-usage: |-
   <green>/mrchunks tp <player> <no></green> <dark_gray>- <gray>Teleport to a chunk loader
   <green>/mrchunks toggle <player> <no></green> <dark_gray>- <gray>Turn a chunk loader on/off
   <green>/mrchunks delete <player> <no></green> <dark_gray>- <gray>Delete a chunk loader
+  <green>/mrchunks unlock <player> <no></green> <dark_gray>- <gray>Lift a lag lock
+  <green>/mrchunks lag</green> <dark_gray>- <gray>Conspicuous and locked chunk loaders
   <green>/mrchunks limit <player> <place|active> <amount|reset></green> <dark_gray>- <gray>Placeable / simultaneously active loaders
   <green>/mrchunks ban <player> [duration] [reason]</green> <dark_gray>- <gray>Ban (deletes all their loaders)
   <green>/mrchunks unban <player></green> <dark_gray>- <gray>Lift a ban
@@ -244,6 +268,7 @@ gui-empty: "<gray>Nothing found"
 
 # A chunk loader (in lists and as info item)
 gui-loader-name: "<green><name>"
+gui-loader-name-locked: "<red>🔒 <name>"
 gui-loader-lore:
   - "<dark_gray>No. <number> · Owner: <gray><player>"
   - "<gray>World: <white><world>"
@@ -251,6 +276,11 @@ gui-loader-lore:
   - "<gray>Chunks: <white><size>x<size></white> <dark_gray>(centre <cx>, <cz>)"
   - "<gray>Status: <state>"
   - "<gray>Placed: <white><created>"
+gui-loader-locked:
+  - ""
+  - "<red>🔒 Locked because of lag"
+  - "<gray>since <white><time></white>: <metric> <white><value></white> <dark_gray>(limit <limit>)"
+  - "<gray>Only an admin can lift the lock."
 gui-loader-click: "<yellow>» Click for actions"
 gui-state-active: "<green>● active"
 gui-state-inactive: "<red>● disabled"
@@ -265,6 +295,23 @@ gui-toggle-on-name: "<green>Enable"
 gui-toggle-on-lore:
   - "<gray>Keeps the <white><size>x<size></white> chunks"
   - "<gray>loaded again."
+gui-locked-name: "<red><bold>Locked because of lag"
+gui-locked-lore:
+  - "<gray>Since <white><time></white>: <metric> <white><value></white>"
+  - "<gray>Limit: <white><limit>"
+  - ""
+  - "<gray>Only an admin can lift the lock."
+gui-unlock-name: "<green><bold>Lift lag lock"
+gui-unlock-lore:
+  - "<gray>Locked since <white><time></white>: <metric> <white><value></white> <dark_gray>(limit <limit>)"
+  - "<gray>The loader stays off,"
+  - "<gray>the owner can switch it on again."
+gui-activity-header-ok: "<gray>Activity: <green>normal"
+gui-activity-header-warn: "<gray>Activity: <gold>conspicuous"
+gui-activity-header-high: "<gray>Activity: <red>above the lock limit"
+gui-activity-line: "<dark_gray>- <gray><metric>: <white><value></white> <dark_gray>(warn <warn>, lock <lock>)"
+gui-activity-unknown: "<gray>Activity: <white>not measured yet"
+gui-activity-off: "<gray>Activity: <white>only measured while the loader is on"
 gui-rename-name: "<aqua>Rename"
 gui-rename-lore:
   - "<gray>Give the chunk loader its own name."
@@ -365,6 +412,16 @@ gui-player-lore:
   - "<gray>Active: <white><active></white>/<white><active-limit></white>"
   - "<gray>Limit: <limit-source>"
   - "<gray>Status: <status>"
+# Summary on the MRchunks button in MRadmin's admin compass. Placeholders: <loaders> <active> <chunks> <bans>
+mradmin-summary:
+  - "<gray>Chunk loaders: <white><loaders></white> <dark_gray>(<white><active></white> active)"
+  - "<gray>Loaded chunks: <white><chunks>"
+  - "<gray>Banned players: <white><bans>"
+mradmin-activity-name: "<gold><name> <gray>of <white><player>"
+mradmin-activity-name-locked: "<red>🔒 <name> <gray>of <white><player>"
+mradmin-activity-lore:
+  - "<gray>Location: <white><world> <x> <y> <z>"
+mradmin-activity-click: "<yellow>Click: chunk loader menu (teleport, lift lock ...)"
 gui-player-click: "<yellow>» Click for chunk loaders & actions"
 gui-online: "<green>online"
 gui-offline: "<gray>offline"

@@ -15,12 +15,12 @@ import java.util.List;
 import static at.marcelr.mrchunks.Messages.tag;
 
 /** Head of a player with their loader count, limit and status (online / offline / banned). */
-final class PlayerIcons {
+public final class PlayerIcons {
 
     private PlayerIcons() {
     }
 
-    static ItemStack head(MRChunks plugin, OfflinePlayer target, boolean clickHint) {
+    public static ItemStack head(MRChunks plugin, OfflinePlayer target, boolean clickHint) {
         Messages messages = plugin.messages();
         LoaderManager loaders = plugin.loaders();
         List<Loader> owned = loaders.byOwner(target.getUniqueId());

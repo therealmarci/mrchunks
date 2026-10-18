@@ -34,14 +34,19 @@ public final class PlayerLoadersMenu extends Menu {
     private static final int FIRST_SLOT = 9;
 
     private final UUID targetId;
-    private final Menu parent;
+    /** What "back" does: reopen the admin menu, or return to whoever opened this (e.g. MRadmin). */
+    private final Runnable back;
     private int page;
 
     public PlayerLoadersMenu(MRChunks plugin, Player viewer, UUID targetId, Menu parent) {
+        this(plugin, viewer, targetId, parent::open);
+    }
+
+    public PlayerLoadersMenu(MRChunks plugin, Player viewer, UUID targetId, Runnable back) {
         super(plugin, viewer, 6, plugin.messages().get("gui-title-player",
                 tag("player", AdminActions.name(Bukkit.getOfflinePlayer(targetId)))));
         this.targetId = targetId;
-        this.parent = parent;
+        this.back = back;
     }
 
     @Override
@@ -101,7 +106,7 @@ public final class PlayerLoadersMenu extends Menu {
         Pages.navigation(this, messages, page, pages, p -> page = p);
         set(49, Items.of(Material.ARROW).name(messages.item("gui-back")).build(), click -> {
             clickSound();
-            parent.open();
+            back.run();
         });
         fillRow(5);
     }

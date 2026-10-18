@@ -1,5 +1,7 @@
 package at.marcelr.mrchunks;
 
+import at.marcelr.mrchunks.lag.LagLock;
+import at.marcelr.mrchunks.lag.Metric;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -58,6 +60,8 @@ public final class LoaderManager {
     private final Map<Integer, Map<UUID, Long>> loaderMembers = new HashMap<>();
     /** owner -> invited player -> valid until; such an invite covers all loaders of the owner, also future ones */
     private final Map<UUID, Map<UUID, Long>> ownerMembers = new HashMap<>();
+    /** loader id -> lag lock (only admins can lift it) */
+    private final Map<Integer, LagLock> lagLocks = new HashMap<>();
 
     /** Exclusion from chunk loaders. {@code until == Long.MAX_VALUE} means permanent. */
     public record Ban(long until, String reason, String by) {
@@ -241,6 +245,7 @@ public final class LoaderManager {
         loaders.remove(loader.id());
         unindex(loader);
         loaderMembers.remove(loader.id());
+        lagLocks.remove(loader.id());
         plugin.border().loaderRemoved(loader);
         World world = loader.world();
         if (world != null) {
@@ -273,6 +278,49 @@ public final class LoaderManager {
         save();
         plugin.maps().refreshSoon();
         plugin.border().loaderChanged(loader);
+    }
+
+    // ----------------------------------------------------------- lag locks
+
+    /** The lag lock of a loader, or null if it is not locked. */
+    public LagLock lagLock(Loader loader) {
+        return lagLocks.get(loader.id());
+    }
+
+    public boolean lagLocked(Loader loader) {
+        return lagLocks.containsKey(loader.id());
+    }
+
+    /** All lag locks (loader id -> lock). */
+    public Map<Integer, LagLock> lagLocks() {
+        return Map.copyOf(lagLocks);
+    }
+
+    /** Locks the loader and switches it off; it stays off until {@link #lagUnlock}. */
+    public void lagLock(Loader loader, LagLock lock) {
+        lagLocks.put(loader.id(), lock);
+        if (loader.active()) {
+            setActive(loader, false);
+        } else {
+            save();
+        }
+    }
+
+    /** Replaces the stored lock (e.g. once the owner has been told). */
+    public void updateLagLock(Loader loader, LagLock lock) {
+        if (lagLocks.containsKey(loader.id())) {
+            lagLocks.put(loader.id(), lock);
+            save();
+        }
+    }
+
+    /** Lifts the lag lock; the loader stays off until someone switches it on. @return whether it was locked */
+    public boolean lagUnlock(Loader loader) {
+        boolean removed = lagLocks.remove(loader.id()) != null;
+        if (removed) {
+            save();
+        }
+        return removed;
     }
 
     /** Sets or (with null) removes the name the player gave the loader. */
@@ -641,6 +689,7 @@ public final class LoaderManager {
         bans.clear();
         loaderMembers.clear();
         ownerMembers.clear();
+        lagLocks.clear();
         nextId = 1;
         if (!dataFile.exists()) {
             return;
@@ -687,6 +736,22 @@ public final class LoaderManager {
                 UUID uuid = parseUuid(key);
                 if (uuid != null) {
                     activeOverrides.put(uuid, activeSection.getInt(key));
+                }
+            }
+        }
+        lagLocks.clear();
+        ConfigurationSection lockSection = data.getConfigurationSection("lag-locks");
+        if (lockSection != null) {
+            for (String key : lockSection.getKeys(false)) {
+                ConfigurationSection s = lockSection.getConfigurationSection(key);
+                Metric metric = s == null ? null : Metric.byKey(s.getString("metric", ""));
+                try {
+                    if (metric != null) {
+                        lagLocks.put(Integer.parseInt(key), new LagLock(s.getLong("since"), metric,
+                                s.getDouble("value"), s.getDouble("limit"), s.getBoolean("notified")));
+                    }
+                } catch (NumberFormatException ignored) {
+                    // broken entry
                 }
             }
         }
@@ -787,6 +852,15 @@ public final class LoaderManager {
         }
         limitOverrides.forEach((uuid, limit) -> data.set("limits." + uuid, limit));
         activeOverrides.forEach((uuid, limit) -> data.set("active-limits." + uuid, limit));
+        lagLocks.keySet().removeIf(id -> !loaders.containsKey(id));
+        lagLocks.forEach((id, lock) -> {
+            String p = "lag-locks." + id + ".";
+            data.set(p + "since", lock.since());
+            data.set(p + "metric", lock.metric().key());
+            data.set(p + "value", lock.value());
+            data.set(p + "limit", lock.limit());
+            data.set(p + "notified", lock.notified());
+        });
         bans.forEach((uuid, ban) -> {
             data.set("bans." + uuid + ".until", ban.until());
             data.set("bans." + uuid + ".reason", ban.reason());

@@ -32,7 +32,7 @@ public final class RenameDialog {
     private RenameDialog() {
     }
 
-    public static void open(MRChunks plugin, Player viewer, Loader loader, Menu parent) {
+    public static void open(MRChunks plugin, Player viewer, Loader loader, Runnable back) {
         Messages messages = plugin.messages();
         int loaderId = loader.id();
         int max = plugin.settings().gui().maxNameLength();
@@ -45,14 +45,14 @@ public final class RenameDialog {
                 Loader current = plugin.loaders().byId(loaderId);
                 if (current != null && viewer.isOnline()) {
                     plugin.adminActions().rename(viewer, current, text);
-                    new LoaderMenu(plugin, viewer, loaderId, parent).open();
+                    new LoaderMenu(plugin, viewer, loaderId, back).open();
                 }
             });
         }, ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(10)).build());
 
         DialogAction cancel = DialogAction.customClick((response, audience) -> Bukkit.getScheduler().runTask(plugin, () -> {
             if (viewer.isOnline() && plugin.loaders().byId(loaderId) != null) {
-                new LoaderMenu(plugin, viewer, loaderId, parent).open();
+                new LoaderMenu(plugin, viewer, loaderId, back).open();
             }
         }), ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(10)).build());
 

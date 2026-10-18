@@ -10,10 +10,10 @@
 # ==============================================================================
 
 # Nicht ändern - damit erkennt das Plugin bei Updates, welche Texte erneuert werden müssen.
-lang-version: 6
+lang-version: 7
 
 # Texte der Discord-Logs (Markdown wie in Discord). Platzhalter: {name} {number} {player} {admin} {world} {x} {y} {z}
-# {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit}. An/aus und Farbe stehen in der config.yml.
+# {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. An/aus und Farbe stehen in der config.yml.
 discord:
   test-message: "🔧 Testnachricht von MRchunks - der Webhook funktioniert!"
   loader-placed: "🟩 **{player}** hat **{name}** gesetzt ({world} {x}, {y}, {z})."
@@ -30,6 +30,9 @@ discord:
   loader-invite: "🤝 **{owner}** hat **{player}** eingeladen: {scope} an-/ausschalten ({time})."
   loader-uninvite: "👋 **{owner}** hat die Einladung von **{player}** für {scope} zurückgenommen."
   exempt-cleared: "🚫 **{player}** ist vom Chunkloading ausgeschlossen (mrchunks.exempt) - {count} Chunkloader gelöscht."
+  loader-lag-warning: "⚠️ **{name}** von **{player}** ist auffällig: {metric} {value} (Warngrenze {limit}) - {world} {x}, {y}, {z}"
+  loader-lag-locked: "🔒 **{name}** von **{player}** wurde wegen Lag gesperrt: {metric} {value} (Grenze {limit}) - {world} {x}, {y}, {z}"
+  loader-lag-unlocked: "🔓 **{admin}** hat die Lag-Sperre von **{name}** ({player}) aufgehoben."
 
 # --- Chunkloader-Item ----------------------------------------------------------
 # Platzhalter: <size> (z.B. 7), <chunks> (z.B. 49)
@@ -114,6 +117,25 @@ place-limit: "<prefix><red>Du hast dein Limit von <white><limit></white> Chunklo
 place-world-disabled: "<prefix><red>In dieser Welt sind keine Chunkloader erlaubt."
 break-denied: "<prefix><red>Chunkloader sind unzerstörbar. <gray>Rechtsklick auf den Block öffnet das Menü zum Löschen."
 toggled: "<prefix><green><white><name></white> ist jetzt <white><state></white>."
+lag-metric-entities: "Entities"
+lag-metric-items: "Items am Boden"
+lag-metric-redstone: "Redstone/s"
+lag-metric-hoppers: "Trichter-Transfers/s"
+lag-metric-pistons: "Kolben/s"
+lag-metric-spawns: "Spawns/s"
+lag-locked-owner: "<prefix><red>🔒 Dein Chunkloader <white><name></white> wurde wegen Lag gesperrt</red> <gray>(<metric>: <white><value></white>, Grenze <limit>). Er ist aus, bis ein Admin die Sperre aufhebt - bitte prüf deine Farm."
+lag-locked-join: "<prefix><red>🔒 Während du weg warst, wurde dein Chunkloader <white><name></white> wegen Lag gesperrt</red> <gray>(<time>, <metric>: <white><value></white>, Grenze <limit>). Ein Admin muss die Sperre aufheben."
+lag-locked-staff: "<prefix><red>🔒 <white><name></white> von <white><player></white> wurde wegen Lag gesperrt</red> <gray>(<metric>: <white><value></white>, Grenze <limit>) <teleport>"
+lag-teleport-label: "<aqua>[Teleport]"
+lag-locked-toggle: "<prefix><red><white><name></white> ist wegen Lag gesperrt</red> <gray>(seit <time>: <metric> <value>, Grenze <limit>). Nur ein Admin kann die Sperre aufheben."
+lag-unlocked: "<prefix><green>Lag-Sperre von <white><name></white> aufgehoben.</green> <gray>Der Loader ist noch aus - der Owner kann ihn wieder einschalten."
+lag-unlocked-owner: "<prefix><green>Die Lag-Sperre von <white><name></white> wurde von <white><admin></white> aufgehoben.</green> <gray>Du kannst ihn wieder einschalten - bitte sorg dafür, dass die Farm nicht mehr laggt."
+lag-not-locked: "<prefix><gray><white><name></white> ist nicht gesperrt."
+lag-disabled: "<prefix><yellow>Der Lag-Schutz ist ausgeschaltet (lag-protection.enabled) - es wird nichts gemessen."
+lag-list-header: "<prefix><gray>Auffällige und gesperrte Chunkloader:"
+lag-list-entry: "<dark_gray>- <gold><name></gold> <gray>von <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray><metric>: <white><value></white> <dark_gray>(Warngrenze <limit>)"
+lag-list-locked: "<dark_gray>- <red>🔒 <name></red> <gray>von <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray>gesperrt seit <time>: <metric> <value>"
+lag-list-empty: "<prefix><green>Kein Chunkloader ist auffällig oder gesperrt."
 deleted: "<prefix><green><white><name></white> gelöscht."
 delete-confirm: "<prefix><yellow>Zum Löschen von <white><name></white> noch einmal klicken."
 not-owner: "<prefix><red>Das ist nicht dein Chunkloader."
@@ -156,6 +178,8 @@ admin-usage: |-
   <green>/mrchunks tp <spieler> <nr></green> <dark_gray>- <gray>Zu einem Chunkloader teleportieren
   <green>/mrchunks toggle <spieler> <nr></green> <dark_gray>- <gray>Chunkloader an/aus
   <green>/mrchunks delete <spieler> <nr></green> <dark_gray>- <gray>Chunkloader löschen
+  <green>/mrchunks unlock <spieler> <nr></green> <dark_gray>- <gray>Lag-Sperre aufheben
+  <green>/mrchunks lag</green> <dark_gray>- <gray>Auffällige und gesperrte Chunkloader
   <green>/mrchunks limit <spieler> <place|active> <anzahl|reset></green> <dark_gray>- <gray>Setzbare bzw. gleichzeitig aktive Loader
   <green>/mrchunks ban <spieler> [dauer] [grund]</green> <dark_gray>- <gray>Sperren (löscht alle seine Loader)
   <green>/mrchunks unban <spieler></green> <dark_gray>- <gray>Sperre aufheben
@@ -244,6 +268,7 @@ gui-empty: "<gray>Nichts gefunden"
 
 # Ein Chunkloader (in Listen und als Info-Item)
 gui-loader-name: "<green><name>"
+gui-loader-name-locked: "<red>🔒 <name>"
 gui-loader-lore:
   - "<dark_gray>Nr. <number> · Owner: <gray><player>"
   - "<gray>Welt: <white><world>"
@@ -251,6 +276,11 @@ gui-loader-lore:
   - "<gray>Chunks: <white><size>x<size></white> <dark_gray>(Mitte <cx>, <cz>)"
   - "<gray>Status: <state>"
   - "<gray>Gesetzt: <white><created>"
+gui-loader-locked:
+  - ""
+  - "<red>🔒 Wegen Lag gesperrt"
+  - "<gray>seit <white><time></white>: <metric> <white><value></white> <dark_gray>(Grenze <limit>)"
+  - "<gray>Nur ein Admin kann die Sperre aufheben."
 gui-loader-click: "<yellow>» Klicken für Aktionen"
 gui-state-active: "<green>● aktiv"
 gui-state-inactive: "<red>● deaktiviert"
@@ -265,6 +295,23 @@ gui-toggle-on-name: "<green>Aktivieren"
 gui-toggle-on-lore:
   - "<gray>Hält die <white><size>x<size></white> Chunks"
   - "<gray>wieder geladen."
+gui-locked-name: "<red><bold>Gesperrt wegen Lag"
+gui-locked-lore:
+  - "<gray>Seit <white><time></white>: <metric> <white><value></white>"
+  - "<gray>Grenze: <white><limit>"
+  - ""
+  - "<gray>Nur ein Admin kann die Sperre aufheben."
+gui-unlock-name: "<green><bold>Lag-Sperre aufheben"
+gui-unlock-lore:
+  - "<gray>Gesperrt seit <white><time></white>: <metric> <white><value></white> <dark_gray>(Grenze <limit>)"
+  - "<gray>Der Loader bleibt danach aus,"
+  - "<gray>der Owner kann ihn wieder einschalten."
+gui-activity-header-ok: "<gray>Aktivität: <green>unauffällig"
+gui-activity-header-warn: "<gray>Aktivität: <gold>auffällig"
+gui-activity-header-high: "<gray>Aktivität: <red>über der Sperrgrenze"
+gui-activity-line: "<dark_gray>- <gray><metric>: <white><value></white> <dark_gray>(Warnung <warn>, Sperre <lock>)"
+gui-activity-unknown: "<gray>Aktivität: <white>noch nicht gemessen"
+gui-activity-off: "<gray>Aktivität: <white>wird nur gemessen, wenn der Loader an ist"
 gui-rename-name: "<aqua>Umbenennen"
 gui-rename-lore:
   - "<gray>Gib dem Chunkloader einen eigenen Namen."
@@ -365,6 +412,16 @@ gui-player-lore:
   - "<gray>Aktiv: <white><active></white>/<white><active-limit></white>"
   - "<gray>Limit: <limit-source>"
   - "<gray>Status: <status>"
+# Zusammenfassung auf dem MRchunks-Knopf im Admin-Kompass von MRadmin. Platzhalter: <loaders> <active> <chunks> <bans>
+mradmin-summary:
+  - "<gray>Chunkloader: <white><loaders></white> <dark_gray>(<white><active></white> aktiv)"
+  - "<gray>Geladene Chunks: <white><chunks>"
+  - "<gray>Gesperrte Spieler: <white><bans>"
+mradmin-activity-name: "<gold><name> <gray>von <white><player>"
+mradmin-activity-name-locked: "<red>🔒 <name> <gray>von <white><player>"
+mradmin-activity-lore:
+  - "<gray>Ort: <white><world> <x> <y> <z>"
+mradmin-activity-click: "<yellow>Klick: Menü des Chunkloaders (Teleport, Sperre aufheben ...)"
 gui-player-click: "<yellow>» Klicken für Chunkloader & Aktionen"
 gui-online: "<green>online"
 gui-offline: "<gray>offline"

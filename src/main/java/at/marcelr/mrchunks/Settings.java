@@ -1,12 +1,16 @@
 package at.marcelr.mrchunks;
 
+import at.marcelr.mrchunks.lag.LagLimits;
+import at.marcelr.mrchunks.lag.Metric;
 import at.marcelr.mrchunks.util.DurationUtil;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -19,8 +23,18 @@ public record Settings(
         SquaremapSettings squaremap,
         UpdateSettings update,
         GuiSettings gui,
-        InviteSettings invites
+        InviteSettings invites,
+        LagSettings lag
 ) {
+
+    /**
+     * Lag protection: every {@code sampleSeconds} the area of each active loader is measured. A loader is locked when
+     * a metric is over its lock limit {@code lockAfterSamples} times in a row (and, with {@code onlyWhenServerLags},
+     * only while the server's average tick time is at least {@code serverLagMspt}). Durations in ms.
+     */
+    public record LagSettings(boolean enabled, int sampleSeconds, int lockAfterSamples, boolean onlyWhenServerLags,
+                              double serverLagMspt, long unlockGrace, LagLimits limits) {
+    }
 
     /** Marker for a permanent ban. */
     public static final long PERMANENT = -1L;
@@ -171,7 +185,31 @@ public record Settings(
                 durations(c.getStringList("invites.durations"), List.of("1d", "7d", "30d", "permanent"), "invites.durations", log),
                 Math.clamp(c.getInt("invites.max-members", 10), 1, 100));
 
-        return new Settings(loaders, item, border, squaremap, update, gui, invites);
+        LagLimits defaults = LagLimits.defaults();
+        Map<Metric, Double> warn = new EnumMap<>(Metric.class);
+        Map<Metric, Double> lock = new EnumMap<>(Metric.class);
+        for (Metric metric : Metric.values()) {
+            String path = "lag-protection.limits." + metric.key();
+            double w = Math.max(0, c.getDouble(path + ".warn", defaults.warn(metric)));
+            double l = Math.max(0, c.getDouble(path + ".lock", defaults.lock(metric)));
+            if (l > 0 && w > l) {
+                log.warning(path + ": warn (" + w + ") is above lock (" + l + "), using warn = lock.");
+                w = l;
+            }
+            warn.put(metric, w);
+            lock.put(metric, l);
+        }
+        long grace = DurationUtil.parse(c.getString("lag-protection.unlock-grace", "30m"));
+        LagSettings lag = new LagSettings(
+                c.getBoolean("lag-protection.enabled", true),
+                Math.clamp(c.getInt("lag-protection.sample-seconds", 30), 5, 600),
+                Math.clamp(c.getInt("lag-protection.lock-after-samples", 3), 1, 100),
+                c.getBoolean("lag-protection.only-when-server-lags", true),
+                Math.clamp(c.getDouble("lag-protection.server-lag-mspt", 40), 1, 1000),
+                grace < 0 ? 30 * 60_000L : grace,
+                new LagLimits(Map.copyOf(warn), Map.copyOf(lock)));
+
+        return new Settings(loaders, item, border, squaremap, update, gui, invites, lag);
     }
 
     /** "#RRGGBB" as written to the web page; anything else becomes the fallback (no script injection). */

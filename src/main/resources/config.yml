@@ -15,7 +15,7 @@
 # ==============================================================================
 
 # Nicht ändern - wird für automatische Config-Updates verwendet.
-config-version: 4
+config-version: 5
 
 # Sprache aller Texte: de = Deutsch, en = English. Die Texte stehen in plugins/MRchunks/lang/<sprache>.yml
 # und können dort angepasst werden. Eigene Sprache: Datei kopieren (z.B. fr.yml), übersetzen, language: fr.
@@ -81,7 +81,46 @@ invites:
   max-members: 10
 
 # ------------------------------------------------------------------------------
-#   2) ITEM & BLOCK
+#   2) LAG-SCHUTZ
+# ------------------------------------------------------------------------------
+# MRchunks misst regelmäßig, was im Bereich jedes aktiven Chunkloaders passiert (alle Chunks zusammen).
+# Ist ein Wert über "warn", gilt der Loader als auffällig: Admins sehen ihn in /mrchunks lag (und im
+# Serverzustand von MRadmin, falls installiert), dazu ein Discord-Log (höchstens einmal pro Stunde).
+# Ist ein Wert mehrmals hintereinander über "lock", wird der Loader deaktiviert und GESPERRT: nur Admins können
+# die Sperre aufheben (Menü des Loaders oder /mrchunks unlock <spieler> <nr>). Der Owner wird informiert.
+# Ein Wert von 0 schaltet die jeweilige Messung ab (z.B. hoppers: { warn: 0, lock: 0 }).
+lag-protection:
+  enabled: true
+  # Alle so viele Sekunden wird gemessen.
+  sample-seconds: 30
+  # So viele Messungen hintereinander über "lock", bevor gesperrt wird (3 x 30 s = 1,5 Minuten).
+  lock-after-samples: 3
+  # true = nur sperren, wenn der Server dabei wirklich laggt (durchschnittliche Tick-Zeit ab server-lag-mspt).
+  #        Eine große Farm, mit der der Server gut zurechtkommt, wird dann nicht gesperrt.
+  # false = immer sperren, sobald die Grenzen überschritten sind.
+  only-when-server-lags: true
+  # Ab dieser durchschnittlichen Tick-Zeit (ms) gilt der Server als laggend (50 = 20 TPS gerade noch gehalten).
+  server-lag-mspt: 40
+  # Nach dem Entsperren so lange keine neue Sperre, damit der Owner seine Farm reparieren kann.
+  unlock-grace: "30m"
+  # Grenzen für den gesamten Bereich eines Loaders (Standard 7x7 Chunks).
+  limits:
+    # Entities (Mobs, Tiere, Loren, Rüstungsständer ... inkl. Items am Boden, ohne Spieler)
+    entities: { warn: 300, lock: 800 }
+    # Items, die am Boden liegen
+    items: { warn: 200, lock: 1000 }
+    # Redstone-Signaländerungen pro Sekunde (Clocks, große Schaltungen)
+    redstone: { warn: 500, lock: 2000 }
+    # Item-Transfers von Trichtern, Droppern, Trichterloren ... pro Sekunde
+    hoppers: { warn: 300, lock: 1200 }
+    # Kolben-Bewegungen pro Sekunde
+    pistons: { warn: 40, lock: 150 }
+    # Neue Mobs und Items pro Sekunde
+    spawns: { warn: 20, lock: 80 }
+
+
+# ------------------------------------------------------------------------------
+#   3) ITEM & BLOCK
 # ------------------------------------------------------------------------------
 item:
   # Aussehen des Chunkloaders als Block und als Item.
@@ -93,7 +132,7 @@ item:
 
 
 # ------------------------------------------------------------------------------
-#   3) GRENZANZEIGE
+#   4) GRENZANZEIGE
 # ------------------------------------------------------------------------------
 border:
   # Die Grenze besteht aus leuchtenden Linien (ein "Zaun" an jedem Chunk der Außenkante), die durch Blöcke
@@ -117,7 +156,7 @@ border:
 
 
 # ------------------------------------------------------------------------------
-#   4) WEBKARTE (squaremap)
+#   5) WEBKARTE (squaremap)
 # ------------------------------------------------------------------------------
 # Ist das Plugin squaremap installiert (https://modrinth.com/plugin/squaremap), zeichnet MRchunks
 # die geladenen Bereiche als eigene Ebene "Chunkloader" auf die echte Minecraft-Karte ein.
@@ -175,7 +214,7 @@ squaremap:
 
 
 # ------------------------------------------------------------------------------
-#   5) DISCORD-LOGS
+#   6) DISCORD-LOGS
 # ------------------------------------------------------------------------------
 # Webhook anlegen: Discord-Kanal -> Kanal bearbeiten -> Integrationen -> Webhooks
 #                  -> Neuer Webhook -> Webhook-URL kopieren.
@@ -233,10 +272,19 @@ discord:
     exempt-cleared:
       enabled: true
       color: "#E74C3C"
+    loader-lag-warning:
+      enabled: true
+      color: "#F39C12"
+    loader-lag-locked:
+      enabled: true
+      color: "#C0392B"
+    loader-lag-unlocked:
+      enabled: true
+      color: "#27AE60"
 
 
 # ------------------------------------------------------------------------------
-#   6) UPDATE-CHECK
+#   7) UPDATE-CHECK
 # ------------------------------------------------------------------------------
 update-checker:
   enabled: true
@@ -250,7 +298,7 @@ update-checker:
 
 
 # ------------------------------------------------------------------------------
-#   7) MENÜS
+#   8) MENÜS
 # ------------------------------------------------------------------------------
 gui:
   # Wie oft offene Menüs aktualisiert werden (in Ticks, 20 = 1 Sekunde).
