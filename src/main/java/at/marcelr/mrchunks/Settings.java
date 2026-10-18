@@ -2,7 +2,6 @@ package at.marcelr.mrchunks;
 
 import at.marcelr.mrchunks.util.DurationUtil;
 import org.bukkit.Material;
-import org.bukkit.Particle;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.ArrayList;
@@ -27,8 +26,11 @@ public record Settings(
 
     public enum LoadMethod { TICKET, FORCELOAD }
 
+    /** What happens when a new loader's area overlaps existing ones (loaders.overlap). */
+    public enum OverlapMode { ALLOW, WARN, DENY_OWN, DENY_ALL }
+
     public record LoaderSettings(int radius, int defaultLimit, int defaultActiveLimit, Set<String> disabledWorlds,
-                                 LoadMethod loadMethod,
+                                 LoadMethod loadMethod, OverlapMode overlap,
                                  boolean restoreMissingBlocks, int checkIntervalSeconds) {
 
         /** Edge length of the loaded square in chunks, e.g. 7 for radius 3. */
@@ -44,8 +46,10 @@ public record Settings(
     public record ItemSettings(Material material, String name, List<String> lore, boolean glint) {
     }
 
-    public record BorderSettings(boolean showOnOpen, int durationSeconds, Particle particle, int spacing,
-                                 int below, int above) {
+    /** Glowing lines: block and glow colour while active / inactive, bar thickness, line heights around the viewer. */
+    public record BorderSettings(boolean showOnOpen, int durationSeconds, Material block, Material inactiveBlock,
+                                 org.bukkit.Color color, org.bukkit.Color inactiveColor, double thickness,
+                                 int below, int above, int lineSpacing) {
     }
 
     /** {@code color == null} means one colour per owner. */
@@ -67,7 +71,7 @@ public record Settings(
 
     /** Durations in ms; ban durations may contain {@link #PERMANENT}. */
     public record GuiSettings(int refreshTicks, int confirmSeconds, List<Long> banDurations, String banReason,
-                              boolean sounds) {
+                              boolean sounds, int maxNameLength) {
     }
 
     /** Texts (item, map, ban reason) come from the language file, everything else from config.yml. */
@@ -79,6 +83,7 @@ public record Settings(
                 c.getStringList("loaders.disabled-worlds").stream()
                         .map(s -> s.toLowerCase(Locale.ROOT)).collect(Collectors.toUnmodifiableSet()),
                 parseEnum(c.getString("loaders.load-method"), LoadMethod.TICKET, "loaders.load-method", log),
+                parseEnum(c.getString("loaders.overlap"), OverlapMode.WARN, "loaders.overlap", log),
                 c.getBoolean("loaders.restore-missing-blocks", true),
                 Math.max(5, c.getInt("loaders.check-interval-seconds", 60)));
 
@@ -92,19 +97,17 @@ public record Settings(
                 texts.list("item-lore"),
                 c.getBoolean("item.glint", true));
 
-        Particle particle = parseEnum(c.getString("border.particle"), Particle.HAPPY_VILLAGER, "border.particle", log);
-        if (particle.getDataType() != Void.class) {
-            // Particles like DUST need extra data and would throw when spawned without it.
-            log.warning("border.particle '" + particle.name() + "' needs extra data and is not supported, using HAPPY_VILLAGER.");
-            particle = Particle.HAPPY_VILLAGER;
-        }
         BorderSettings border = new BorderSettings(
                 c.getBoolean("border.show-on-open", true),
-                Math.clamp(c.getInt("border.duration-seconds", 30), 1, 600),
-                particle,
-                Math.clamp(c.getInt("border.spacing", 2), 1, 8),
-                Math.clamp(c.getInt("border.below", 2), 0, 32),
-                Math.clamp(c.getInt("border.above", 6), 0, 64));
+                Math.clamp(c.getInt("border.duration-seconds", 60), 1, 600),
+                blockMaterial(c.getString("border.block"), Material.LIME_CONCRETE, "border.block", log),
+                blockMaterial(c.getString("border.inactive-block"), Material.LIGHT_GRAY_CONCRETE, "border.inactive-block", log),
+                bukkitColor(c.getString("border.color"), 0x4CFF7A, "border.color", log),
+                bukkitColor(c.getString("border.inactive-color"), 0xA0A8A4, "border.inactive-color", log),
+                Math.clamp(c.getDouble("border.thickness", 0.08), 0.02, 1.0),
+                Math.clamp(c.getInt("border.below", 1), 0, 32),
+                Math.clamp(c.getInt("border.above", 5), 0, 64),
+                Math.clamp(c.getInt("border.line-spacing", 3), 1, 16));
 
         String rawColor = c.getString("squaremap.color", "owner");
         SquaremapSettings squaremap = new SquaremapSettings(
@@ -153,7 +156,8 @@ public record Settings(
                 Math.clamp(c.getInt("gui.confirm-seconds", 5), 1, 60),
                 banDurations(c.getStringList("gui.ban-durations"), log),
                 texts.optional("gui-ban-reason"),
-                c.getBoolean("gui.sounds", true));
+                c.getBoolean("gui.sounds", true),
+                Math.clamp(c.getInt("gui.max-name-length", 24), 1, 64));
 
         return new Settings(loaders, item, border, squaremap, update, gui);
     }
@@ -173,13 +177,36 @@ public record Settings(
         }
     }
 
+    private static Material blockMaterial(String raw, Material fallback, String path, Logger log) {
+        Material material = raw == null ? null : Material.matchMaterial(raw);
+        if (material == null || !material.isBlock()) {
+            if (raw != null && !raw.isBlank()) {
+                log.warning("Invalid block '" + raw + "' for " + path + ", using " + fallback.name() + ".");
+            }
+            return fallback;
+        }
+        return material;
+    }
+
+    private static org.bukkit.Color bukkitColor(String raw, int fallback, String path, Logger log) {
+        if (raw == null || raw.isBlank()) {
+            return org.bukkit.Color.fromRGB(fallback);
+        }
+        try {
+            return org.bukkit.Color.fromRGB(Integer.parseInt(raw.replace("#", "").trim(), 16) & 0xFFFFFF);
+        } catch (NumberFormatException e) {
+            log.warning("Invalid colour '" + raw + "' for " + path + ".");
+            return org.bukkit.Color.fromRGB(fallback);
+        }
+    }
+
     /** Case-insensitive enum value; falls back to {@code fallback} with a warning. */
     private static <E extends Enum<E>> E parseEnum(String raw, E fallback, String path, Logger log) {
         if (raw == null || raw.isBlank()) {
             return fallback;
         }
         try {
-            return Enum.valueOf(fallback.getDeclaringClass(), raw.trim().toUpperCase(Locale.ROOT));
+            return Enum.valueOf(fallback.getDeclaringClass(), raw.trim().toUpperCase(Locale.ROOT).replace('-', '_'));
         } catch (IllegalArgumentException e) {
             log.warning("Invalid value '" + raw + "' for " + path + ", using " + fallback.name().toLowerCase(Locale.ROOT) + ".");
             return fallback;

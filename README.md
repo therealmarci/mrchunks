@@ -8,7 +8,7 @@ Chunkloader-Plugin für **Paper 26.3** (Java 25).
 - **Chunkloader-Blöcke** (Aussehen: Emeraldblock): Einmal platziert, bleibt ein **7×7-Chunk-Bereich** dauerhaft geladen, auch wenn der Spieler offline ist. Das funktioniert in **allen Dimensionen**.
 - **Limit pro Spieler** aus der Config, mehr per Permission oder Admin-Befehl.
 - **Unzerstörbar:** kein Abbauen, keine Explosionen, Kolben, Wither oder Endermen.
-- **Menü per Rechtsklick:** Infos, Grenze anzeigen, an/aus, löschen.
+- **Menü per Rechtsklick:** Infos, umbenennen, Grenze anzeigen, an/aus, löschen.
 - **Admin-Menü:** alle Spieler und ihre Chunkloader, mit Teleport, an/aus, löschen, Limit und Sperre.
 - **Webkarte mit echtem Gelände** über [squaremap](https://modrinth.com/plugin/squaremap): alle Bereiche, Chunkraster, Overworld/Nether/End. squaremap wird automatisch erkannt und eingerichtet.
 - **Discord-Logs**, **Update-Prüfung**, alles einstellbar in einer `config.yml`, eine Permission für jede Funktion.
@@ -36,9 +36,27 @@ Texte auf der Webkarte (Ebenen-Namen, Tooltips, Dimensionsnamen), Discord-Logs u
 ## So funktioniert's
 1. **`/chunkloader give`** legt einen Chunkloader ins Inventar, solange dein Limit nicht erreicht ist. Es gibt zwei Limits: wie viele du **setzen** darfst und wie viele davon **gleichzeitig aktiv** sein dürfen (siehe [Limits](#limits-setzen-und-gleichzeitig-aktiv)).
 2. **Platzieren:** Ab sofort bleiben `7×7` Chunks um den Block geladen. Den Radius stellst du über `loaders.radius` ein.
-3. **Rechtsklick** auf den Block öffnet das Menü und zeigt dir die Grenze des Bereichs mit Partikeln.
+3. **Rechtsklick** auf den Block öffnet das Menü und zeigt dir die Grenze des Bereichs als leuchtende Linien.
    **Sneak + Rechtsklick** verhält sich normal, du kannst also weiter Blöcke daran bauen.
 4. **Löschen** geht nur über das Menü (zweimal klicken). Danach ist der Loader weg und dein Limit wieder frei. Ein Item gibt es nicht zurück, ein neues bekommst du per `/chunkloader give`.
+
+### Namen & Nummern
+- Jeder Chunkloader bekommt pro Spieler die **kleinste freie Nummer**: Wer 8 gesetzt hat, bekommt als Nächstes „Chunkloader 9“. Wird Nr. 9 gelöscht, heißt der nächste wieder „Chunkloader 9“.
+- Im Menü kannst du ihn über **Umbenennen** frei benennen (höchstens `gui.max-name-length` Zeichen, leer = wieder Standardname). Der Name erscheint im Chat, in Menüs, auf der Webkarte und in den Discord-Logs.
+- Admin-Befehle sprechen einen Loader über Spieler und Nummer an: `/mrchunks tp Steve 3`.
+
+### Grenze anzeigen
+Die Grenze ist ein leuchtender „Zaun“ an jedem Chunk der Außenkante, sichtbar auch durch Blöcke. Nur du siehst sie, sie folgt deiner Höhe und verschwindet nach `border.duration-seconds`, über **Grenze ausblenden** im Menü oder sobald der Loader gelöscht wird. Farbe, Block, Dicke und Höhe stellst du unter `border` ein.
+
+### Überschneidende Chunkloader
+Jeder Chunk wird nur **einmal** geladen gehalten, auch wenn mehrere Loader ihn abdecken. Wird ein Loader deaktiviert oder gelöscht, bleiben die Chunks geladen, die ein anderer **aktiver** Loader abdeckt, egal wem er gehört. Was beim Setzen in einen bestehenden Bereich passiert, legt `loaders.overlap` fest:
+
+| Wert | Verhalten |
+|---|---|
+| `allow` | einfach erlauben |
+| `warn` (Standard) | erlauben, aber Hinweis mit den betroffenen Loadern und der Zahl doppelt abgedeckter Chunks, dazu wird die Grenze angezeigt |
+| `deny-own` | verbieten, wenn er sich mit eigenen Loadern überschneidet |
+| `deny-all` | verbieten, wenn er sich mit irgendeinem Loader überschneidet |
 
 **Was in geladenen Chunks läuft:** Redstone, Hopper, Öfen, Tiere und Entities, Pflanzenwachstum, also alle Zufalls-Ticks.
 **Was trotzdem einen Spieler in der Nähe braucht:** natürliches Mob-Spawning und Mob-Spawner. Das ist eine Minecraft-Regel, die kein Chunkloader-Plugin ändert.
@@ -55,7 +73,7 @@ Nur Items aus `/chunkloader give` sind Chunkloader. Normale Emeraldblöcke bleib
 | `/chunkloader give [anzahl]` | Chunkloader ins Inventar (bis zum Limit) | `mrchunks.use` |
 | `/chunkloader remove [anzahl\|all]` | Chunkloader-Items aus dem Inventar entfernen | `mrchunks.use` |
 | `/chunkloader list` | Menü mit deinen Chunkloadern | `mrchunks.use` |
-| `/chunkloader info` | So funktioniert's, dazu deine Chunkloader und dein Limit | `mrchunks.info` |
+| `/chunkloader info` | Befehlshilfe (deine Chunkloader zeigt `/chunkloader list`) | alle |
 | `/chunkloader map` | Link zur Webkarte | `mrchunks.map` |
 
 ### Admin: `/mrchunks`
@@ -63,9 +81,9 @@ Nur Items aus `/chunkloader give` sind Chunkloader. Normale Emeraldblöcke bleib
 |---|---|---|
 | `/mrchunks gui` | Admin-Menü | `mrchunks.admin.gui` |
 | `/mrchunks list [spieler]` | Chunkloader auflisten | `mrchunks.admin.list` |
-| `/mrchunks tp <id>` | Zu einem Chunkloader teleportieren | `mrchunks.admin.teleport` |
-| `/mrchunks toggle <id>` | Chunkloader an/aus | `mrchunks.admin.manage` |
-| `/mrchunks delete <id>` | Chunkloader löschen | `mrchunks.admin.manage` |
+| `/mrchunks tp <spieler> <nr>` | Zu einem Chunkloader teleportieren | `mrchunks.admin.teleport` |
+| `/mrchunks toggle <spieler> <nr>` | Chunkloader an/aus | `mrchunks.admin.manage` |
+| `/mrchunks delete <spieler> <nr>` | Chunkloader löschen | `mrchunks.admin.manage` |
 | `/mrchunks limit <spieler> <anzahl\|reset>` | Wie viele Loader der Spieler setzen darf | `mrchunks.admin.limit` |
 | `/mrchunks activelimit <spieler> <anzahl\|reset>` | Wie viele davon gleichzeitig aktiv sein dürfen | `mrchunks.admin.limit` |
 | `/mrchunks ban <spieler> [dauer\|permanent] [grund]` | Sperren: löscht alle Loader des Spielers und verhindert neue | `mrchunks.admin.ban` |
@@ -83,7 +101,6 @@ Owner können ihre eigenen Loader auch mit `toggle` und `delete` steuern.
 | Permission | Standard | Beschreibung |
 |---|---|---|
 | `mrchunks.use` | alle | Chunkloader holen, setzen und die eigenen verwalten |
-| `mrchunks.info` | alle | `/chunkloader info` |
 | `mrchunks.map` | alle | `/chunkloader map` |
 | `mrchunks.view` | alle | Menü fremder Chunkloader ansehen und deren Grenze anzeigen |
 | `mrchunks.limit.<anzahl>` / `mrchunks.active.<anzahl>` | – | Mehr setzbare bzw. gleichzeitig aktive Loader, siehe [Limits](#limits-setzen-und-gleichzeitig-aktiv) |
@@ -125,7 +142,7 @@ Jeder Spieler hat **zwei Limits**:
 - **Oben:** Übersicht (Anzahl Loader, aktive Loader, geladene Chunks, Spieler, Sperren), Version und Webkarten-Status, Filter (Alle mit Loadern, Online, Gesperrte).
 - **Spielerköpfe:** Loader und Limit, woher das Limit kommt, online, offline oder gesperrt.
 - **Klick auf einen Kopf:** beide Limits, setzbar (Erfahrungsflasche) und gleichzeitig aktiv (Leuchtfeuer), jeweils Linksklick +1, Rechtsklick −1, Shift-Klick zurücksetzen. Dazu: alle Loader löschen, sperren (1d, 7d, dauerhaft) oder entsperren, dazu alle Loader des Spielers.
-- **Klick auf einen Loader:** an/aus, Grenze anzeigen, **hinteleportieren**, löschen.
+- **Klick auf einen Loader:** an/aus, umbenennen, Grenze anzeigen, **hinteleportieren**, löschen.
 
 Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Permission.
 
@@ -164,13 +181,16 @@ MRchunks zeigt die Chunkloader auf **[squaremap](https://modrinth.com/plugin/squ
 Webhook in Discord anlegen (*Kanal bearbeiten → Integrationen → Webhooks*), dann `discord.enabled: true` setzen, die `webhook-url` eintragen und `/mrchunks reload` ausführen.
 `/mrchunks discord test` prüft die Einrichtung.
 
-Diese Events gibt es: Loader gesetzt, gelöscht, an/aus geschaltet, Block wiederhergestellt oder fehlend, dazu die Admin-Aktionen Löschen, Sperren, Entsperren, Limit und Reload. An/aus und Farben stellst du unter `discord.events` in der Config ein, die Texte unter `discord` in der Sprachdatei.
+Diese Events gibt es: Loader gesetzt, gelöscht, an/aus geschaltet, umbenannt, Block wiederhergestellt oder fehlend, dazu die Admin-Aktionen Löschen, Sperren, Entsperren, Limit und Reload. An/aus und Farben stellst du unter `discord.events` in der Config ein, die Texte unter `discord` in der Sprachdatei.
 
 ---
 
 ## Häufige Fragen
-**Ein Loader-Block ist trotzdem verschwunden (z.B. durch WorldEdit).**
-MRchunks prüft regelmäßig (`loaders.check-interval-seconds`) und stellt den Block wieder her. Mit `restore-missing-blocks: false` wird der Loader stattdessen gelöscht.
+**Ein Loader-Block ist trotzdem verschwunden (z.B. durch `/fill`, `/setblock` oder WorldEdit).**
+Solche Befehle umgehen den Schutz, weil sie keine Events auslösen. MRchunks prüft deshalb regelmäßig (`loaders.check-interval-seconds`) und zusätzlich jedes Mal, wenn ein Chunk mit einem Loader geladen wird, und stellt den Block wieder her. Mit `restore-missing-blocks: false` wird der Loader stattdessen gelöscht. Wird der Block per `/fill … destroy` zerstört, fällt nur ein normaler Emeraldblock heraus, kein Chunkloader-Item.
+
+**Was passiert, wenn ein Chunkloader-Item verloren geht?**
+Nichts Schlimmes: Items sind nur „Gutscheine“. Gezählt werden die **gesetzten** Loader. Ein verlorenes Item holst du dir einfach neu mit `/chunkloader give`. Items in Kisten oder bei anderen Spielern zählen nicht. Wer ein Item setzt, dem gehört der Loader, und es zählt zu seinem Limit.
 
 **Funktioniert das im Nether und im End?**
 Ja. Hast du in der Paper-Config `disable-world-ticking-when-empty` aktiviert, stell `loaders.load-method: forceload` ein. Dann ticken auch leere Dimensionen weiter.

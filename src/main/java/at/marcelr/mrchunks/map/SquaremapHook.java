@@ -259,7 +259,9 @@ final class SquaremapHook {
     private String fill(String template, Loader loader) {
         Settings.LoaderSettings loaders = plugin.settings().loaders();
         return template
-                .replace("{id}", String.valueOf(loader.id()))
+                .replace("{name}", html(Texts.name(plugin, loader)))
+                .replace("{number}", String.valueOf(loader.number()))
+                .replace("{id}", String.valueOf(loader.number()))
                 .replace("{player}", html(LoaderManager.name(loader.owner())))
                 .replace("{world}", html(loader.worldName()))
                 .replace("{x}", String.valueOf(loader.x()))

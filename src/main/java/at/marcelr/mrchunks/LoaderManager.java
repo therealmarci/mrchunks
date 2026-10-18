@@ -39,6 +39,8 @@ public final class LoaderManager {
     private final Map<Integer, Loader> loaders = new LinkedHashMap<>();
     /** "world-uuid:x:y:z" -> loader, so block lookups (explosions, clicks) don't scan all loaders */
     private final Map<String, Loader> byPosition = new HashMap<>();
+    /** world -> chunk key -> loaders whose block is in that chunk (block checks on chunk load) */
+    private final Map<UUID, Map<Long, List<Loader>>> byChunk = new HashMap<>();
     private int nextId = 1;
 
     /** world -> chunk key -> number of active loaders covering that chunk */
@@ -90,6 +92,84 @@ public final class LoaderManager {
 
     private void index(Loader loader) {
         byPosition.put(positionKey(loader.worldId(), loader.x(), loader.y(), loader.z()), loader);
+        byChunk.computeIfAbsent(loader.worldId(), k -> new HashMap<>())
+                .computeIfAbsent(Loader.chunkKey(loader.chunkX(), loader.chunkZ()), k -> new ArrayList<>()).add(loader);
+    }
+
+    private void unindex(Loader loader) {
+        byPosition.remove(positionKey(loader.worldId(), loader.x(), loader.y(), loader.z()));
+        Map<Long, List<Loader>> chunks = byChunk.get(loader.worldId());
+        if (chunks != null) {
+            List<Loader> list = chunks.get(Loader.chunkKey(loader.chunkX(), loader.chunkZ()));
+            if (list != null && list.remove(loader) && list.isEmpty()) {
+                chunks.remove(Loader.chunkKey(loader.chunkX(), loader.chunkZ()));
+            }
+        }
+    }
+
+    /** Loaders whose block lies in the given chunk. */
+    public List<Loader> inChunk(World world, int cx, int cz) {
+        Map<Long, List<Loader>> chunks = byChunk.get(world.getUID());
+        List<Loader> list = chunks == null ? null : chunks.get(Loader.chunkKey(cx, cz));
+        return list == null ? List.of() : List.copyOf(list);
+    }
+
+    /** The owner's loader with that number, or null. */
+    public Loader byNumber(UUID owner, int number) {
+        for (Loader loader : loaders.values()) {
+            if (loader.owner().equals(owner) && loader.number() == number) {
+                return loader;
+            }
+        }
+        return null;
+    }
+
+    /** Lowest number the owner does not use yet (1, 2, 3 ... - a deleted number is used again). */
+    private int nextNumber(UUID owner) {
+        Set<Integer> used = new HashSet<>();
+        for (Loader loader : loaders.values()) {
+            if (loader.owner().equals(owner)) {
+                used.add(loader.number());
+            }
+        }
+        int number = 1;
+        while (used.contains(number)) {
+            number++;
+        }
+        return number;
+    }
+
+    /**
+     * Loaders whose area overlaps the area a loader at chunk {@code cx}/{@code cz} would have (same world).
+     * Two areas overlap if the centres are at most 2 * radius chunks apart on both axes.
+     */
+    public List<Loader> overlapping(World world, int cx, int cz, Loader except) {
+        int reach = plugin.settings().loaders().radius() * 2;
+        List<Loader> result = new ArrayList<>();
+        for (Loader loader : loaders.values()) {
+            if (loader != except && loader.worldId().equals(world.getUID())
+                    && Math.abs(loader.chunkX() - cx) <= reach && Math.abs(loader.chunkZ() - cz) <= reach) {
+                result.add(loader);
+            }
+        }
+        return result;
+    }
+
+    /** How many chunks of the area around {@code cx}/{@code cz} are also covered by one of {@code others}. */
+    public int sharedChunks(int cx, int cz, Collection<Loader> others) {
+        int r = plugin.settings().loaders().radius();
+        int shared = 0;
+        for (int x = cx - r; x <= cx + r; x++) {
+            for (int z = cz - r; z <= cz + r; z++) {
+                for (Loader other : others) {
+                    if (Math.abs(other.chunkX() - x) <= r && Math.abs(other.chunkZ() - z) <= r) {
+                        shared++;
+                        break;
+                    }
+                }
+            }
+        }
+        return shared;
     }
 
     public boolean isLoaderBlock(Block block) {
@@ -138,7 +218,7 @@ public final class LoaderManager {
     /** @param active false if the owner already has as many active loaders as allowed */
     public Loader create(UUID owner, Block block, boolean active) {
         Loader loader = new Loader(nextId++, owner, block.getWorld().getUID(), block.getWorld().getName(),
-                block.getX(), block.getY(), block.getZ(), System.currentTimeMillis(), active);
+                block.getX(), block.getY(), block.getZ(), System.currentTimeMillis(), nextNumber(owner), null, active);
         loaders.put(loader.id(), loader);
         index(loader);
         if (active) {
@@ -155,7 +235,8 @@ public final class LoaderManager {
             uncover(loader);
         }
         loaders.remove(loader.id());
-        byPosition.remove(positionKey(loader.worldId(), loader.x(), loader.y(), loader.z()));
+        unindex(loader);
+        plugin.border().loaderRemoved(loader);
         World world = loader.world();
         if (world != null) {
             Block block = world.getBlockAt(loader.x(), loader.y(), loader.z());
@@ -184,6 +265,14 @@ public final class LoaderManager {
         } else {
             uncover(loader);
         }
+        save();
+        plugin.maps().refreshSoon();
+        plugin.border().loaderChanged(loader);
+    }
+
+    /** Sets or (with null) removes the name the player gave the loader. */
+    public void rename(Loader loader, String name) {
+        loader.setName(name);
         save();
         plugin.maps().refreshSoon();
     }
@@ -292,12 +381,18 @@ public final class LoaderManager {
      * @return loaders whose block was missing, with true = restored, false = deleted
      */
     public Map<Loader, Boolean> validate() {
+        return validate(List.copyOf(loaders.values()));
+    }
+
+    /** Like {@link #validate()} for some loaders only (e.g. those in a chunk that just loaded). */
+    public Map<Loader, Boolean> validate(Collection<Loader> candidates) {
         Map<Loader, Boolean> result = new LinkedHashMap<>();
         Material material = plugin.settings().item().material();
         boolean restore = plugin.settings().loaders().restoreMissingBlocks();
-        for (Loader loader : List.copyOf(loaders.values())) {
+        for (Loader loader : candidates) {
             World world = loader.world();
-            if (world == null || !world.isChunkLoaded(loader.chunkX(), loader.chunkZ())) {
+            if (!loaders.containsKey(loader.id()) || world == null
+                    || !world.isChunkLoaded(loader.chunkX(), loader.chunkZ())) {
                 continue;
             }
             Block block = world.getBlockAt(loader.x(), loader.y(), loader.z());
@@ -475,6 +570,7 @@ public final class LoaderManager {
     public void load() {
         loaders.clear();
         byPosition.clear();
+        byChunk.clear();
         limitOverrides.clear();
         activeOverrides.clear();
         bans.clear();
@@ -501,10 +597,11 @@ public final class LoaderManager {
                     continue;
                 }
                 int id = Integer.parseInt(key);
+                String name = s.getString("name");
                 loaders.put(id, new Loader(id, owner, world, s.getString("world-name", "?"),
-                        s.getInt("x"), s.getInt("y"), s.getInt("z"),
-                        s.getLong("created"), s.getBoolean("active", true)));
-                index(loaders.get(id));
+                        s.getInt("x"), s.getInt("y"), s.getInt("z"), s.getLong("created"),
+                        s.getInt("number", 0), name == null || name.isBlank() ? null : name,
+                        s.getBoolean("active", true)));
                 nextId = Math.max(nextId, id + 1);
             }
         }
@@ -536,6 +633,39 @@ public final class LoaderManager {
                 }
             }
         }
+        // Only now (limits and bans are read), because it may save.
+        assignMissingNumbers();
+        loaders.values().forEach(this::index);
+    }
+
+    /**
+     * Older data.yml files have no per-owner numbers (and a hand-edited one may contain duplicates):
+     * number those loaders in creation order with the lowest free numbers.
+     */
+    private void assignMissingNumbers() {
+        Map<UUID, Set<Integer>> used = new HashMap<>();
+        List<Loader> missing = new ArrayList<>();
+        for (Loader loader : loaders.values()) {
+            if (loader.number() > 0 && used.computeIfAbsent(loader.owner(), k -> new HashSet<>()).add(loader.number())) {
+                continue;
+            }
+            missing.add(loader);
+        }
+        if (missing.isEmpty()) {
+            return;
+        }
+        missing.sort(java.util.Comparator.comparingLong(Loader::created).thenComparingInt(Loader::id));
+        for (Loader old : missing) {
+            Set<Integer> taken = used.computeIfAbsent(old.owner(), k -> new HashSet<>());
+            int number = 1;
+            while (taken.contains(number)) {
+                number++;
+            }
+            taken.add(number);
+            loaders.put(old.id(), new Loader(old.id(), old.owner(), old.worldId(), old.worldName(), old.x(), old.y(),
+                    old.z(), old.created(), number, old.name(), old.active()));
+        }
+        save();
     }
 
     public void save() {
@@ -551,6 +681,8 @@ public final class LoaderManager {
             data.set(p + "y", loader.y());
             data.set(p + "z", loader.z());
             data.set(p + "created", loader.created());
+            data.set(p + "number", loader.number());
+            data.set(p + "name", loader.name());
             data.set(p + "active", loader.active());
         }
         limitOverrides.forEach((uuid, limit) -> data.set("limits." + uuid, limit));

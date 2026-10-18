@@ -273,21 +273,28 @@ public final class MRChunksCommand implements TabExecutor {
 
     // ------------------------------------------------------------- helpers
 
+    /** Resolves {@code <player> <number>} (the number players see, e.g. 3 for "Chunkloader 3"). */
     private void withLoader(CommandSender sender, String[] args, Consumer<Loader> action) {
-        if (args.length < 2) {
+        if (args.length < 3) {
             messages().send(sender, "admin-usage");
             return;
         }
+        OfflinePlayer owner = resolvePlayer(sender, args[1]);
+        if (owner == null) {
+            return;
+        }
+        int number;
         try {
-            int id = Integer.parseInt(args[1].replace("#", ""));
-            Loader loader = plugin.loaders().byId(id);
-            if (loader == null) {
-                messages().send(sender, "loader-not-found", tag("id", id));
-            } else {
-                action.accept(loader);
-            }
+            number = Integer.parseInt(args[2].replace("#", ""));
         } catch (NumberFormatException e) {
-            messages().send(sender, "invalid-number", tag("input", args[1]));
+            messages().send(sender, "invalid-number", tag("input", args[2]));
+            return;
+        }
+        Loader loader = plugin.loaders().byNumber(owner.getUniqueId(), number);
+        if (loader == null) {
+            messages().send(sender, "loader-not-found", tag("player", AdminActions.name(owner)), tag("number", number));
+        } else {
+            action.accept(loader);
         }
     }
 
@@ -340,7 +347,13 @@ public final class MRChunksCommand implements TabExecutor {
             switch (sub) {
                 case "tp", "teleport", "toggle", "delete", "remove" -> {
                     if (args.length == 2) {
-                        plugin.loaders().all().forEach(l -> options.add(String.valueOf(l.id())));
+                        plugin.loaders().all().forEach(l -> options.add(LoaderManager.name(l.owner())));
+                    } else if (args.length == 3) {
+                        OfflinePlayer owner = Bukkit.getOfflinePlayerIfCached(args[1]);
+                        if (owner != null) {
+                            plugin.loaders().byOwner(owner.getUniqueId())
+                                    .forEach(l -> options.add(String.valueOf(l.number())));
+                        }
                     }
                 }
                 case "list", "limit", "activelimit", "ban" -> {

@@ -99,6 +99,34 @@ public final class AdminActions {
         }
     }
 
+    /**
+     * Gives the loader a name, or with an empty name the default name back ("Chunkloader 3").
+     * The name is plain text: no formatting, no control characters, at most gui.max-name-length characters.
+     */
+    public void rename(CommandSender sender, Loader loader, String raw) {
+        if (!canManage(sender, loader)) {
+            messages().send(sender, isOwner(sender, loader) ? "no-permission" : "not-owner");
+            return;
+        }
+        String clean = raw == null ? "" : raw.replaceAll("\\p{Cntrl}", "").replaceAll("\\s+", " ").strip();
+        int max = plugin.settings().gui().maxNameLength();
+        if (clean.codePointCount(0, clean.length()) > max) {
+            clean = clean.substring(0, clean.offsetByCodePoints(0, max)).strip();
+        }
+        String name = clean.isEmpty() ? null : clean;
+        String oldName = Texts.name(plugin, loader);
+        if (java.util.Objects.equals(name, loader.name())) {
+            return;
+        }
+        loaders().rename(loader, name);
+        TagResolver tags = TagResolver.resolver(Texts.loader(plugin, loader), tag("old", oldName));
+        messages().send(sender, name == null ? "rename-reset" : "renamed", tags);
+        if (!isOwner(sender, loader)) {
+            notifyOwner(loader.owner(), "owner-notify-renamed", tags, tag("admin", sender.getName()));
+        }
+        plugin.discord().log("loader-renamed", discordTags(loader, "old", oldName, "admin", sender.getName()));
+    }
+
     public void teleport(Player player, Loader loader) {
         if (!player.hasPermission(PERM_TELEPORT)) {
             messages().send(player, "no-permission");
@@ -106,7 +134,7 @@ public final class AdminActions {
         }
         Location location = loader.location();
         if (location == null) {
-            messages().send(player, "loader-not-found", tag("id", loader.id()));
+            messages().send(player, "world-not-loaded", Texts.loader(plugin, loader));
             return;
         }
         // Stand on top of the block, looking in the same direction as before.
@@ -213,7 +241,9 @@ public final class AdminActions {
     /** Discord placeholders of a loader plus extra key/value pairs. */
     public Object[] discordTags(Loader loader, Object... extra) {
         Object[] base = {
-                "id", loader.id(),
+                "name", Texts.name(plugin, loader),
+                "number", loader.number(),
+                "id", loader.number(),
                 "player", LoaderManager.name(loader.owner()),
                 "world", loader.worldName(),
                 "x", loader.x(), "y", loader.y(), "z", loader.z(),

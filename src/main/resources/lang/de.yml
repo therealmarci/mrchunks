@@ -10,18 +10,19 @@
 # ==============================================================================
 
 # Nicht ändern - damit erkennt das Plugin bei Updates, welche Texte erneuert werden müssen.
-lang-version: 2
+lang-version: 3
 
-# Texte der Discord-Logs (Markdown wie in Discord). Platzhalter: {player} {admin} {id} {world} {x} {y} {z}
-# {state} {time} {reason} {count} {type} {limit}. An/aus und Farbe stehen in der config.yml.
+# Texte der Discord-Logs (Markdown wie in Discord). Platzhalter: {name} {number} {player} {admin} {world} {x} {y} {z}
+# {state} {old} {time} {reason} {count} {type} {limit}. An/aus und Farbe stehen in der config.yml.
 discord:
   test-message: "🔧 Testnachricht von MRchunks - der Webhook funktioniert!"
-  loader-placed: "🟩 **{player}** hat Chunkloader **#{id}** gesetzt ({world} {x}, {y}, {z})."
-  loader-deleted: "🗑️ **{player}** hat Chunkloader **#{id}** gelöscht ({world} {x}, {y}, {z})."
-  loader-toggled: "🔁 Chunkloader **#{id}** von **{player}** ist jetzt **{state}** (geändert von {admin})."
-  loader-restored: "🧱 Der Block von Chunkloader **#{id}** ({world} {x}, {y}, {z}) fehlte und wurde wiederhergestellt."
-  loader-removed-missing: "❔ Chunkloader **#{id}** von **{player}** wurde gelöscht, weil sein Block fehlte."
-  admin-delete: "🛠️ **{admin}** hat Chunkloader **#{id}** von **{player}** gelöscht."
+  loader-placed: "🟩 **{player}** hat **{name}** gesetzt ({world} {x}, {y}, {z})."
+  loader-deleted: "🗑️ **{player}** hat **{name}** gelöscht ({world} {x}, {y}, {z})."
+  loader-toggled: "🔁 **{name}** von **{player}** ist jetzt **{state}** (geändert von {admin})."
+  loader-renamed: "✏️ **{old}** von **{player}** heißt jetzt **{name}** (geändert von {admin})."
+  loader-restored: "🧱 Der Block von **{name}** ({player}, {world} {x}, {y}, {z}) fehlte und wurde wiederhergestellt."
+  loader-removed-missing: "❔ **{name}** von **{player}** wurde gelöscht, weil sein Block fehlte."
+  admin-delete: "🛠️ **{admin}** hat **{name}** von **{player}** gelöscht."
   admin-ban: "🔒 **{admin}** hat **{player}** gesperrt ({time}, Grund: {reason}). {count} Chunkloader gelöscht."
   admin-unban: "🔓 **{admin}** hat die Sperre von **{player}** aufgehoben."
   admin-limit: "🛠️ **{admin}** hat das {type} von **{player}** auf **{limit}** gesetzt."
@@ -44,9 +45,9 @@ map-dimension-nether: "Nether"
 map-dimension-end: "End"
 # Name der Ebene in der Ebenen-Auswahl der Karte.
 map-layer-name: "Chunkloader"
-# Texte auf der Karte (HTML erlaubt). Platzhalter: {id} {player} {world} {x} {y} {z} {size} {chunks} {state}
-map-hover-tooltip: "Chunkloader #{id} - {player}"
-map-click-tooltip: "<b>Chunkloader #{id}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br>Bereich: {size}x{size} Chunks<br>Status: {state}"
+# Texte auf der Karte (HTML erlaubt). Platzhalter: {name} {number} {player} {world} {x} {y} {z} {size} {chunks} {state}
+map-hover-tooltip: "{name} - {player}"
+map-click-tooltip: "<b>{name}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br>Bereich: {size}x{size} Chunks<br>Status: {state}"
 # Name des Chunkrasters im Ebenen-Menü der Karte.
 map-grid-label: "Chunkraster"
 
@@ -59,7 +60,10 @@ prefix: "<dark_gray>[<green>MRchunks</green>]</dark_gray> "
 no-permission: "<prefix><red>Dazu hast du keine Berechtigung."
 players-only: "<prefix><red>Dieser Befehl kann nur von Spielern genutzt werden."
 player-not-found: "<prefix><red>Spieler <white><player></white> wurde nicht gefunden."
-loader-not-found: "<prefix><red>Chunkloader <white>#<id></white> gibt es nicht."
+loader-not-found: "<prefix><red><white><player></white> hat keinen Chunkloader Nr. <white><number></white>."
+# Name eines Chunkloaders, solange der Spieler ihm keinen eigenen gibt. <number> = 1, 2, 3 ... pro Spieler
+loader-default-name: "Chunkloader <number>"
+world-not-loaded: "<prefix><red>Die Welt von <white><name></white> ist gerade nicht geladen."
 invalid-duration: "<prefix><red>Ungültige Dauer <white><input></white>. Beispiele: 1h, 7d, permanent"
 invalid-number: "<prefix><red><white><input></white> ist keine gültige Zahl."
 state-active: "aktiv"
@@ -72,12 +76,13 @@ date-format: "dd.MM.yyyy HH:mm"
 
 # --- /chunkloader ------------------------------------------------------------
 usage: |-
-  <prefix><gray>Befehle:
+  <prefix><gray>Chunkloader-Befehle:
   <green>/chunkloader give [anzahl]</green> <dark_gray>- <gray>Chunkloader ins Inventar holen
   <green>/chunkloader remove [anzahl|all]</green> <dark_gray>- <gray>Chunkloader-Items aus dem Inventar entfernen
-  <green>/chunkloader list</green> <dark_gray>- <gray>Menü mit deinen Chunkloadern
-  <green>/chunkloader info</green> <dark_gray>- <gray>So funktioniert's + deine Chunkloader
+  <green>/chunkloader list</green> <dark_gray>- <gray>Deine Chunkloader (Menü)
   <green>/chunkloader map</green> <dark_gray>- <gray>Link zur Webkarte
+  <green>/chunkloader info</green> <dark_gray>- <gray>Diese Hilfe
+  <dark_gray>Rechtsklick auf einen Chunkloader öffnet sein Menü: umbenennen, Grenze anzeigen, an/aus, löschen.
 give-ok: "<prefix><green>Du hast <white><count></white> Chunkloader bekommen. <gray>(<used>/<limit> belegt)"
 give-none-left: "<prefix><red>Du hast kein Chunkloader-Kontingent mehr frei <gray>(<placed> gesetzt, <held> im Inventar, Limit <limit>)."
 give-partial: "<prefix><yellow>Es war nur noch Platz für <white><count></white> Chunkloader."
@@ -85,45 +90,50 @@ give-inventory-full: "<prefix><red>Dein Inventar ist voll."
 remove-ok: "<prefix><green><white><count></white> Chunkloader-Item(s) aus deinem Inventar entfernt."
 remove-none: "<prefix><gray>Du hast keine Chunkloader-Items im Inventar."
 banned: "<prefix><red>Du bist für Chunkloader gesperrt <dark_gray>(<duration>, Grund: <reason>)<red>."
-info: |-
-  <prefix><gray>So funktionieren Chunkloader:
-  <dark_gray> » <gray>Hol dir einen mit <white>/chunkloader give</white> und platziere ihn.
-  <dark_gray> » <gray>Er hält <white><size>x<size> Chunks</white> um sich dauerhaft geladen - auch wenn du offline bist.
-  <dark_gray> » <gray>Dort laufen Redstone, Hopper, Öfen, Tiere und Pflanzenwachstum weiter.
-  <dark_gray> » <gray>Mob-Spawning braucht weiterhin einen Spieler in der Nähe (Minecraft-Regel).
-  <dark_gray> » <gray>Rechtsklick auf den Block öffnet das Menü: Grenze anzeigen, an/aus, löschen.
-  <dark_gray> » <gray>Chunkloader sind unzerstörbar - entfernen nur über das Menü.
-  <prefix><gray>Deine Chunkloader: <white><placed></white>/<white><limit></white> gesetzt, <white><active></white>/<white><active-limit></white> aktiv <dark_gray>(<held> als Item im Inventar)
-info-entry: "<dark_gray>   #<id> <gray><world> <white><x> <y> <z></white> <dark_gray>- <state>"
 map-link: "<prefix><gray>Webkarte mit allen Chunkloadern: <link>"
 map-link-label: "<aqua><u><url></u></aqua>"
 map-unavailable: "<prefix><gray>Für diesen Server gibt es gerade keine öffentliche Webkarte."
-info-none: "<dark_gray>   (noch keine gesetzt)"
 
 # --- Setzen / Block ----------------------------------------------------------
-placed: "<prefix><green>Chunkloader <white>#<id></white> gesetzt - <white><chunks></white> Chunks bleiben jetzt geladen. <gray>(<placed>/<limit> gesetzt, <active>/<active-limit> aktiv)"
-placed-inactive: "<prefix><yellow>Chunkloader <white>#<id></white> gesetzt, aber <white>deaktiviert</white>: Du hast schon <white><active>/<active-limit></white> aktive Chunkloader. <gray>Schalte im Menü einen anderen aus, um diesen zu aktivieren."
+placed: "<prefix><green><white><name></white> gesetzt - <white><chunks></white> Chunks bleiben jetzt geladen. <gray>(<placed>/<limit> gesetzt, <active>/<active-limit> aktiv)"
+placed-inactive: "<prefix><yellow><white><name></white> gesetzt, aber <white>deaktiviert</white>: Du hast schon <white><active>/<active-limit></white> aktive Chunkloader. <gray>Schalte im Menü einen anderen aus, um diesen zu aktivieren."
+# loaders.overlap: Platzhalter <loaders> (Liste aus overlap-entry-own/-other), <shared> (doppelt abgedeckte Chunks)
+place-overlap-warning: "<prefix><yellow>Hinweis: Der Bereich von <white><name></white> überschneidet sich mit <white><loaders></white> - <white><shared></white> Chunks werden doppelt abgedeckt. <gray>Die Grenze wird angezeigt."
+place-overlap-denied-own: "<prefix><red>Hier kannst du keinen Chunkloader setzen: Der Bereich würde sich mit deinem <white><name></white> überschneiden."
+place-overlap-denied: "<prefix><red>Hier kannst du keinen Chunkloader setzen: Der Bereich würde sich mit <white><name></white> von <white><player></white> überschneiden."
+overlap-entry-own: "<name>"
+overlap-entry-other: "<name> (<player>)"
 active-limit-reached: "<prefix><red>Du hast schon <white><active>/<active-limit></white> aktive Chunkloader. <gray>Deaktiviere zuerst einen anderen."
 place-limit: "<prefix><red>Du hast dein Limit von <white><limit></white> Chunkloadern erreicht."
 place-world-disabled: "<prefix><red>In dieser Welt sind keine Chunkloader erlaubt."
 break-denied: "<prefix><red>Chunkloader sind unzerstörbar. <gray>Rechtsklick auf den Block öffnet das Menü zum Löschen."
-toggled: "<prefix><green>Chunkloader <white>#<id></white> ist jetzt <white><state></white>."
-deleted: "<prefix><green>Chunkloader <white>#<id></white> gelöscht."
-delete-confirm: "<prefix><yellow>Zum Löschen von <white>#<id></white> noch einmal klicken."
+toggled: "<prefix><green><white><name></white> ist jetzt <white><state></white>."
+deleted: "<prefix><green><white><name></white> gelöscht."
+delete-confirm: "<prefix><yellow>Zum Löschen von <white><name></white> noch einmal klicken."
 not-owner: "<prefix><red>Das ist nicht dein Chunkloader."
-owner-notify-toggled: "<prefix><gray>Dein Chunkloader <white>#<id></white> wurde von <white><admin></white> auf <white><state></white> gestellt."
-owner-notify-deleted: "<prefix><gray>Dein Chunkloader <white>#<id></white> wurde von <white><admin></white> gelöscht."
-border-shown: "<prefix><gray>Grenze von <white>#<id></white> wird <white><seconds>s</white> lang angezeigt."
-teleported: "<prefix><gray>Zu Chunkloader <white>#<id></white> teleportiert."
+owner-notify-toggled: "<prefix><gray>Dein Chunkloader <white><name></white> wurde von <white><admin></white> auf <white><state></white> gestellt."
+owner-notify-deleted: "<prefix><gray>Dein Chunkloader <white><name></white> wurde von <white><admin></white> gelöscht."
+border-shown: "<prefix><gray>Grenze von <white><name></white> wird <white><seconds>s</white> lang angezeigt. <dark_gray>(im Menü wieder ausblendbar)"
+border-hidden: "<prefix><gray>Grenze ausgeblendet."
+teleported: "<prefix><gray>Zu <white><name></white> teleportiert."
+renamed: "<prefix><green><white><old></white> heißt jetzt <white><name></white>."
+rename-reset: "<prefix><green><white><old></white> heißt wieder <white><name></white>."
+owner-notify-renamed: "<prefix><gray>Dein Chunkloader <white><old></white> wurde von <white><admin></white> in <white><name></white> umbenannt."
+# Umbenennen-Dialog. Platzhalter: <name>, <max> (gui.max-name-length)
+rename-title: "<name> umbenennen"
+rename-hint: "<gray>Gib einen Namen ein (höchstens <max> Zeichen). Leer lassen = Standardname."
+rename-label: "Name"
+rename-save: "<green>Speichern"
+rename-cancel: "<red>Abbrechen"
 
 # --- Admin -------------------------------------------------------------------
 admin-usage: |-
   <prefix><gray>Admin-Befehle:
   <green>/mrchunks gui</green> <dark_gray>- <gray>Admin-Menü mit allen Spielern und Chunkloadern
   <green>/mrchunks list [spieler]</green> <dark_gray>- <gray>Chunkloader auflisten
-  <green>/mrchunks tp <id></green> <dark_gray>- <gray>Zu einem Chunkloader teleportieren
-  <green>/mrchunks toggle <id></green> <dark_gray>- <gray>Chunkloader an/aus
-  <green>/mrchunks delete <id></green> <dark_gray>- <gray>Chunkloader löschen
+  <green>/mrchunks tp <spieler> <nr></green> <dark_gray>- <gray>Zu einem Chunkloader teleportieren
+  <green>/mrchunks toggle <spieler> <nr></green> <dark_gray>- <gray>Chunkloader an/aus
+  <green>/mrchunks delete <spieler> <nr></green> <dark_gray>- <gray>Chunkloader löschen
   <green>/mrchunks limit <spieler> <anzahl|reset></green> <dark_gray>- <gray>Wie viele Loader ein Spieler setzen darf
   <green>/mrchunks activelimit <spieler> <anzahl|reset></green> <dark_gray>- <gray>Wie viele davon gleichzeitig aktiv sein dürfen
   <green>/mrchunks ban <spieler> [dauer] [grund]</green> <dark_gray>- <gray>Sperren (löscht alle seine Loader)
@@ -135,7 +145,7 @@ admin-usage: |-
   <green>/mrchunks version</green> <dark_gray>- <gray>Version & Update-Status
 reloaded: "<prefix><green>Konfiguration neu geladen."
 list-header: "<prefix><gray>Chunkloader<filter>: <white><count></white>"
-list-entry: "<dark_gray> #<id> <white><player></white> <gray><world> <x> <y> <z> <dark_gray>- <state>"
+list-entry: "<dark_gray> - <white><player></white> <green><name></green> <dark_gray>(Nr. <number>) <gray><world> <x> <y> <z> <dark_gray>- <state>"
 list-empty: "<prefix><gray>Keine Chunkloader gefunden."
 list-filter-player: " von <player>"
 limit-set: "<prefix><green><type> von <white><player></white> ist jetzt <white><limit></white>."
@@ -216,9 +226,9 @@ gui-page-lore:
 gui-empty: "<gray>Nichts gefunden"
 
 # Ein Chunkloader (in Listen und als Info-Item)
-gui-loader-name: "<green>Chunkloader #<id>"
+gui-loader-name: "<green><name>"
 gui-loader-lore:
-  - "<dark_gray>Owner: <gray><player>"
+  - "<dark_gray>Nr. <number> · Owner: <gray><player>"
   - "<gray>Welt: <white><world>"
   - "<gray>Position: <white><x> <y> <z>"
   - "<gray>Chunks: <white><size>x<size></white> <dark_gray>(Mitte <cx>, <cz>)"
@@ -229,7 +239,7 @@ gui-state-active: "<green>● aktiv"
 gui-state-inactive: "<red>● deaktiviert"
 
 # Menü eines Chunkloaders
-gui-title-loader: "<dark_gray>Chunkloader <dark_green>#<id>"
+gui-title-loader: "<dark_gray>MRchunks » <dark_green><name>"
 gui-toggle-off-name: "<red>Deaktivieren"
 gui-toggle-off-lore:
   - "<gray>Die Chunks werden nicht mehr"
@@ -238,10 +248,17 @@ gui-toggle-on-name: "<green>Aktivieren"
 gui-toggle-on-lore:
   - "<gray>Hält die <white><size>x<size></white> Chunks"
   - "<gray>wieder geladen."
+gui-rename-name: "<aqua>Umbenennen"
+gui-rename-lore:
+  - "<gray>Gib dem Chunkloader einen eigenen Namen."
+  - "<gray>Er erscheint auch auf der Webkarte."
 gui-border-name: "<aqua>Grenze anzeigen"
 gui-border-lore:
   - "<gray>Zeigt <white><seconds>s</white> lang die Außengrenze"
   - "<gray>der geladenen Chunks."
+gui-border-hide-name: "<aqua>Grenze ausblenden"
+gui-border-hide-lore:
+  - "<gray>Blendet die angezeigte Grenze aus."
 gui-delete-name: "<red>Löschen"
 gui-delete-lore:
   - "<gray>Entfernt den Block und den Chunkloader."

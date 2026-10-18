@@ -15,7 +15,7 @@
 # ==============================================================================
 
 # Nicht ändern - wird für automatische Config-Updates verwendet.
-config-version: 1
+config-version: 2
 
 # Sprache aller Texte: de = Deutsch, en = English. Die Texte stehen in plugins/MRchunks/lang/<sprache>.yml
 # und können dort angepasst werden. Eigene Sprache: Datei kopieren (z.B. fr.yml), übersetzen, language: fr.
@@ -52,6 +52,15 @@ loaders:
   #               Spieler auf zu ticken). Chunks, die schon anders geforceloadet sind, bleiben unangetastet.
   load-method: ticket
 
+  # Was passiert, wenn sich der Bereich eines neuen Chunkloaders mit bestehenden überschneidet?
+  # (Doppelt abgedeckte Chunks werden nur einmal geladen. Wird ein Loader deaktiviert oder gelöscht, bleiben
+  # die Chunks geladen, die ein anderer aktiver Loader abdeckt.)
+  #   allow    = einfach erlauben
+  #   warn     = erlauben, aber Hinweis mit den betroffenen Loadern und die Grenze anzeigen
+  #   deny-own = verbieten, wenn er sich mit eigenen Loadern überschneidet
+  #   deny-all = verbieten, wenn er sich mit irgendeinem Loader überschneidet
+  overlap: warn
+
   # Verschwindet ein Loader-Block doch einmal (z.B. durch WorldEdit):
   #   true  = Block wird automatisch wiederhergestellt
   #   false = Chunkloader wird gelöscht
@@ -76,17 +85,24 @@ item:
 #   3) GRENZANZEIGE
 # ------------------------------------------------------------------------------
 border:
+  # Die Grenze besteht aus leuchtenden Linien (ein "Zaun" an jedem Chunk der Außenkante), die durch Blöcke
+  # hindurch sichtbar sind. Nur der Spieler selbst sieht sie. Sie folgt seiner Höhe und verschwindet nach der
+  # Zeit unten, beim Löschen des Loaders oder über den Button im Menü.
   # Grenze automatisch zeigen, wenn das Menü eines Chunkloaders geöffnet wird.
   show-on-open: true
   # Wie lange die Grenze sichtbar bleibt (in Sekunden).
-  duration-seconds: 30
-  # Partikel (Namen: https://jd.papermc.io/paper/org/bukkit/Particle.html), z.B. HAPPY_VILLAGER, END_ROD, FLAME
-  particle: HAPPY_VILLAGER
-  # Abstand zwischen zwei Partikeln in Blöcken (kleiner = dichter, aber mehr Partikel).
-  spacing: 2
-  # Höhe der "Wand" relativ zur Augenhöhe des Spielers.
-  below: 2
-  above: 6
+  duration-seconds: 60
+  # Farbe des Leuchtens und Block der Linien - für aktive und für deaktivierte Chunkloader.
+  color: "#4CFF7A"
+  block: LIME_CONCRETE
+  inactive-color: "#A0A8A4"
+  inactive-block: LIGHT_GRAY_CONCRETE
+  # Dicke der Linien in Blöcken.
+  thickness: 0.08
+  # Linien von "below" Blöcken unter bis "above" Blöcken über den Füßen des Spielers, alle "line-spacing" Blöcke.
+  below: 1
+  above: 5
+  line-spacing: 3
 
 
 # ------------------------------------------------------------------------------
@@ -164,6 +180,9 @@ discord:
     loader-toggled:
       enabled: true
       color: "#3498DB"
+    loader-renamed:
+      enabled: true
+      color: "#1ABC9C"
     loader-restored:
       enabled: true
       color: "#F1C40F"
@@ -212,3 +231,5 @@ gui:
   # Schnellauswahl für Sperren im Admin-Menü ("permanent" = dauerhaft, genau 3 Einträge).
   ban-durations: ["1d", "7d", "permanent"]
   sounds: true
+  # Wie lang der Name eines Chunkloaders höchstens sein darf (Umbenennen im Menü).
+  max-name-length: 24

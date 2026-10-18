@@ -29,12 +29,13 @@ public final class Texts {
         return format.withZone(ZoneId.systemDefault()).format(Instant.ofEpochMilli(millis));
     }
 
-    /** id, player (owner), world, x, y, z, cx, cz, size, chunks, created, state */
+    /** name, number, player (owner), world, x, y, z, cx, cz, size, chunks, created, state */
     public static TagResolver loader(MRChunks plugin, Loader loader) {
         Settings.LoaderSettings settings = plugin.settings().loaders();
         Messages messages = plugin.messages();
         return TagResolver.resolver(
-                tag("id", loader.id()),
+                tag("name", name(plugin, loader)),
+                tag("number", loader.number()),
                 tag("player", LoaderManager.name(loader.owner())),
                 tag("world", loader.worldName()),
                 tag("x", loader.x()),
@@ -46,6 +47,18 @@ public final class Texts {
                 tag("chunks", settings.chunkCount()),
                 tag("created", date(messages, loader.created())),
                 tag("state", messages.get(loader.active() ? "gui-state-active" : "gui-state-inactive")));
+    }
+
+    /** The name the player gave the loader, or the default name ("Chunkloader 3") in the current language. */
+    public static String name(MRChunks plugin, Loader loader) {
+        return loader.name() != null ? loader.name() : plugin.messages().plain("loader-default-name", "number", loader.number());
+    }
+
+    /** Like {@link #name} but always English, for console logs. */
+    public static String consoleName(MRChunks plugin, Loader loader) {
+        String owner = LoaderManager.name(loader.owner());
+        return (loader.name() != null ? "\"" + loader.name() + "\"" : plugin.messages().console("loader-default-name", "number", loader.number()))
+                + " of " + owner;
     }
 
     /** Plain state word for chat/Discord ("aktiv" / "deaktiviert"). */

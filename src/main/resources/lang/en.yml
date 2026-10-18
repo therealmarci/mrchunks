@@ -10,18 +10,19 @@
 # ==============================================================================
 
 # Do not change - tells the plugin which texts need to be renewed on updates.
-lang-version: 2
+lang-version: 3
 
-# Discord log texts (Discord markdown). Placeholders: {player} {admin} {id} {world} {x} {y} {z}
-# {state} {time} {reason} {count} {type} {limit}. On/off and colour are set in config.yml.
+# Discord log texts (Discord markdown). Placeholders: {name} {number} {player} {admin} {world} {x} {y} {z}
+# {state} {old} {time} {reason} {count} {type} {limit}. On/off and colour are set in config.yml.
 discord:
   test-message: "🔧 Test message from MRchunks - the webhook works!"
-  loader-placed: "🟩 **{player}** placed chunk loader **#{id}** ({world} {x}, {y}, {z})."
-  loader-deleted: "🗑️ **{player}** deleted chunk loader **#{id}** ({world} {x}, {y}, {z})."
-  loader-toggled: "🔁 Chunk loader **#{id}** of **{player}** is now **{state}** (changed by {admin})."
-  loader-restored: "🧱 The block of chunk loader **#{id}** ({world} {x}, {y}, {z}) was missing and has been restored."
-  loader-removed-missing: "❔ Chunk loader **#{id}** of **{player}** was deleted because its block was missing."
-  admin-delete: "🛠️ **{admin}** deleted chunk loader **#{id}** of **{player}**."
+  loader-placed: "🟩 **{player}** placed **{name}** ({world} {x}, {y}, {z})."
+  loader-deleted: "🗑️ **{player}** deleted **{name}** ({world} {x}, {y}, {z})."
+  loader-toggled: "🔁 **{name}** of **{player}** is now **{state}** (changed by {admin})."
+  loader-renamed: "✏️ **{old}** of **{player}** is now called **{name}** (changed by {admin})."
+  loader-restored: "🧱 The block of **{name}** ({player}, {world} {x}, {y}, {z}) was missing and has been restored."
+  loader-removed-missing: "❔ **{name}** of **{player}** was deleted because its block was missing."
+  admin-delete: "🛠️ **{admin}** deleted **{name}** of **{player}**."
   admin-ban: "🔒 **{admin}** banned **{player}** ({time}, reason: {reason}). {count} chunk loaders deleted."
   admin-unban: "🔓 **{admin}** lifted the ban of **{player}**."
   admin-limit: "🛠️ **{admin}** set the {type} of **{player}** to **{limit}**."
@@ -44,9 +45,9 @@ map-dimension-nether: "Nether"
 map-dimension-end: "End"
 # Name of the layer in the map's layer selection.
 map-layer-name: "Chunk Loaders"
-# Texts on the map (HTML allowed). Placeholders: {id} {player} {world} {x} {y} {z} {size} {chunks} {state}
-map-hover-tooltip: "Chunk loader #{id} - {player}"
-map-click-tooltip: "<b>Chunk loader #{id}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br>Area: {size}x{size} chunks<br>Status: {state}"
+# Texts on the map (HTML allowed). Placeholders: {name} {number} {player} {world} {x} {y} {z} {size} {chunks} {state}
+map-hover-tooltip: "{name} - {player}"
+map-click-tooltip: "<b>{name}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br>Area: {size}x{size} chunks<br>Status: {state}"
 # Name of the chunk grid in the map's layer menu.
 map-grid-label: "Chunk Grid"
 
@@ -59,7 +60,10 @@ prefix: "<dark_gray>[<green>MRchunks</green>]</dark_gray> "
 no-permission: "<prefix><red>You don't have permission to do that."
 players-only: "<prefix><red>This command can only be used by players."
 player-not-found: "<prefix><red>Player <white><player></white> was not found."
-loader-not-found: "<prefix><red>Chunk loader <white>#<id></white> does not exist."
+loader-not-found: "<prefix><red><white><player></white> has no chunk loader no. <white><number></white>."
+# Name of a chunk loader as long as the player gives it no name of its own. <number> = 1, 2, 3 ... per player
+loader-default-name: "Chunk Loader <number>"
+world-not-loaded: "<prefix><red>The world of <white><name></white> is not loaded right now."
 invalid-duration: "<prefix><red>Invalid duration <white><input></white>. Examples: 1h, 7d, permanent"
 invalid-number: "<prefix><red><white><input></white> is not a valid number."
 state-active: "active"
@@ -72,12 +76,13 @@ date-format: "yyyy-MM-dd HH:mm"
 
 # --- /chunkloader ------------------------------------------------------------
 usage: |-
-  <prefix><gray>Commands:
+  <prefix><gray>Chunk loader commands:
   <green>/chunkloader give [amount]</green> <dark_gray>- <gray>Get chunk loaders into your inventory
   <green>/chunkloader remove [amount|all]</green> <dark_gray>- <gray>Remove chunk loader items from your inventory
-  <green>/chunkloader list</green> <dark_gray>- <gray>Menu with your chunk loaders
-  <green>/chunkloader info</green> <dark_gray>- <gray>How it works + your chunk loaders
+  <green>/chunkloader list</green> <dark_gray>- <gray>Your chunk loaders (menu)
   <green>/chunkloader map</green> <dark_gray>- <gray>Link to the web map
+  <green>/chunkloader info</green> <dark_gray>- <gray>This help
+  <dark_gray>Right-click a chunk loader to open its menu: rename, show border, on/off, delete.
 give-ok: "<prefix><green>You received <white><count></white> chunk loader(s). <gray>(<used>/<limit> used)"
 give-none-left: "<prefix><red>You have no chunk loaders left <gray>(<placed> placed, <held> in inventory, limit <limit>)."
 give-partial: "<prefix><yellow>There was only room for <white><count></white> chunk loader(s)."
@@ -85,45 +90,50 @@ give-inventory-full: "<prefix><red>Your inventory is full."
 remove-ok: "<prefix><green>Removed <white><count></white> chunk loader item(s) from your inventory."
 remove-none: "<prefix><gray>You have no chunk loader items in your inventory."
 banned: "<prefix><red>You are banned from chunk loaders <dark_gray>(<duration>, reason: <reason>)<red>."
-info: |-
-  <prefix><gray>How chunk loaders work:
-  <dark_gray> » <gray>Get one with <white>/chunkloader give</white> and place it.
-  <dark_gray> » <gray>It keeps <white><size>x<size> chunks</white> around it loaded permanently - even while you are offline.
-  <dark_gray> » <gray>Redstone, hoppers, furnaces, animals and crop growth keep running there.
-  <dark_gray> » <gray>Mob spawning still needs a player nearby (Minecraft rule).
-  <dark_gray> » <gray>Right-click the block to open the menu: show border, on/off, delete.
-  <dark_gray> » <gray>Chunk loaders are indestructible - they can only be removed via the menu.
-  <prefix><gray>Your chunk loaders: <white><placed></white>/<white><limit></white> placed, <white><active></white>/<white><active-limit></white> active <dark_gray>(<held> as items in your inventory)
-info-entry: "<dark_gray>   #<id> <gray><world> <white><x> <y> <z></white> <dark_gray>- <state>"
 map-link: "<prefix><gray>Web map with all chunk loaders: <link>"
 map-link-label: "<aqua><u><url></u></aqua>"
 map-unavailable: "<prefix><gray>There is currently no public web map for this server."
-info-none: "<dark_gray>   (none placed yet)"
 
 # --- Placing / block ---------------------------------------------------------
-placed: "<prefix><green>Chunk loader <white>#<id></white> placed - <white><chunks></white> chunks now stay loaded. <gray>(<placed>/<limit> placed, <active>/<active-limit> active)"
-placed-inactive: "<prefix><yellow>Chunk loader <white>#<id></white> placed, but <white>disabled</white>: you already have <white><active>/<active-limit></white> active chunk loaders. <gray>Turn another one off in the menu to activate this one."
+placed: "<prefix><green><white><name></white> placed - <white><chunks></white> chunks now stay loaded. <gray>(<placed>/<limit> placed, <active>/<active-limit> active)"
+placed-inactive: "<prefix><yellow><white><name></white> placed, but <white>disabled</white>: you already have <white><active>/<active-limit></white> active chunk loaders. <gray>Turn another one off in the menu to activate this one."
+# loaders.overlap: placeholders <loaders> (list of overlap-entry-own/-other), <shared> (chunks covered twice)
+place-overlap-warning: "<prefix><yellow>Note: the area of <white><name></white> overlaps <white><loaders></white> - <white><shared></white> chunks are covered twice. <gray>The border is shown."
+place-overlap-denied-own: "<prefix><red>You can't place a chunk loader here: its area would overlap your <white><name></white>."
+place-overlap-denied: "<prefix><red>You can't place a chunk loader here: its area would overlap <white><name></white> of <white><player></white>."
+overlap-entry-own: "<name>"
+overlap-entry-other: "<name> (<player>)"
 active-limit-reached: "<prefix><red>You already have <white><active>/<active-limit></white> active chunk loaders. <gray>Disable another one first."
 place-limit: "<prefix><red>You have reached your limit of <white><limit></white> chunk loaders."
 place-world-disabled: "<prefix><red>Chunk loaders are not allowed in this world."
 break-denied: "<prefix><red>Chunk loaders are indestructible. <gray>Right-click the block to open the menu and delete it."
-toggled: "<prefix><green>Chunk loader <white>#<id></white> is now <white><state></white>."
-deleted: "<prefix><green>Chunk loader <white>#<id></white> deleted."
-delete-confirm: "<prefix><yellow>Click again to delete <white>#<id></white>."
+toggled: "<prefix><green><white><name></white> is now <white><state></white>."
+deleted: "<prefix><green><white><name></white> deleted."
+delete-confirm: "<prefix><yellow>Click again to delete <white><name></white>."
 not-owner: "<prefix><red>This is not your chunk loader."
-owner-notify-toggled: "<prefix><gray>Your chunk loader <white>#<id></white> was set to <white><state></white> by <white><admin></white>."
-owner-notify-deleted: "<prefix><gray>Your chunk loader <white>#<id></white> was deleted by <white><admin></white>."
-border-shown: "<prefix><gray>Showing the border of <white>#<id></white> for <white><seconds>s</white>."
-teleported: "<prefix><gray>Teleported to chunk loader <white>#<id></white>."
+owner-notify-toggled: "<prefix><gray>Your chunk loader <white><name></white> was set to <white><state></white> by <white><admin></white>."
+owner-notify-deleted: "<prefix><gray>Your chunk loader <white><name></white> was deleted by <white><admin></white>."
+border-shown: "<prefix><gray>Showing the border of <white><name></white> for <white><seconds>s</white>. <dark_gray>(can be hidden in the menu)"
+border-hidden: "<prefix><gray>Border hidden."
+teleported: "<prefix><gray>Teleported to <white><name></white>."
+renamed: "<prefix><green><white><old></white> is now called <white><name></white>."
+rename-reset: "<prefix><green><white><old></white> is called <white><name></white> again."
+owner-notify-renamed: "<prefix><gray>Your chunk loader <white><old></white> was renamed to <white><name></white> by <white><admin></white>."
+# Rename dialog. Placeholders: <name>, <max> (gui.max-name-length)
+rename-title: "Rename <name>"
+rename-hint: "<gray>Enter a name (at most <max> characters). Leave empty for the default name."
+rename-label: "Name"
+rename-save: "<green>Save"
+rename-cancel: "<red>Cancel"
 
 # --- Admin -------------------------------------------------------------------
 admin-usage: |-
   <prefix><gray>Admin commands:
   <green>/mrchunks gui</green> <dark_gray>- <gray>Admin menu with all players and chunk loaders
   <green>/mrchunks list [player]</green> <dark_gray>- <gray>List chunk loaders
-  <green>/mrchunks tp <id></green> <dark_gray>- <gray>Teleport to a chunk loader
-  <green>/mrchunks toggle <id></green> <dark_gray>- <gray>Turn a chunk loader on/off
-  <green>/mrchunks delete <id></green> <dark_gray>- <gray>Delete a chunk loader
+  <green>/mrchunks tp <player> <no></green> <dark_gray>- <gray>Teleport to a chunk loader
+  <green>/mrchunks toggle <player> <no></green> <dark_gray>- <gray>Turn a chunk loader on/off
+  <green>/mrchunks delete <player> <no></green> <dark_gray>- <gray>Delete a chunk loader
   <green>/mrchunks limit <player> <amount|reset></green> <dark_gray>- <gray>How many loaders a player may place
   <green>/mrchunks activelimit <player> <amount|reset></green> <dark_gray>- <gray>How many of them may be active at once
   <green>/mrchunks ban <player> [duration] [reason]</green> <dark_gray>- <gray>Ban (deletes all their loaders)
@@ -135,7 +145,7 @@ admin-usage: |-
   <green>/mrchunks version</green> <dark_gray>- <gray>Version & update status
 reloaded: "<prefix><green>Configuration reloaded."
 list-header: "<prefix><gray>Chunk loaders<filter>: <white><count></white>"
-list-entry: "<dark_gray> #<id> <white><player></white> <gray><world> <x> <y> <z> <dark_gray>- <state>"
+list-entry: "<dark_gray> - <white><player></white> <green><name></green> <dark_gray>(no. <number>) <gray><world> <x> <y> <z> <dark_gray>- <state>"
 list-empty: "<prefix><gray>No chunk loaders found."
 list-filter-player: " of <player>"
 limit-set: "<prefix><green><type> of <white><player></white> is now <white><limit></white>."
@@ -216,9 +226,9 @@ gui-page-lore:
 gui-empty: "<gray>Nothing found"
 
 # A chunk loader (in lists and as info item)
-gui-loader-name: "<green>Chunk loader #<id>"
+gui-loader-name: "<green><name>"
 gui-loader-lore:
-  - "<dark_gray>Owner: <gray><player>"
+  - "<dark_gray>No. <number> · Owner: <gray><player>"
   - "<gray>World: <white><world>"
   - "<gray>Position: <white><x> <y> <z>"
   - "<gray>Chunks: <white><size>x<size></white> <dark_gray>(centre <cx>, <cz>)"
@@ -229,7 +239,7 @@ gui-state-active: "<green>● active"
 gui-state-inactive: "<red>● disabled"
 
 # Menu of a chunk loader
-gui-title-loader: "<dark_gray>Chunk loader <dark_green>#<id>"
+gui-title-loader: "<dark_gray>MRchunks » <dark_green><name>"
 gui-toggle-off-name: "<red>Disable"
 gui-toggle-off-lore:
   - "<gray>The chunks are no longer"
@@ -238,10 +248,17 @@ gui-toggle-on-name: "<green>Enable"
 gui-toggle-on-lore:
   - "<gray>Keeps the <white><size>x<size></white> chunks"
   - "<gray>loaded again."
+gui-rename-name: "<aqua>Rename"
+gui-rename-lore:
+  - "<gray>Give the chunk loader its own name."
+  - "<gray>It also appears on the web map."
 gui-border-name: "<aqua>Show border"
 gui-border-lore:
   - "<gray>Shows the outer border of the loaded"
   - "<gray>chunks for <white><seconds>s</white>."
+gui-border-hide-name: "<aqua>Hide border"
+gui-border-hide-lore:
+  - "<gray>Hides the border that is shown."
 gui-delete-name: "<red>Delete"
 gui-delete-lore:
   - "<gray>Removes the block and the chunk loader."

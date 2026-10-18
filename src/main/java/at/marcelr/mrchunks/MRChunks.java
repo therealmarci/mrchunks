@@ -13,12 +13,21 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public final class MRChunks extends JavaPlugin {
 
     private FileConfiguration config;
     private Settings settings;
-    private final Messages messages = new Messages();
+    /** lang-version 2: version display with MC version; 3: loaders shown by name/number instead of #id. */
+    private final Messages messages = new Messages(3, Map.of(
+            2, Set.of("version", "gui-info-name"),
+            3, Set.of("discord.loader-placed", "discord.loader-deleted", "discord.loader-toggled",
+                    "discord.loader-restored", "discord.loader-removed-missing", "discord.admin-delete",
+                    "map-hover-tooltip", "map-click-tooltip", "loader-not-found", "usage", "placed", "placed-inactive",
+                    "toggled", "deleted", "delete-confirm", "owner-notify-toggled", "owner-notify-deleted",
+                    "border-shown", "teleported", "admin-usage", "list-entry", "gui-loader-name", "gui-loader-lore",
+                    "gui-title-loader")));
     private final DiscordWebhook discord = new DiscordWebhook(this);
     private final AdminActions adminActions = new AdminActions(this);
     private LoaderManager loaders;
@@ -49,6 +58,7 @@ public final class MRChunks extends JavaPlugin {
         maps.start();
 
         getServer().getPluginManager().registerEvents(new LoaderListener(this), this);
+        getServer().getPluginManager().registerEvents(border, this);
         getServer().getPluginManager().registerEvents(menuListener, this);
         register("chunkloader", new ChunkloaderCommand(this));
         register("mrchunks", new MRChunksCommand(this));
@@ -106,18 +116,22 @@ public final class MRChunks extends JavaPlugin {
             validationTask.cancel();
         }
         long interval = settings.loaders().checkIntervalSeconds() * 20L;
-        validationTask = Bukkit.getScheduler().runTaskTimer(this, () -> {
-            for (Map.Entry<Loader, Boolean> entry : loaders.validate().entrySet()) {
-                Loader loader = entry.getKey();
-                if (entry.getValue()) {
-                    getLogger().info("Block of chunk loader #" + loader.id() + " was missing and has been restored.");
-                    discord.log("loader-restored", adminActions.discordTags(loader));
-                } else {
-                    getLogger().info("Chunk loader #" + loader.id() + " was deleted because its block was missing.");
-                    discord.log("loader-removed-missing", adminActions.discordTags(loader));
-                }
+        validationTask = Bukkit.getScheduler().runTaskTimer(this, () -> reportValidation(loaders.validate()),
+                interval, interval);
+    }
+
+    /** Logs and reports the result of {@link LoaderManager#validate}. */
+    public void reportValidation(Map<Loader, Boolean> result) {
+        for (Map.Entry<Loader, Boolean> entry : result.entrySet()) {
+            Loader loader = entry.getKey();
+            if (entry.getValue()) {
+                getLogger().info("Block of chunk loader " + Texts.consoleName(this, loader) + " was missing and has been restored.");
+                discord.log("loader-restored", adminActions.discordTags(loader));
+            } else {
+                getLogger().info("Chunk loader " + Texts.consoleName(this, loader) + " was deleted because its block was missing.");
+                discord.log("loader-removed-missing", adminActions.discordTags(loader));
             }
-        }, interval, interval);
+        }
     }
 
     @Override

@@ -26,9 +26,9 @@ src/main/java/at/marcelr/mrchunks/
 ├─ LoaderManager.java     Loader, Chunk-Tickets, Limits, Sperren, data.yml
 ├─ LoaderItem.java        das markierte Chunkloader-Item
 ├─ LoaderListener.java    Setzen, Unzerstörbarkeit, Rechtsklick, Welt laden
-├─ BorderDisplay.java     Partikel-Grenze
+├─ BorderDisplay.java     Grenze als leuchtende Block-Displays (nur für den Betrachter)
 ├─ AdminActions.java      alle Aktionen (Befehle und Menüs nutzen dieselben)
-├─ Texts.java             gemeinsame Platzhalter (<id>, <world>, <x> …)
+├─ Texts.java             gemeinsame Platzhalter (<name>, <number>, <world>, <x> …)
 ├─ command/               /chunkloader, /mrchunks
 ├─ gui/                   Menu, MenuListener, Items, Pages, LoaderIcons, PlayerIcons,
 │                         LoaderMenu, MyLoadersMenu, AdminMenu, PlayerLoadersMenu
@@ -59,15 +59,22 @@ Loader in einer Welt, die noch nicht geladen ist, bekommen ihre Tickets per `Wor
 ## 4. Schutz (`LoaderListener`)
 | Ereignis | Reaktion |
 |---|---|
-| `BlockPlaceEvent` (HIGH) | Prüfung von Permission, Welt, Sperre und Limit. Bei Erfolg folgt die Registrierung erst bei MONITOR, wenn kein Schutz-Plugin abgebrochen hat |
+| `BlockPlaceEvent` (HIGH) | Prüfung von Permission, Welt, Sperre, Limit und Überschneidung (`loaders.overlap`: deny-own/deny-all). Bei Erfolg folgt die Registrierung erst bei MONITOR, wenn kein Schutz-Plugin abgebrochen hat |
 | `BlockBreakEvent` | abgebrochen, mit Hinweis |
 | `EntityExplodeEvent`, `BlockExplodeEvent` | Loader-Blöcke werden aus der Blockliste entfernt |
 | `BlockPistonExtend/RetractEvent` | abgebrochen, wenn ein Loader bewegt würde |
 | `EntityChangeBlockEvent`, `BlockBurnEvent` | abgebrochen (Wither, Endermen, Feuer bei brennbarem Material) |
 | `PrepareItemCraftEvent` | kein Ergebnis, wenn ein Loader-Item im Raster liegt (verhindert Emeraldblock → 9 Smaragde) |
 | Prüf-Task (`check-interval-seconds`) | `validate()` stellt fehlende Blöcke wieder her oder löscht den Loader |
+| `ChunkLoadEvent` | Loader im geladenen Chunk werden einen Tick später geprüft (`validate(Collection)`), auch deaktivierte, deren Chunks sonst nie geladen sind |
 
 Die Block-Suche läuft über einen Positions-Index (`byPosition`), damit große Explosionen nicht alle Loader durchgehen müssen.
+
+**Überschneidung:** Zwei Bereiche überschneiden sich, wenn die Mittel-Chunks auf beiden Achsen höchstens `2 × radius` auseinander liegen (`LoaderManager#overlapping`). Tickets laufen über den Referenzzähler pro Chunk (`coverage`), deshalb ist Überlappen technisch immer sauber. `loaders.overlap` regelt nur, ob es erlaubt ist: `allow`, `warn` (Hinweis mit `sharedChunks` und Grenze nach dem Setzen), `deny-own`, `deny-all`.
+
+**Namen & Nummern:** `Loader#id` ist intern (Schlüssel in `data.yml`, Marker-Keys). Spieler sehen `Loader#number`, die kleinste freie Nummer des Owners (`nextNumber`), oder den Namen aus dem Umbenennen-Dialog (`gui/RenameDialog`, Paper-Dialog-API mit Textfeld; `AdminActions#rename` entfernt Steuerzeichen und kürzt auf `gui.max-name-length`). Ältere `data.yml` ohne `number` werden beim Laden in Erstellungsreihenfolge durchnummeriert (`assignMissingNumbers`). Admin-Befehle nehmen `<spieler> <nr>`.
+
+**Grenze (`BorderDisplay`):** pro Betrachter eine Sitzung mit `BlockDisplay`-Entities: waagrechte Balken je Chunk der Außenkante auf mehreren Höhen und Pfosten an jeder Chunk-Ecke. Die Entities sind `persistent = false` (werden nie gespeichert) und `visibleByDefault = false` (nur `player.showEntity` macht sie sichtbar), leuchten (`setGlowing`, Farbe aus `border.color`) und sind über ihre Mitte verankert, damit der Client sie lange anzeigt. Alle 10 Ticks folgen sie der Höhe des Spielers (`setTeleportDuration` glättet), fehlende Teile (Chunk entladen) werden neu erzeugt. Ende: Zeit abgelaufen, Button im Menü, Loader gelöscht (`loaderRemoved`), Quit, Weltwechsel, Plugin-Stopp. Beim An/Ausschalten wird sie neu eingefärbt (`loaderChanged`).
 
 ## 5. Item (`LoaderItem`)
 Material, Name, Lore und Glanz kommen aus der Config. Markiert wird das Item im PersistentDataContainer (`mrchunks:chunkloader`). **Zwei Limits** (`LoaderManager.LimitKind` PLACE/ACTIVE), beide aufgelöst nach Admin-Override → höchste Permission `mrchunks.limit.<n>` bzw. `mrchunks.active.<n>` (nur online) → Config-Standard. Neue Loader starten nur aktiv, wenn `canActivate` gilt. `AdminActions#toggle` lehnt Aktivieren über dem Limit ab (außer mit `mrchunks.admin.manage`). `enforceActiveLimit` deaktiviert beim Senken die neuesten aktiven Loader. In `data.yml` stehen die Overrides unter `limits` bzw. `active-limits`.
@@ -77,7 +84,7 @@ Material, Name, Lore und Glanz kommen aus der Config. Markiert wird das Item im 
 ```yaml
 next-id: 3
 loaders:
-  '1': { owner: <uuid>, world: <uuid oder Weltname>, world-name: world, x: 100, y: 80, z: 100, created: <ms>, active: true }
+  '1': { owner: <uuid>, world: <uuid oder Weltname>, world-name: world, x: 100, y: 80, z: 100, created: <ms>, number: 1, name: "Farm", active: true }
 limits:
   <spieler-uuid>: 10
 bans:
@@ -86,7 +93,7 @@ bans:
 `world` darf in einer von Hand bearbeiteten Datei auch ein Weltname sein. Beim nächsten Speichern wird daraus die UUID.
 
 ## 7. Menüs (`gui/*`)
-- **`LoaderMenu`**: Infos, an/aus, Grenze, Teleport (nur mit Permission), Löschen mit zweitem Klick innerhalb von `gui.confirm-seconds`. Wird der Loader inzwischen gelöscht, springt das Menü zurück.
+- **`LoaderMenu`**: Infos, an/aus, umbenennen, Grenze anzeigen/ausblenden, Teleport (nur mit Permission), Löschen mit zweitem Klick innerhalb von `gui.confirm-seconds`. Wird der Loader inzwischen gelöscht, springt das Menü zurück.
 - **`MyLoadersMenu`**: die eigenen Loader.
 - **`AdminMenu`**: Statistik, Info, Filter, Spielerköpfe (auch offline; das Limit offline kennt nur Admin-Limit und Standard, weil Permissions nur bei Online-Spielern abfragbar sind).
 - **`PlayerLoadersMenu`**: Limit (links +1, rechts −1, Shift zurücksetzen), alle löschen, Sperren und die Loader des Spielers.

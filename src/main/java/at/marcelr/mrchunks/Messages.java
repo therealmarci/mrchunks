@@ -38,16 +38,21 @@ public final class Messages {
             "eng", "en", "english", "en", "englisch", "en",
             "deu", "de", "ger", "de", "german", "de", "deutsch", "de");
 
-    /** Version of the bundled language files (lang-version); raise it together with {@link #CHANGED_TEXTS}. */
-    public static final int LANG_VERSION = 2;
-    /**
-     * Texts whose default changed, per lang-version. Older bundled-language files get these texts renewed;
-     * new texts are added anyway. Example: v2 added the Minecraft version to the version display.
-     */
-    private static final Map<Integer, Set<String>> CHANGED_TEXTS = new TreeMap<>(Map.of(
-            2, Set.of("version", "gui-info-name")));
+    /** Version of the bundled language files (lang-version in de.yml/en.yml). */
+    private final int langVersion;
+    /** Texts whose default changed, per lang-version; older bundled-language files get them renewed. */
+    private final Map<Integer, Set<String>> changedTexts;
 
     private final MiniMessage mini = MiniMessage.miniMessage();
+
+    /**
+     * @param langVersion  lang-version of the bundled files; raise it whenever an existing default text changes
+     * @param changedTexts per lang-version the keys whose default changed (new keys are added anyway)
+     */
+    public Messages(int langVersion, Map<Integer, Set<String>> changedTexts) {
+        this.langVersion = langVersion;
+        this.changedTexts = new TreeMap<>(changedTexts);
+    }
     /** Set while texts for the console are built (see {@link #as}). */
     private static final ThreadLocal<Boolean> CONSOLE = ThreadLocal.withInitial(() -> false);
     private volatile YamlConfiguration lang = new YamlConfiguration();
@@ -83,8 +88,8 @@ public final class Messages {
         int added = 0;
         int replaced = 0;
         // Texts whose default changed: renew them in the bundled languages (a custom language keeps its own).
-        if (BUNDLED.contains(code) && fileVersion < LANG_VERSION) {
-            for (Map.Entry<Integer, Set<String>> update : CHANGED_TEXTS.entrySet()) {
+        if (BUNDLED.contains(code) && fileVersion < langVersion) {
+            for (Map.Entry<Integer, Set<String>> update : changedTexts.entrySet()) {
                 if (update.getKey() <= fileVersion) {
                     continue;
                 }
@@ -102,15 +107,15 @@ public final class Messages {
                 added++;
             }
         }
-        if (fileVersion < LANG_VERSION) {
-            loaded.set("lang-version", LANG_VERSION);
+        if (fileVersion < langVersion) {
+            loaded.set("lang-version", langVersion);
         }
-        if (added > 0 || fileVersion < LANG_VERSION) {
+        if (added > 0 || fileVersion < langVersion) {
             try {
                 loaded.options().width(10_000);
                 Files.writeString(file.toPath(), ConfigUpdater.BOM + loaded.saveToString(), StandardCharsets.UTF_8);
                 plugin.getLogger().info("lang/" + code + ".yml: added " + added + " new texts, updated " + replaced
-                        + " changed texts (lang-version " + fileVersion + " -> " + LANG_VERSION + ").");
+                        + " changed texts (lang-version " + fileVersion + " -> " + langVersion + ").");
             } catch (IOException e) {
                 plugin.getLogger().log(Level.WARNING, "Could not update lang/" + code + ".yml: " + e.getMessage());
             }

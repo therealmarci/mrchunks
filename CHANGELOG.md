@@ -8,19 +8,35 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 ### Neu
+- **Namen & Nummern:** Chunkloader heißen nicht mehr nach einer fortlaufenden globalen Nummer, sondern bekommen pro
+  Spieler die kleinste freie Nummer („Chunkloader 9“ - wird Nr. 9 gelöscht, bekommt der nächste wieder die 9).
+  Über **Umbenennen** im Menü (Dialog mit Textfeld) gibt man ihnen eigene Namen, die auch auf der Webkarte und in
+  Discord erscheinen. Neues Discord-Event `loader-renamed`. Bestehende Loader werden automatisch durchnummeriert.
+- **Neue Grenzanzeige:** leuchtende Linien an jedem Chunk der Außenkante, durch Blöcke sichtbar, nur für den
+  Betrachter. Sie folgt der Höhe, lässt sich im Menü ausblenden und verschwindet beim Löschen des Loaders.
+  Neue Optionen unter `border` (Farbe, Block, Dicke, Höhe), `particle` und `spacing` entfallen.
+- **Überschneidungen** wählbar über `loaders.overlap`: `allow`, `warn` (Standard: Hinweis + Grenze), `deny-own`, `deny-all`.
+- Fehlende Loader-Blöcke (z.B. nach `/fill` oder `/setblock`) werden zusätzlich geprüft, sobald ihr Chunk lädt,
+  also auch bei deaktivierten Loadern.
 - **Sprachdateien:** Alle Texte stehen in `plugins/MRchunks/lang/<sprache>.yml`, mitgeliefert werden Deutsch (`de`)
   und Englisch (`en`). In der `config.yml` wird nur noch `language` gesetzt. Dazu gehören auch Item-Name und -Lore,
   die squaremap-Texte (Ebenen, Tooltips, Dimensionsnamen), Discord-Texte, der Sperrgrund und das Datumsformat.
   Fehlende Texte werden bei Updates automatisch ergänzt.
 
 ### Geändert
+- `/chunkloader info` ist jetzt eine reine Befehlshilfe; die eigenen Loader zeigt `/chunkloader list`.
+  Die Permission `mrchunks.info` entfällt.
+- Admin-Befehle `tp`, `toggle` und `delete` nehmen `<spieler> <nr>` statt einer internen ID.
+- Config-Version 2.
 - **Versionsschema mit Minecraft-Version:** `mc26.3-v0.2.0` (Git-Tag, JAR-Name, Modrinth), im Spiel `0.2.0+mc26.3`.
   Mehrere Minecraft-Versionen lassen sich parallel versorgen (Wartungs-Branches `mc/<version>`, siehe
   `docs/RELEASES.md`). Der Update-Checker meldet nur Versionen für dieselbe Minecraft-Version.
 - **Konsole immer auf Englisch:** Log-Ausgaben und Antworten auf Konsolenbefehle, unabhängig von `language`.
 
 ### Behoben
+- Die Grenze blieb sichtbar, nachdem der Chunkloader gelöscht wurde.
 - Kaputtes „Ã¼“ in der Meldung, wenn ein Loader wegen des Aktiv-Limits deaktiviert gesetzt wird.
+
 
 ## [0.1.0] - 2026-10-18
 ### Neu

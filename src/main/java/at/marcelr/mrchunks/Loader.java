@@ -7,7 +7,10 @@ import org.bukkit.World;
 import java.util.UUID;
 
 /**
- * One placed chunk loader. Position and owner never change; only {@link #active()} does.
+ * One placed chunk loader. Position, owner and number never change; {@link #active()} and {@link #name()} do.
+ * <p>
+ * {@link #id()} is internal (data.yml, map markers). Players see the {@link #number()} - the lowest free number among
+ * the owner's loaders - or the name they gave it.
  * The loaded area is the square of chunks with {@code radius} around {@link #chunkX()}/{@link #chunkZ()}.
  */
 public final class Loader {
@@ -20,9 +23,12 @@ public final class Loader {
     private final int y;
     private final int z;
     private final long created;
+    private final int number;
     private boolean active;
+    private String name;
 
-    public Loader(int id, UUID owner, UUID worldId, String worldName, int x, int y, int z, long created, boolean active) {
+    public Loader(int id, UUID owner, UUID worldId, String worldName, int x, int y, int z, long created,
+                  int number, String name, boolean active) {
         this.id = id;
         this.owner = owner;
         this.worldId = worldId;
@@ -31,6 +37,8 @@ public final class Loader {
         this.y = y;
         this.z = z;
         this.created = created;
+        this.number = number;
+        this.name = name;
         this.active = active;
     }
 
@@ -79,6 +87,20 @@ public final class Loader {
 
     public long created() {
         return created;
+    }
+
+    /** Per-owner number, e.g. 3 for the owner's third loader (re-used after deleting). */
+    public int number() {
+        return number;
+    }
+
+    /** Name given by the player, or null for the default name ("Chunkloader 3"). */
+    public String name() {
+        return name;
+    }
+
+    void setName(String name) {
+        this.name = name;
     }
 
     public boolean active() {

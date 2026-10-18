@@ -17,7 +17,7 @@ import static at.marcelr.mrchunks.Messages.tag;
  * Menu of one loader (right-click on the block, or from a list). Layout (3 rows):
  * <pre>
  *  . . . . [info] . . . .
- *  . [toggle] . [border] . [teleport] . [delete] .
+ *  . [toggle] [rename] . [border] . [teleport] [delete] .
  *  [back] . . . [close] . . . .
  * </pre>
  * Toggle and delete need ownership or mrchunks.admin.manage; deleting needs a second click to confirm.
@@ -30,9 +30,15 @@ public final class LoaderMenu extends Menu {
     private long confirmUntil;
 
     public LoaderMenu(MRChunks plugin, Player viewer, int loaderId, Menu parent) {
-        super(plugin, viewer, 3, plugin.messages().get("gui-title-loader", tag("id", loaderId)));
+        super(plugin, viewer, 3, title(plugin, loaderId));
         this.loaderId = loaderId;
         this.parent = parent;
+    }
+
+    private static net.kyori.adventure.text.Component title(MRChunks plugin, int loaderId) {
+        Loader loader = plugin.loaders().byId(loaderId);
+        return loader == null ? net.kyori.adventure.text.Component.empty()
+                : plugin.messages().get("gui-title-loader", Texts.loader(plugin, loader));
     }
 
     @Override
@@ -65,14 +71,24 @@ public final class LoaderMenu extends Menu {
                     () -> actions.toggle(viewer, loader), tags);
         }
 
-        button(12, Material.ENDER_EYE, "gui-border-name", "gui-border-lore", true, () -> {
-            viewer.closeInventory();
-            plugin.border().show(viewer, loader);
-            messages.send(viewer, "border-shown", tags);
-        }, tags);
+        button(11, Material.NAME_TAG, "gui-rename-name", "gui-rename-lore", manage,
+                () -> RenameDialog.open(plugin, viewer, loader, parent), tags);
+
+        if (plugin.border().isShowing(viewer, loader)) {
+            button(13, Material.SPYGLASS, "gui-border-hide-name", "gui-border-hide-lore", true, () -> {
+                plugin.border().hide(viewer);
+                messages.send(viewer, "border-hidden", tags);
+            }, tags);
+        } else {
+            button(13, Material.ENDER_EYE, "gui-border-name", "gui-border-lore", true, () -> {
+                viewer.closeInventory();
+                plugin.border().show(viewer, loader);
+                messages.send(viewer, "border-shown", tags);
+            }, tags);
+        }
 
         if (viewer.hasPermission(AdminActions.PERM_TELEPORT)) {
-            button(14, Material.ENDER_PEARL, "gui-teleport-name", null, true, () -> {
+            button(15, Material.COMPASS, "gui-teleport-name", null, true, () -> {
                 viewer.closeInventory();
                 actions.teleport(viewer, loader);
             }, tags);

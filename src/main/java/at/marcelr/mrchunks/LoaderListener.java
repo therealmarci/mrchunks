@@ -2,6 +2,7 @@ package at.marcelr.mrchunks;
 
 import at.marcelr.mrchunks.gui.LoaderMenu;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -19,10 +20,12 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static at.marcelr.mrchunks.Messages.tag;
@@ -67,11 +70,54 @@ public final class LoaderListener implements Listener {
                 messages.send(player, "place-limit", tag("limit", Texts.limit(limit)));
                 return;
             }
+            Loader conflict = overlapConflict(player, event.getBlock());
+            if (conflict != null) {
+                event.setCancelled(true);
+                boolean own = conflict.owner().equals(player.getUniqueId());
+                messages.send(player, own ? "place-overlap-denied-own" : "place-overlap-denied", Texts.loader(plugin, conflict));
+                return;
+            }
         }
         if (denial != null) {
             event.setCancelled(true);
             messages.send(player, denial);
         }
+    }
+
+    /** With loaders.overlap deny-own / deny-all: the first loader the new area would overlap, otherwise null. */
+    private Loader overlapConflict(Player player, Block block) {
+        Settings.OverlapMode mode = plugin.settings().loaders().overlap();
+        if (mode != Settings.OverlapMode.DENY_OWN && mode != Settings.OverlapMode.DENY_ALL) {
+            return null;
+        }
+        for (Loader other : loaders().overlapping(block.getWorld(), block.getX() >> 4, block.getZ() >> 4, null)) {
+            if (mode == Settings.OverlapMode.DENY_ALL || other.owner().equals(player.getUniqueId())) {
+                return other;
+            }
+        }
+        return null;
+    }
+
+    /** With loaders.overlap warn: tells the player which loaders the new one overlaps and shows its border. */
+    private void warnOverlap(Player player, Loader loader) {
+        if (plugin.settings().loaders().overlap() != Settings.OverlapMode.WARN) {
+            return;
+        }
+        World world = loader.world();
+        List<Loader> others = world == null ? List.of() : loaders().overlapping(world, loader.chunkX(), loader.chunkZ(), loader);
+        if (others.isEmpty()) {
+            return;
+        }
+        Messages messages = plugin.messages();
+        List<String> names = new ArrayList<>();
+        for (Loader other : others) {
+            names.add(messages.plain(other.owner().equals(player.getUniqueId()) ? "overlap-entry-own" : "overlap-entry-other",
+                    "name", Texts.name(plugin, other), "player", LoaderManager.name(other.owner())));
+        }
+        messages.send(player, "place-overlap-warning", Texts.loader(plugin, loader),
+                tag("loaders", String.join(", ", names)),
+                tag("shared", loaders().sharedChunks(loader.chunkX(), loader.chunkZ(), others)));
+        plugin.border().show(player, loader);
     }
 
     /** Registers the loader once the placement is final (no other plugin cancelled it). */
@@ -90,6 +136,7 @@ public final class LoaderListener implements Listener {
                 tag("active", loaders().activeCount(player.getUniqueId())),
                 tag("active-limit", Texts.limit(loaders().activeLimit(player))));
         plugin.discord().log("loader-placed", plugin.adminActions().discordTags(loader));
+        warnOverlap(player, loader);
     }
 
     /** A loader item is an emerald block - never let it be crafted into emeralds. */
@@ -192,6 +239,19 @@ public final class LoaderListener implements Listener {
     @EventHandler
     public void onWorldLoad(WorldLoadEvent event) {
         loaders().applyWorld(event.getWorld());
+    }
+
+    /**
+     * A chunk with loader blocks was loaded: check them right away (/fill, /setblock or WorldEdit may have removed one
+     * while nobody was there). Active loaders are always loaded and also checked periodically.
+     */
+    @EventHandler
+    public void onChunkLoad(ChunkLoadEvent event) {
+        List<Loader> inChunk = loaders().inChunk(event.getWorld(), event.getChunk().getX(), event.getChunk().getZ());
+        if (!inChunk.isEmpty()) {
+            // Next tick: blocks must not be changed while the chunk is still being loaded.
+            Bukkit.getScheduler().runTask(plugin, () -> plugin.reportValidation(loaders().validate(inChunk)));
+        }
     }
 
     @EventHandler
