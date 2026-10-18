@@ -23,7 +23,6 @@ import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
@@ -34,11 +33,10 @@ import static at.marcelr.mrchunks.Messages.tag;
 public final class MRChunksCommand implements TabExecutor {
 
     private static final String PERM_GUI = "mrchunks.admin.gui";
-    private static final String PERM_LIST = "mrchunks.admin.list";
     private static final String PERM_RELOAD = "mrchunks.admin.reload";
     private static final String PERM_MAP = "mrchunks.admin.map";
     private static final String PERM_DISCORD = "mrchunks.admin.discord";
-    private static final List<String> ADMIN_PERMS = List.of(PERM_GUI, PERM_LIST, PERM_RELOAD, PERM_MAP, PERM_DISCORD,
+    private static final List<String> ADMIN_PERMS = List.of(PERM_GUI, PERM_RELOAD, PERM_MAP, PERM_DISCORD,
             AdminActions.PERM_MANAGE, AdminActions.PERM_TELEPORT, AdminActions.PERM_LIMIT, AdminActions.PERM_BAN);
 
     private final MRChunks plugin;
@@ -75,11 +73,6 @@ public final class MRChunksCommand implements TabExecutor {
                     new AdminMenu(plugin, player).open();
                 }
             }
-            case "list" -> {
-                if (check(sender, PERM_LIST)) {
-                    list(sender, args);
-                }
-            }
             case "tp", "teleport" -> {
                 if (!(sender instanceof Player player)) {
                     messages().send(sender, "players-only");
@@ -89,8 +82,7 @@ public final class MRChunksCommand implements TabExecutor {
             }
             case "toggle" -> withLoader(sender, args, loader -> actions().toggle(sender, loader));
             case "delete", "remove" -> withLoader(sender, args, loader -> actions().delete(sender, loader));
-            case "limit" -> limit(sender, args, LoaderManager.LimitKind.PLACE);
-            case "activelimit", "active" -> limit(sender, args, LoaderManager.LimitKind.ACTIVE);
+            case "limit" -> limit(sender, args);
             case "ban" -> ban(sender, args);
             case "unban" -> withPlayer(sender, args, 1, target -> actions().unban(sender, target));
             case "bans" -> {
@@ -120,41 +112,30 @@ public final class MRChunksCommand implements TabExecutor {
 
     // ------------------------------------------------------------- loaders
 
-    private void list(CommandSender sender, String[] args) {
-        Collection<Loader> loaders = plugin.loaders().all();
-        String filter = "";
-        if (args.length > 1) {
-            OfflinePlayer target = resolvePlayer(sender, args[1]);
-            if (target == null) {
-                return;
-            }
-            loaders = plugin.loaders().byOwner(target.getUniqueId());
-            filter = messages().plain("list-filter-player", "player", AdminActions.name(target));
-        }
-        if (loaders.isEmpty()) {
-            messages().send(sender, "list-empty");
-            return;
-        }
-        messages().send(sender, "list-header", tag("filter", filter), tag("count", loaders.size()));
-        for (Loader loader : loaders) {
-            messages().send(sender, "list-entry", Texts.loader(plugin, loader));
-        }
-    }
-
-    private void limit(CommandSender sender, String[] args, LoaderManager.LimitKind kind) {
+    /** /mrchunks limit <player> <place|active> <amount|reset> - one command for both caps. */
+    private void limit(CommandSender sender, String[] args) {
         if (!check(sender, AdminActions.PERM_LIMIT)) {
             return;
         }
-        if (args.length < 3) {
+        if (args.length < 4) {
+            messages().send(sender, "admin-usage");
+            return;
+        }
+        LoaderManager.LimitKind kind = switch (args[2].toLowerCase(Locale.ROOT)) {
+            case "place", "setzen", "set" -> LoaderManager.LimitKind.PLACE;
+            case "active", "aktiv" -> LoaderManager.LimitKind.ACTIVE;
+            default -> null;
+        };
+        if (kind == null) {
             messages().send(sender, "admin-usage");
             return;
         }
         Integer limit = null;
-        if (!args[2].equalsIgnoreCase("reset")) {
+        if (!args[3].equalsIgnoreCase("reset")) {
             try {
-                limit = Math.max(0, Integer.parseInt(args[2]));
+                limit = Math.max(0, Integer.parseInt(args[3]));
             } catch (NumberFormatException e) {
-                messages().send(sender, "invalid-number", tag("input", args[2]));
+                messages().send(sender, "invalid-number", tag("input", args[3]));
                 return;
             }
         }
@@ -248,13 +229,19 @@ public final class MRChunksCommand implements TabExecutor {
     }
 
     private void version(CommandSender sender) {
+        sendVersion(plugin, sender);
+    }
+
+    /** Version, author, update status and links - also used by /chunkloader version. */
+    public static void sendVersion(MRChunks plugin, CommandSender sender) {
+        Messages messages = plugin.messages();
         UpdateChecker updates = plugin.updateChecker();
-        messages().send(sender, "version",
+        messages.send(sender, "version",
                 tag("version", updates.currentVersion()), tag("mc", updates.minecraftVersion()),
                 tag("author", String.join(", ", plugin.getPluginMeta().getAuthors())));
         Runnable links = () -> {
             sender.sendMessage(Component.empty());
-            messages().send(sender, "version-links",
+            messages.send(sender, "version-links",
                     tag("modrinth", link("Modrinth", updates.modrinthPage())),
                     tag("github", link("GitHub", updates.githubPage())));
         };
@@ -334,10 +321,9 @@ public final class MRChunksCommand implements TabExecutor {
         if (args.length == 1) {
             options.add("version");
             addIf(sender, PERM_GUI, options, "gui");
-            addIf(sender, PERM_LIST, options, "list");
             addIf(sender, AdminActions.PERM_TELEPORT, options, "tp");
             addIf(sender, AdminActions.PERM_MANAGE, options, "toggle", "delete");
-            addIf(sender, AdminActions.PERM_LIMIT, options, "limit", "activelimit");
+            addIf(sender, AdminActions.PERM_LIMIT, options, "limit");
             addIf(sender, AdminActions.PERM_BAN, options, "ban", "unban", "bans");
             addIf(sender, PERM_MAP, options, "map");
             addIf(sender, PERM_DISCORD, options, "discord");
@@ -356,12 +342,14 @@ public final class MRChunksCommand implements TabExecutor {
                         }
                     }
                 }
-                case "list", "limit", "activelimit", "ban" -> {
+                case "limit", "ban" -> {
                     if (args.length == 2) {
                         Bukkit.getOnlinePlayers().forEach(p -> options.add(p.getName()));
                         plugin.loaders().knownPlayers().forEach(u -> options.add(LoaderManager.name(u)));
-                    } else if (args.length == 3 && (sub.equals("limit") || sub.equals("activelimit"))) {
-                        options.addAll(List.of("5", "10", "reset"));
+                    } else if (args.length == 3 && sub.equals("limit")) {
+                        options.addAll(List.of("place", "active"));
+                    } else if (args.length == 4 && sub.equals("limit")) {
+                        options.addAll(List.of("3", "5", "10", "reset"));
                     } else if (args.length == 3 && sub.equals("ban")) {
                         options.addAll(List.of("permanent", "1d", "7d", "30d"));
                     }

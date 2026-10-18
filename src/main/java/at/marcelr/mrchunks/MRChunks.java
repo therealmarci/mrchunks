@@ -19,8 +19,8 @@ public final class MRChunks extends JavaPlugin {
 
     private FileConfiguration config;
     private Settings settings;
-    /** lang-version 2: version display with MC version; 3: loaders by name/number; 4: squaremap.address. */
-    private final Messages messages = new Messages(4, Map.of(
+    /** lang-version 2: version display with MC version; 3: loaders by name/number; 4: squaremap.address; 5: merged admin commands. */
+    private final Messages messages = new Messages(5, Map.of(
             2, Set.of("version", "gui-info-name"),
             3, Set.of("discord.loader-placed", "discord.loader-deleted", "discord.loader-toggled",
                     "discord.loader-restored", "discord.loader-removed-missing", "discord.admin-delete",
@@ -28,7 +28,8 @@ public final class MRChunks extends JavaPlugin {
                     "toggled", "deleted", "delete-confirm", "owner-notify-toggled", "owner-notify-deleted",
                     "border-shown", "teleported", "admin-usage", "list-entry", "gui-loader-name", "gui-loader-lore",
                     "gui-title-loader"),
-            4, Set.of("map-url-unknown")));
+            4, Set.of("map-url-unknown"),
+            5, Set.of("admin-usage", "gui-invite-lore")));
     private final DiscordWebhook discord = new DiscordWebhook(this);
     private final AdminActions adminActions = new AdminActions(this);
     private LoaderManager loaders;

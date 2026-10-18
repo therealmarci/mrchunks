@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Nicht ändern - damit erkennt das Plugin bei Updates, welche Texte erneuert werden müssen.
-lang-version: 4
+lang-version: 5
 
 # Texte der Discord-Logs (Markdown wie in Discord). Platzhalter: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit}. An/aus und Farbe stehen in der config.yml.
@@ -78,14 +78,15 @@ ban-no-reason: "kein Grund angegeben"
 date-format: "dd.MM.yyyy HH:mm"
 
 # --- /chunkloader ------------------------------------------------------------
-usage: |-
-  <prefix><gray>Chunkloader-Befehle:
-  <green>/chunkloader give [anzahl]</green> <dark_gray>- <gray>Chunkloader ins Inventar holen
-  <green>/chunkloader remove [anzahl|all]</green> <dark_gray>- <gray>Chunkloader-Items aus dem Inventar entfernen
-  <green>/chunkloader list</green> <dark_gray>- <gray>Deine Chunkloader (Menü)
-  <green>/chunkloader map</green> <dark_gray>- <gray>Link zur Webkarte
-  <green>/chunkloader info</green> <dark_gray>- <gray>Diese Hilfe
-  <dark_gray>Rechtsklick auf einen Chunkloader öffnet sein Menü: umbenennen, Grenze anzeigen, an/aus, löschen.
+# Befehlshilfe (/chunkloader): jede Zeile erscheint nur, wenn der Spieler den Befehl nutzen darf.
+help-header: "<prefix><gray>Chunkloader-Befehle:"
+help-give: "<green>/chunkloader give [anzahl]</green> <dark_gray>- <gray>Chunkloader ins Inventar holen"
+help-remove: "<green>/chunkloader remove [anzahl|all]</green> <dark_gray>- <gray>Chunkloader-Items aus dem Inventar entfernen"
+help-list: "<green>/chunkloader list</green> <dark_gray>- <gray>Deine und mit dir geteilte Chunkloader (Menü)"
+help-map: "<green>/chunkloader map</green> <dark_gray>- <gray>Link zur Webkarte"
+help-info: "<green>/chunkloader info</green> <dark_gray>- <gray>Diese Hilfe"
+help-version: "<green>/chunkloader version</green> <dark_gray>- <gray>Version des Plugins"
+help-menu-hint: "<dark_gray>Rechtsklick auf einen Chunkloader öffnet sein Menü: an/aus, Mitglieder, Grenze, umbenennen, löschen."
 give-ok: "<prefix><green>Du hast <white><count></white> Chunkloader bekommen. <gray>(<used>/<limit> belegt)"
 give-none-left: "<prefix><red>Du hast kein Chunkloader-Kontingent mehr frei <gray>(<placed> gesetzt, <held> im Inventar, Limit <limit>)."
 give-partial: "<prefix><yellow>Es war nur noch Platz für <white><count></white> Chunkloader."
@@ -152,12 +153,10 @@ invite-cancel: "<red>Abbrechen"
 admin-usage: |-
   <prefix><gray>Admin-Befehle:
   <green>/mrchunks gui</green> <dark_gray>- <gray>Admin-Menü mit allen Spielern und Chunkloadern
-  <green>/mrchunks list [spieler]</green> <dark_gray>- <gray>Chunkloader auflisten
   <green>/mrchunks tp <spieler> <nr></green> <dark_gray>- <gray>Zu einem Chunkloader teleportieren
   <green>/mrchunks toggle <spieler> <nr></green> <dark_gray>- <gray>Chunkloader an/aus
   <green>/mrchunks delete <spieler> <nr></green> <dark_gray>- <gray>Chunkloader löschen
-  <green>/mrchunks limit <spieler> <anzahl|reset></green> <dark_gray>- <gray>Wie viele Loader ein Spieler setzen darf
-  <green>/mrchunks activelimit <spieler> <anzahl|reset></green> <dark_gray>- <gray>Wie viele davon gleichzeitig aktiv sein dürfen
+  <green>/mrchunks limit <spieler> <place|active> <anzahl|reset></green> <dark_gray>- <gray>Setzbare bzw. gleichzeitig aktive Loader
   <green>/mrchunks ban <spieler> [dauer] [grund]</green> <dark_gray>- <gray>Sperren (löscht alle seine Loader)
   <green>/mrchunks unban <spieler></green> <dark_gray>- <gray>Sperre aufheben
   <green>/mrchunks bans</green> <dark_gray>- <gray>Alle Sperren
@@ -166,10 +165,6 @@ admin-usage: |-
   <green>/mrchunks reload</green> <dark_gray>- <gray>Konfiguration neu laden
   <green>/mrchunks version</green> <dark_gray>- <gray>Version & Update-Status
 reloaded: "<prefix><green>Konfiguration neu geladen."
-list-header: "<prefix><gray>Chunkloader<filter>: <white><count></white>"
-list-entry: "<dark_gray> - <white><player></white> <green><name></green> <dark_gray>(Nr. <number>) <gray><world> <x> <y> <z> <dark_gray>- <state>"
-list-empty: "<prefix><gray>Keine Chunkloader gefunden."
-list-filter-player: " von <player>"
 limit-set: "<prefix><green><type> von <white><player></white> ist jetzt <white><limit></white>."
 limit-reset: "<prefix><green><type> von <white><player></white> zurückgesetzt <gray>(gilt jetzt: <limit>)."
 limit-notify: "<prefix><green>Dein <type> ist jetzt <white><limit></white>."
@@ -310,8 +305,20 @@ gui-members-empty: "<gray>Noch niemand eingeladen"
 gui-shared-empty: "<gray>Niemand hat dich eingeladen"
 gui-invite-name: "<green>Spieler einladen <gray>(<count>/<max>)"
 gui-invite-lore:
-  - "<gray>Öffnet einen Dialog für"
-  - "<gray>Spielername und Dauer."
+  - "<gray>Online-Spieler per Klick einladen"
+  - "<gray>oder einen Namen eingeben."
+gui-title-invite: "<dark_gray>Spieler einladen"
+gui-invite-pick-lore:
+  - "<gray>Dauer: <white><duration>"
+  - ""
+  - "<green>» Klicken zum Einladen"
+gui-invite-nobody: "<gray>Kein passender Spieler online"
+gui-invite-duration-name: "<yellow>Dauer: <white><duration>"
+gui-invite-duration-lore:
+  - "<gray>Klicken zum Wechseln"
+gui-invite-by-name: "<aqua>Namen eingeben"
+gui-invite-by-name-lore:
+  - "<gray>Für Spieler, die gerade offline sind."
 gui-delete-name: "<red>Löschen"
 gui-delete-lore:
   - "<gray>Entfernt den Block und den Chunkloader."

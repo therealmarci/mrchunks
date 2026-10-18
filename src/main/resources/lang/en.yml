@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Do not change - tells the plugin which texts need to be renewed on updates.
-lang-version: 4
+lang-version: 5
 
 # Discord log texts (Discord markdown). Placeholders: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit}. On/off and colour are set in config.yml.
@@ -78,14 +78,15 @@ ban-no-reason: "no reason given"
 date-format: "yyyy-MM-dd HH:mm"
 
 # --- /chunkloader ------------------------------------------------------------
-usage: |-
-  <prefix><gray>Chunk loader commands:
-  <green>/chunkloader give [amount]</green> <dark_gray>- <gray>Get chunk loaders into your inventory
-  <green>/chunkloader remove [amount|all]</green> <dark_gray>- <gray>Remove chunk loader items from your inventory
-  <green>/chunkloader list</green> <dark_gray>- <gray>Your chunk loaders (menu)
-  <green>/chunkloader map</green> <dark_gray>- <gray>Link to the web map
-  <green>/chunkloader info</green> <dark_gray>- <gray>This help
-  <dark_gray>Right-click a chunk loader to open its menu: rename, show border, on/off, delete.
+# Command help (/chunkloader): every line only appears if the player may use the command.
+help-header: "<prefix><gray>Chunk loader commands:"
+help-give: "<green>/chunkloader give [amount]</green> <dark_gray>- <gray>Get chunk loaders into your inventory"
+help-remove: "<green>/chunkloader remove [amount|all]</green> <dark_gray>- <gray>Remove chunk loader items from your inventory"
+help-list: "<green>/chunkloader list</green> <dark_gray>- <gray>Your chunk loaders and those shared with you (menu)"
+help-map: "<green>/chunkloader map</green> <dark_gray>- <gray>Link to the web map"
+help-info: "<green>/chunkloader info</green> <dark_gray>- <gray>This help"
+help-version: "<green>/chunkloader version</green> <dark_gray>- <gray>Plugin version"
+help-menu-hint: "<dark_gray>Right-click a chunk loader to open its menu: on/off, members, border, rename, delete."
 give-ok: "<prefix><green>You received <white><count></white> chunk loader(s). <gray>(<used>/<limit> used)"
 give-none-left: "<prefix><red>You have no chunk loaders left <gray>(<placed> placed, <held> in inventory, limit <limit>)."
 give-partial: "<prefix><yellow>There was only room for <white><count></white> chunk loader(s)."
@@ -152,12 +153,10 @@ invite-cancel: "<red>Cancel"
 admin-usage: |-
   <prefix><gray>Admin commands:
   <green>/mrchunks gui</green> <dark_gray>- <gray>Admin menu with all players and chunk loaders
-  <green>/mrchunks list [player]</green> <dark_gray>- <gray>List chunk loaders
   <green>/mrchunks tp <player> <no></green> <dark_gray>- <gray>Teleport to a chunk loader
   <green>/mrchunks toggle <player> <no></green> <dark_gray>- <gray>Turn a chunk loader on/off
   <green>/mrchunks delete <player> <no></green> <dark_gray>- <gray>Delete a chunk loader
-  <green>/mrchunks limit <player> <amount|reset></green> <dark_gray>- <gray>How many loaders a player may place
-  <green>/mrchunks activelimit <player> <amount|reset></green> <dark_gray>- <gray>How many of them may be active at once
+  <green>/mrchunks limit <player> <place|active> <amount|reset></green> <dark_gray>- <gray>Placeable / simultaneously active loaders
   <green>/mrchunks ban <player> [duration] [reason]</green> <dark_gray>- <gray>Ban (deletes all their loaders)
   <green>/mrchunks unban <player></green> <dark_gray>- <gray>Lift a ban
   <green>/mrchunks bans</green> <dark_gray>- <gray>All bans
@@ -166,10 +165,6 @@ admin-usage: |-
   <green>/mrchunks reload</green> <dark_gray>- <gray>Reload the configuration
   <green>/mrchunks version</green> <dark_gray>- <gray>Version & update status
 reloaded: "<prefix><green>Configuration reloaded."
-list-header: "<prefix><gray>Chunk loaders<filter>: <white><count></white>"
-list-entry: "<dark_gray> - <white><player></white> <green><name></green> <dark_gray>(no. <number>) <gray><world> <x> <y> <z> <dark_gray>- <state>"
-list-empty: "<prefix><gray>No chunk loaders found."
-list-filter-player: " of <player>"
 limit-set: "<prefix><green><type> of <white><player></white> is now <white><limit></white>."
 limit-reset: "<prefix><green><type> of <white><player></white> reset <gray>(now applies: <limit>)."
 limit-notify: "<prefix><green>Your <type> is now <white><limit></white>."
@@ -310,8 +305,20 @@ gui-members-empty: "<gray>Nobody invited yet"
 gui-shared-empty: "<gray>Nobody invited you"
 gui-invite-name: "<green>Invite a player <gray>(<count>/<max>)"
 gui-invite-lore:
-  - "<gray>Opens a dialog for"
-  - "<gray>player name and duration."
+  - "<gray>Invite online players with a click"
+  - "<gray>or enter a name."
+gui-title-invite: "<dark_gray>Invite a player"
+gui-invite-pick-lore:
+  - "<gray>Duration: <white><duration>"
+  - ""
+  - "<green>» Click to invite"
+gui-invite-nobody: "<gray>No matching player online"
+gui-invite-duration-name: "<yellow>Duration: <white><duration>"
+gui-invite-duration-lore:
+  - "<gray>Click to change"
+gui-invite-by-name: "<aqua>Enter a name"
+gui-invite-by-name-lore:
+  - "<gray>For players who are offline right now."
 gui-delete-name: "<red>Delete"
 gui-delete-lore:
   - "<gray>Removes the block and the chunk loader."

@@ -20,7 +20,7 @@ import static at.marcelr.mrchunks.Messages.tag;
 
 /**
  * Invited players of one loader ({@code loaderId != null}) or of all loaders of {@code owner}. A click on a head
- * removes the invite; "invite" opens {@link InviteDialog}. For one loader, players invited for all loaders are
+ * removes the invite; "invite" opens {@link InvitePickerMenu}. For one loader, players invited for all loaders are
  * shown as well (greyed out, managed in "my chunk loaders").
  */
 public final class MembersMenu extends Menu {
@@ -104,7 +104,7 @@ public final class MembersMenu extends Menu {
                     .lore(messages.lore("gui-invite-lore", tag("count", direct.size()), tag("max", max)))
                     .build(), click -> {
                 clickSound();
-                InviteDialog.open(plugin, viewer, owner, loader, this);
+                new InvitePickerMenu(plugin, viewer, owner, loaderId, this).open();
             });
         }
         if (parent != null) {

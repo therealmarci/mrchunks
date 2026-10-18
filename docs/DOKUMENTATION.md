@@ -93,7 +93,7 @@ bans:
 `world` darf in einer von Hand bearbeiteten Datei auch ein Weltname sein. Beim nächsten Speichern wird daraus die UUID.
 
 ## 7. Menüs (`gui/*`)
-- **`LoaderMenu`**: Infos, an/aus, umbenennen, Grenze anzeigen/ausblenden, Teleport (nur mit Permission), Löschen mit zweitem Klick innerhalb von `gui.confirm-seconds`. Wird der Loader inzwischen gelöscht, springt das Menü zurück.
+- **`LoaderMenu`**: Reihe 2 = An/Aus, Mitglieder, Grenze anzeigen/ausblenden, Umbenennen, Löschen; Teleport nur mit `mrchunks.admin.teleport` unten rechts (Schließen rückt dann nach links). Löschen mit zweitem Klick innerhalb von `gui.confirm-seconds`. Wird der Loader inzwischen gelöscht, springt das Menü zurück.
 - **`MyLoadersMenu`**: die eigenen Loader.
 - **`AdminMenu`**: Statistik, Info, Filter, Spielerköpfe (auch offline; das Limit offline kennt nur Admin-Limit und Standard, weil Permissions nur bei Online-Spielern abfragbar sind).
 - **`PlayerLoadersMenu`**: Limit (links +1, rechts −1, Shift zurücksetzen), alle löschen, Sperren und die Loader des Spielers.
@@ -146,5 +146,5 @@ Der Release-Ablauf entspricht MRsleep, siehe **[RELEASES.md](RELEASES.md)**: Ver
 ## Einladungen & Ausschluss
 - **Daten:** `LoaderManager` hält `loaderMembers` (Loader-ID → Spieler → gültig bis) und `ownerMembers` (Owner → Spieler → gültig bis; gilt für alle Loader des Owners, auch künftige). `Long.MAX_VALUE` = dauerhaft. In `data.yml` unter `members.loaders.<id>.<uuid>` bzw. `members.owners.<owner>.<uuid>`. Abgelaufene Einträge fallen beim Lesen (`members`) und beim Speichern weg, die eines gelöschten Loaders mit dem Loader.
 - **Rechte (`AdminActions`):** `canToggle` = `canManage` (Owner\/Admin) oder `isMember`. Umbenennen, Löschen und `canManageInvites` bleiben Owner (`mrchunks.invite`) und Admins (`mrchunks.admin.manage`) vorbehalten. Beim Aktivieren durch Eingeladene gilt das Aktiv-Limit des Owners, der Owner wird benachrichtigt. Eingeladene dürfen das Menü öffnen (`canView`).
-- **Menüs:** `MembersMenu` (Liste, Klick = entfernen, bei einem Loader werden die Einladungen für alle Loader grau mit angezeigt), `InviteDialog` (Paper-Dialog mit Namensfeld und Dauer-Auswahl aus `invites.durations`), `SharedLoadersMenu` („Mit mir geteilt“). Einstieg: Button **Mitglieder** im `LoaderMenu`, **Mitglieder für alle Loader** und **Mit mir geteilt** in `MyLoadersMenu`.
+- **Menüs:** `InvitePickerMenu` (Köpfe der Online-Spieler, Dauer per Uhr wählbar, „Namen eingeben“ öffnet `InviteDialog`), `MembersMenu` (Liste, Klick = entfernen, bei einem Loader werden die Einladungen für alle Loader grau mit angezeigt), `InviteDialog` (Paper-Dialog mit Namensfeld und Dauer-Auswahl aus `invites.durations`), `SharedLoadersMenu` („Mit mir geteilt“). Einstieg: Button **Mitglieder** im `LoaderMenu`, **Mitglieder für alle Loader** und **Mit mir geteilt** in `MyLoadersMenu`.
 - **`mrchunks.exempt` (streng):** blockiert `give`, Setzen, Einladen des Spielers und seine Rechte als Eingeladener. `enforceExempt` löscht beim Join und bei `/mrchunks reload` seine Loader und Items. Permissions sind nur online bekannt, Offline-Spieler werden beim nächsten Join bereinigt.
