@@ -10,25 +10,33 @@ description: Chunkloader-Blöcke mit Limits, Menüs, Admin-GUI, squaremap-Anbind
 commands:
   chunkloader:
     description: Chunkloader holen, entfernen, auflisten und Infos anzeigen.
-    usage: /chunkloader <give|remove|list|info|map>
+    usage: /chunkloader <give|remove|list|map|info|version>
     aliases: [cl, chunkloaders]
   mrchunks:
     description: Verwaltung von MRchunks.
-    usage: /mrchunks <gui|list|tp|toggle|delete|limit|activelimit|ban|unban|bans|map|discord|reload|version>
+    usage: /mrchunks <gui|tp|toggle|delete|limit|ban|unban|bans|map|discord|reload|version>
 
 permissions:
+  mrchunks.player:
+    description: Alle Spieler-Rechte auf einmal (use, map, view, invite) - z.B. für die Default-Gruppe in LuckPerms.
+    default: op
+    children:
+      mrchunks.use: true
+      mrchunks.map: true
+      mrchunks.view: true
+      mrchunks.invite: true
   mrchunks.use:
     description: Chunkloader holen (/chunkloader give|remove|list), setzen und die eigenen verwalten.
-    default: true
+    default: op
   mrchunks.map:
     description: /chunkloader map - Link zur Webkarte.
-    default: true
+    default: op
   mrchunks.view:
     description: Das Menü fremder Chunkloader öffnen (nur ansehen und Grenze anzeigen).
-    default: true
+    default: op
   mrchunks.invite:
     description: Andere Spieler einladen, die eigenen Chunkloader an- und auszuschalten.
-    default: true
+    default: op
   mrchunks.exempt:
     description: Schließt vom Chunkloading komplett aus (z.B. Zweit-Accounts) - keine Loader, keine Einladungen. Vorhandene Loader werden gelöscht. Achtung, "*" in LuckPerms enthält das auch!
     default: false
@@ -43,7 +51,6 @@ permissions:
     default: op
     children:
       mrchunks.admin.gui: true
-      mrchunks.admin.list: true
       mrchunks.admin.manage: true
       mrchunks.admin.teleport: true
       mrchunks.admin.limit: true
@@ -55,9 +62,6 @@ permissions:
   mrchunks.admin.gui:
     description: /mrchunks gui - Admin-Menü öffnen (Aktionen darin brauchen ihre eigene Permission).
     default: op
-  mrchunks.admin.list:
-    description: /mrchunks list
-    default: op
   mrchunks.admin.manage:
     description: Fremde Chunkloader aktivieren/deaktivieren und löschen.
     default: op
@@ -65,7 +69,7 @@ permissions:
     description: Zu Chunkloadern teleportieren.
     default: op
   mrchunks.admin.limit:
-    description: Individuelle Limits vergeben (/mrchunks limit und /mrchunks activelimit).
+    description: Individuelle Limits vergeben (/mrchunks limit <spieler> <place|active> <anzahl>).
     default: op
   mrchunks.admin.ban:
     description: Spieler für Chunkloader sperren und entsperren.

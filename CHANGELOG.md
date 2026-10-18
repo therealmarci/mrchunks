@@ -9,6 +9,24 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+## [0.2.0] - 2026-10-18
+Zweite Testversion für Minecraft **26.3** (`mc26.3-v0.2.0`) mit den Rückmeldungen aus dem Alpha-Test.
+
+### Neu
+- **Einladen per Klick:** „Spieler einladen“ zeigt die Köpfe der Online-Spieler, die Dauer wird per Uhr gewählt.
+  Offline-Spieler weiterhin über „Namen eingeben“ (#7).
+- `/chunkloader version` für alle Spieler, auch ohne Rechte (#8).
+- Sammel-Permission `mrchunks.player` (use, map, view, invite), z.B. für die Default-Gruppe.
+
+### Geändert
+- **Spieler-Rechte nur noch nach Zuweisung:** `mrchunks.use`, `map`, `view` und `invite` haben standardmäßig nur
+  noch OPs. Ohne Rechte funktioniert nur `/chunkloader version`; die Befehlshilfe zeigt nur erlaubte Befehle (#6).
+  ⚠️ Nach dem Update in LuckPerms z.B. `/lp group default permission set mrchunks.player true` setzen.
+- **Admin-Befehle zusammengefasst:** `/mrchunks limit <spieler> <place|active> <anzahl|reset>` ersetzt `limit` und
+  `activelimit`; `/mrchunks list` entfällt (das Admin-Menü zeigt alles), ebenso die Permission `mrchunks.admin.list` (#9).
+- **Neue Anordnung im Chunkloader-Menü:** An/Aus, Mitglieder, Grenze, Umbenennen, Löschen; Teleport nur für Admins
+  unten rechts (#10).
+
 ## [0.1.0] - 2026-10-18
 **Erste Testversion (Alpha)** für Minecraft **26.3** (`mc26.3-v0.1.0`).
 

@@ -17,8 +17,8 @@ import static at.marcelr.mrchunks.Messages.tag;
  * Menu of one loader (right-click on the block, or from a list). Layout (3 rows):
  * <pre>
  *  . . . . [info] . . . .
- *  . [toggle] [rename] [members] [border] . [teleport] [delete] .
- *  [back] . . . [close] . . . .
+ *  . [toggle] [members] . [border] . [rename] [delete] .
+ *  [back] . . . [close] . . . .          (with mrchunks.admin.teleport: [back] . . [close] . [teleport] . . .)
  * </pre>
  * Toggle needs ownership, an invite or mrchunks.admin.manage; rename, invites and delete only ownership or the admin
  * permission. Deleting needs a second click to confirm.
@@ -73,12 +73,12 @@ public final class LoaderMenu extends Menu {
                     () -> actions.toggle(viewer, loader), tags);
         }
 
-        button(11, Material.NAME_TAG, "gui-rename-name", "gui-rename-lore", manage,
+        button(15, Material.NAME_TAG, "gui-rename-name", "gui-rename-lore", manage,
                 () -> RenameDialog.open(plugin, viewer, loader, parent), tags);
 
         if (plugin.settings().invites().enabled() && AdminActions.canManageInvites(viewer, loader.owner())) {
             int count = plugin.loaders().members(loader.owner(), loader).size();
-            button(12, Material.PLAYER_HEAD, "gui-members-name", "gui-members-lore", true,
+            button(11, Material.PLAYER_HEAD, "gui-members-name", "gui-members-lore", true,
                     () -> new MembersMenu(plugin, viewer, loader.owner(), loader.id(), this).open(),
                     TagResolver.resolver(tags, tag("count", count)));
         }
@@ -93,13 +93,6 @@ public final class LoaderMenu extends Menu {
                 viewer.closeInventory();
                 plugin.border().show(viewer, loader);
                 messages.send(viewer, "border-shown", tags);
-            }, tags);
-        }
-
-        if (viewer.hasPermission(AdminActions.PERM_TELEPORT)) {
-            button(15, Material.COMPASS, "gui-teleport-name", null, true, () -> {
-                viewer.closeInventory();
-                actions.teleport(viewer, loader);
             }, tags);
         }
 
@@ -127,7 +120,16 @@ public final class LoaderMenu extends Menu {
                 parent.open();
             });
         }
-        set(22, Items.of(Material.BARRIER).name(messages.item("gui-close")).build(), click -> viewer.closeInventory());
+        // Admins with teleport: close moves one to the left, the middle stays glass, teleport on the right.
+        boolean teleport = viewer.hasPermission(AdminActions.PERM_TELEPORT);
+        set(teleport ? 21 : 22, Items.of(Material.BARRIER).name(messages.item("gui-close")).build(),
+                click -> viewer.closeInventory());
+        if (teleport) {
+            button(23, Material.COMPASS, "gui-teleport-name", null, true, () -> {
+                viewer.closeInventory();
+                actions.teleport(viewer, loader);
+            }, tags);
+        }
 
         for (int row = 0; row < 3; row++) {
             fillRow(row);

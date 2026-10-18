@@ -18,7 +18,7 @@ Chunkloader-Plugin für **Paper 26.3** (Java 25).
 ---
 
 ## Installation
-1. Die JAR für deine Minecraft-Version in den Ordner `plugins/` legen, z.B. `MRchunks-mc26.3-v0.1.0.jar` für Minecraft 26.3, und den Server starten.
+1. Die JAR für deine Minecraft-Version in den Ordner `plugins/` legen, z.B. `MRchunks-mc26.3-v0.2.0.jar` für Minecraft 26.3, und den Server starten.
 2. `plugins/MRchunks/config.yml` anpassen und `/mrchunks reload` ausführen.
 
 Bei Updates wird die Config automatisch migriert: Deine Werte bleiben erhalten, und eine Sicherung `config.v<N>.backup.yml` wird angelegt.
@@ -50,7 +50,7 @@ Texte auf der Webkarte (Ebenen-Namen, Tooltips, Dimensionsnamen), Discord-Logs u
 Owner können andere Spieler einladen, ihre Chunkloader **an- und auszuschalten**, z.B. Farm-Partner, damit die Farm auch läuft, wenn der Owner offline ist.
 - **Ein Loader:** Menü des Loaders → **Mitglieder** → **Spieler einladen**.
 - **Alle Loader** (auch künftige): `/chunkloader list` → **Mitglieder für alle Loader**.
-- Im Dialog Spielername und Dauer wählen (`invites.durations`, Standard 1d / 7d / 30d / dauerhaft). Ein Klick auf einen Kopf in der Mitgliederliste nimmt die Einladung zurück, befristete laufen von selbst ab.
+- **Spieler einladen** zeigt die Köpfe der Online-Spieler: Dauer mit der Uhr wählen (`invites.durations`, Standard 1d / 7d / 30d / dauerhaft), dann auf einen Kopf klicken. Für Offline-Spieler gibt es **Namen eingeben** (Dialog). Ein Klick auf einen Kopf in der Mitgliederliste nimmt die Einladung zurück, befristete laufen von selbst ab.
 - **Eingeladene** finden die Loader unter `/chunkloader list` → **Mit mir geteilt** und dürfen sie **nur an- und ausschalten**. Umbenennen, Löschen und Einladen bleibt dem Owner (und Admins).
 - Einladungen zählen bei **niemandem** zum Limit. Schaltet ein Eingeladener einen Loader an, gilt das **Aktiv-Limit des Owners**, und der Owner bekommt eine Nachricht.
 - Höchstens `invites.max-members` Eingeladene pro Liste. Abschalten: `invites.enabled: false`. Permission zum Einladen: `mrchunks.invite` (alle).
@@ -88,19 +88,18 @@ Nur Items aus `/chunkloader give` sind Chunkloader. Normale Emeraldblöcke bleib
 | `/chunkloader give [anzahl]` | Chunkloader ins Inventar (bis zum Limit) | `mrchunks.use` |
 | `/chunkloader remove [anzahl\|all]` | Chunkloader-Items aus dem Inventar entfernen | `mrchunks.use` |
 | `/chunkloader list` | Menü mit deinen Chunkloadern | `mrchunks.use` |
-| `/chunkloader info` | Befehlshilfe (deine Chunkloader zeigt `/chunkloader list`) | alle |
+| `/chunkloader info` | Befehlshilfe, zeigt nur die Befehle, die du nutzen darfst | – |
+| `/chunkloader version` | Version des Plugins | – (alle) |
 | `/chunkloader map` | Link zur Webkarte | `mrchunks.map` |
 
 ### Admin: `/mrchunks`
 | Befehl | Beschreibung | Permission |
 |---|---|---|
 | `/mrchunks gui` | Admin-Menü | `mrchunks.admin.gui` |
-| `/mrchunks list [spieler]` | Chunkloader auflisten | `mrchunks.admin.list` |
 | `/mrchunks tp <spieler> <nr>` | Zu einem Chunkloader teleportieren | `mrchunks.admin.teleport` |
 | `/mrchunks toggle <spieler> <nr>` | Chunkloader an/aus | `mrchunks.admin.manage` |
 | `/mrchunks delete <spieler> <nr>` | Chunkloader löschen | `mrchunks.admin.manage` |
-| `/mrchunks limit <spieler> <anzahl\|reset>` | Wie viele Loader der Spieler setzen darf | `mrchunks.admin.limit` |
-| `/mrchunks activelimit <spieler> <anzahl\|reset>` | Wie viele davon gleichzeitig aktiv sein dürfen | `mrchunks.admin.limit` |
+| `/mrchunks limit <spieler> <place\|active> <anzahl\|reset>` | `place` = wie viele Loader der Spieler setzen darf, `active` = wie viele davon gleichzeitig aktiv sein dürfen | `mrchunks.admin.limit` |
 | `/mrchunks ban <spieler> [dauer\|permanent] [grund]` | Sperren: löscht alle Loader des Spielers und verhindert neue | `mrchunks.admin.ban` |
 | `/mrchunks unban <spieler>` / `bans` | Sperre aufheben / alle Sperren anzeigen | `mrchunks.admin.ban` |
 | `/mrchunks map [setup]` | Status der Webkarte / squaremap neu einrichten | `mrchunks.admin.map` |
@@ -113,32 +112,33 @@ Owner können ihre eigenen Loader auch mit `toggle` und `delete` steuern.
 ---
 
 ## Permissions
-Alle Permissions mit ihrem Standard. „alle“ = jeder Spieler hat sie ohne Zutun, „OP“ = nur Operatoren, „niemand“ = muss vergeben werden.
+Alle Permissions mit ihrem Standard. „OP“ = nur Operatoren haben sie automatisch, „niemand“ = muss vergeben werden.
+**Spieler haben ohne Zuweisung keine Rechte**, nur `/chunkloader version` funktioniert. Am einfachsten bekommt die Default-Gruppe in LuckPerms `mrchunks.player` (enthält use, map, view und invite).
 
 ### Spieler
 | Permission | Standard | Erlaubt |
 |---|---|---|
-| `mrchunks.use` | alle | `/chunkloader give\|remove\|list`, Chunkloader setzen, eigene an/aus schalten, umbenennen, löschen |
-| `mrchunks.map` | alle | `/chunkloader map` (Link zur Webkarte) |
-| `mrchunks.view` | alle | Menü **fremder** Chunkloader öffnen: nur ansehen und Grenze anzeigen |
-| `mrchunks.invite` | alle | Andere Spieler zu den eigenen Loadern einladen (Eingeladene dürfen nur an/aus schalten) |
+| `mrchunks.player` | OP | **Alle Spieler-Rechte** auf einmal: `use`, `map`, `view`, `invite` |
+| `mrchunks.use` | OP | `/chunkloader give\|remove\|list`, Chunkloader setzen, eigene an/aus schalten, umbenennen, löschen |
+| `mrchunks.map` | OP | `/chunkloader map` (Link zur Webkarte) |
+| `mrchunks.view` | OP | Menü **fremder** Chunkloader öffnen: nur ansehen und Grenze anzeigen |
+| `mrchunks.invite` | OP | Andere Spieler zu den eigenen Loadern einladen (Eingeladene dürfen nur an/aus schalten) |
 | `mrchunks.limit.<anzahl>` | – | So viele Loader darf der Spieler **setzen**, z.B. `mrchunks.limit.15` (höchste Zahl zählt, mindestens `loaders.default-limit`) |
 | `mrchunks.active.<anzahl>` | – | So viele dürfen **gleichzeitig aktiv** sein, z.B. `mrchunks.active.3` (mindestens `loaders.default-active-limit`) |
 | `mrchunks.limit.unlimited` | niemand | Beliebig viele Loader setzen |
 | `mrchunks.active.unlimited` | niemand | Beliebig viele gleichzeitig aktiv |
 | `mrchunks.exempt` | niemand | **Ausschluss:** keine Loader, keine Einladungen, vorhandene Loader und Items werden beim Join gelöscht |
 
-`/chunkloader info` (Befehlshilfe) und `/mrchunks version` brauchen keine Permission.
+`/chunkloader info`, `/chunkloader version` und `/mrchunks version` brauchen keine Permission.
 
 ### Admin
 | Permission | Standard | Erlaubt |
 |---|---|---|
 | `mrchunks.admin` | OP | **alle** folgenden `mrchunks.admin.*` auf einmal |
 | `mrchunks.admin.gui` | OP | `/mrchunks gui` öffnen (die Aktionen darin brauchen ihre eigene Permission) |
-| `mrchunks.admin.list` | OP | `/mrchunks list [spieler]` |
 | `mrchunks.admin.manage` | OP | **Fremde** Loader an/aus schalten, umbenennen, löschen, ihre Einladungen verwalten, über das Aktiv-Limit hinaus aktivieren (`toggle`, `delete`, „alle löschen“ im Menü) |
 | `mrchunks.admin.teleport` | OP | `/mrchunks tp` und Teleport-Button im Menü |
-| `mrchunks.admin.limit` | OP | `/mrchunks limit` / `activelimit` und Limit-Buttons im Admin-Menü |
+| `mrchunks.admin.limit` | OP | `/mrchunks limit` und Limit-Buttons im Admin-Menü |
 | `mrchunks.admin.ban` | OP | `/mrchunks ban\|unban\|bans` und Sperr-Buttons |
 | `mrchunks.admin.map` | OP | `/mrchunks map [setup]` |
 | `mrchunks.admin.discord` | OP | `/mrchunks discord [test]` |
@@ -147,14 +147,15 @@ Alle Permissions mit ihrem Standard. „alle“ = jeder Spieler hat sie ohne Zut
 
 ### Beispiel LuckPerms
 ```text
-# Normale Spieler brauchen nichts - use, map, view und invite haben alle.
+# Alle Spieler dürfen Chunkloader nutzen (use, map, view, invite)
+/lp group default permission set mrchunks.player true
+
 # Mehr Loader für VIPs: 15 setzen, davon 3 gleichzeitig aktiv
 /lp group vip permission set mrchunks.limit.15 true
 /lp group vip permission set mrchunks.active.3 true
 
 # Moderatoren: Menü, Liste, Teleport, Sperren - aber keine fremden Loader löschen
 /lp group mod permission set mrchunks.admin.gui true
-/lp group mod permission set mrchunks.admin.list true
 /lp group mod permission set mrchunks.admin.teleport true
 /lp group mod permission set mrchunks.admin.ban true
 
@@ -181,9 +182,9 @@ Jeder Spieler hat **zwei Limits**:
 | Standard (Config) | `loaders.default-limit` | `loaders.default-active-limit` |
 | Per Permission | `mrchunks.limit.<n>` | `mrchunks.active.<n>` |
 | Unbegrenzt | `mrchunks.limit.unlimited` | `mrchunks.active.unlimited` |
-| Per Admin | `/mrchunks limit <spieler> <n\|reset>` | `/mrchunks activelimit <spieler> <n\|reset>` |
+| Per Admin | `/mrchunks limit <spieler> place <n\|reset>` | `/mrchunks limit <spieler> active <n\|reset>` |
 
-**Beispiel:** 15 Loader setzen, davon 3 gleichzeitig nutzen: `/mrchunks limit Steve 15` und `/mrchunks activelimit Steve 3`, oder für eine Gruppe `mrchunks.limit.15` und `mrchunks.active.3`.
+**Beispiel:** 15 Loader setzen, davon 3 gleichzeitig nutzen: `/mrchunks limit Steve place 15` und `/mrchunks limit Steve active 3`, oder für eine Gruppe `mrchunks.limit.15` und `mrchunks.active.3`.
 
 - **Setzen:** Ist noch ein Aktiv-Platz frei, startet der neue Loader aktiv. Sonst wird er gesetzt, bleibt aber **deaktiviert**, mit Hinweis.
 - **Aktivieren** (Menü oder `/mrchunks toggle`): Ist das Aktiv-Limit erreicht, wird abgelehnt, man muss zuerst einen anderen ausschalten. Admins mit `mrchunks.admin.manage` dürfen darüber hinaus aktivieren.

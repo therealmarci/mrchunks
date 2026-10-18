@@ -46,11 +46,16 @@ public final class ChunkloaderCommand implements TabExecutor {
 
     private boolean handle(CommandSender sender, Command command, String label, String[] args) {
         Messages messages = plugin.messages();
+        String sub = args.length == 0 ? "" : args[0].toLowerCase(Locale.ROOT);
+        if (sub.equals("version") || sub.equals("ver")) {
+            // Needs no permission - the only thing a player without chunk loader rights can use.
+            MRChunksCommand.sendVersion(plugin, sender);
+            return true;
+        }
         if (!(sender instanceof Player player)) {
             messages.send(sender, "players-only");
             return true;
         }
-        String sub = args.length == 0 ? "" : args[0].toLowerCase(Locale.ROOT);
         switch (sub) {
             case "give", "get" -> give(player, args);
             case "remove", "take" -> remove(player, args);
@@ -59,15 +64,35 @@ public final class ChunkloaderCommand implements TabExecutor {
                     new MyLoadersMenu(plugin, player).open();
                 }
             }
-            case "info", "help", "hilfe" -> messages.send(player, "usage");
+            case "info", "help", "hilfe" -> help(player);
             case "map", "karte" -> {
                 if (check(player, PERM_MAP)) {
                     sendMapLink(player);
                 }
             }
-            default -> messages.send(player, "usage");
+            default -> help(player);
         }
         return true;
+    }
+
+    /** Command help with only the commands the player may use (without rights only /chunkloader version). */
+    private void help(Player player) {
+        Messages messages = plugin.messages();
+        messages.send(player, "help-header");
+        boolean use = player.hasPermission(AdminActions.PERM_USE) && !AdminActions.isExempt(player);
+        if (use) {
+            messages.send(player, "help-give");
+            messages.send(player, "help-remove");
+            messages.send(player, "help-list");
+        }
+        if (player.hasPermission(PERM_MAP)) {
+            messages.send(player, "help-map");
+        }
+        messages.send(player, "help-info");
+        messages.send(player, "help-version");
+        if (use || player.hasPermission(AdminActions.PERM_VIEW)) {
+            messages.send(player, "help-menu-hint");
+        }
     }
 
     private void give(Player player, String[] args) {
@@ -161,7 +186,7 @@ public final class ChunkloaderCommand implements TabExecutor {
             if (sender.hasPermission(AdminActions.PERM_USE)) {
                 options.addAll(List.of("give", "remove", "list"));
             }
-            options.add("info");
+            options.addAll(List.of("info", "version"));
             if (sender.hasPermission(PERM_MAP)) {
                 options.add("map");
             }
