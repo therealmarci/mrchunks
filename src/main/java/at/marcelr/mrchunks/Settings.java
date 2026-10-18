@@ -18,7 +18,8 @@ public record Settings(
         BorderSettings border,
         SquaremapSettings squaremap,
         UpdateSettings update,
-        GuiSettings gui
+        GuiSettings gui,
+        InviteSettings invites
 ) {
 
     /** Marker for a permanent ban. */
@@ -67,6 +68,10 @@ public record Settings(
 
     public record UpdateSettings(boolean enabled, String source, boolean includePrereleases,
                                  int intervalHours, boolean notifyOnJoin) {
+    }
+
+    /** Invites: quick-select durations (ms or {@link #PERMANENT}) and the maximum invited players per list. */
+    public record InviteSettings(boolean enabled, List<Long> durations, int maxMembers) {
     }
 
     /** Durations in ms; ban durations may contain {@link #PERMANENT}. */
@@ -161,7 +166,12 @@ public record Settings(
                 c.getBoolean("gui.sounds", true),
                 Math.clamp(c.getInt("gui.max-name-length", 24), 1, 64));
 
-        return new Settings(loaders, item, border, squaremap, update, gui);
+        InviteSettings invites = new InviteSettings(
+                c.getBoolean("invites.enabled", true),
+                durations(c.getStringList("invites.durations"), List.of("1d", "7d", "30d", "permanent"), "invites.durations", log),
+                Math.clamp(c.getInt("invites.max-members", 10), 1, 100));
+
+        return new Settings(loaders, item, border, squaremap, update, gui, invites);
     }
 
     /** "#RRGGBB" as written to the web page; anything else becomes the fallback (no script injection). */
@@ -217,14 +227,21 @@ public record Settings(
 
     /** Exactly three quick-select ban durations; invalid entries fall back to the defaults. */
     private static List<Long> banDurations(List<String> raw, Logger log) {
-        List<String> defaults = List.of("1d", "7d", "permanent");
+        List<Long> result = durations(raw, List.of("1d", "7d", "permanent"), "gui.ban-durations", log);
+        return result.size() >= 3 ? result.subList(0, 3) : result;
+    }
+
+    /** Quick-select durations; invalid entries fall back to the defaults, at least the defaults' count. */
+    private static List<Long> durations(List<String> raw, List<String> defaults, String path, Logger log) {
         List<Long> result = new ArrayList<>();
-        for (int i = 0; i < 3; i++) {
+        int count = Math.min(7, Math.max(defaults.size(), raw.size()));
+        for (int i = 0; i < count; i++) {
             String value = i < raw.size() ? raw.get(i) : defaults.get(i);
             long parsed = parseBanDuration(value);
             if (parsed == 0) {
-                log.warning("Invalid duration '" + value + "' in gui.ban-durations, using " + defaults.get(i) + ".");
-                parsed = parseBanDuration(defaults.get(i));
+                String fallback = defaults.get(Math.min(i, defaults.size() - 1));
+                log.warning("Invalid duration '" + value + "' in " + path + ", using " + fallback + ".");
+                parsed = parseBanDuration(fallback);
             }
             result.add(parsed);
         }

@@ -26,6 +26,12 @@ permissions:
   mrchunks.view:
     description: Das Menü fremder Chunkloader öffnen (nur ansehen und Grenze anzeigen).
     default: true
+  mrchunks.invite:
+    description: Andere Spieler einladen, die eigenen Chunkloader an- und auszuschalten.
+    default: true
+  mrchunks.exempt:
+    description: Schließt vom Chunkloading komplett aus (z.B. Zweit-Accounts) - keine Loader, keine Einladungen. Vorhandene Loader werden gelöscht. Achtung, "*" in LuckPerms enthält das auch!
+    default: false
   mrchunks.limit.unlimited:
     description: Beliebig viele Chunkloader. Feste Grenzen gehen per mrchunks.limit.<anzahl>, z.B. mrchunks.limit.10.
     default: false

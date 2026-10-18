@@ -142,3 +142,9 @@ Der Release-Ablauf entspricht MRsleep, siehe **[RELEASES.md](RELEASES.md)**: Ver
 | 9 | `/mrchunks limit <spieler> 5` | Kopf im Admin-Menü zeigt „5 (individuell)“ |
 | 10 | Erster Start mit squaremap | Log „squaremap eingerichtet: …“, Dimensionsnamen in `tiles/settings.json`, `players.json` leer |
 | 11 | `/mrchunks reload` nach Änderung von `radius` | alte Tickets weg, neue Bereichsgröße aktiv |
+
+## Einladungen & Ausschluss
+- **Daten:** `LoaderManager` hält `loaderMembers` (Loader-ID → Spieler → gültig bis) und `ownerMembers` (Owner → Spieler → gültig bis; gilt für alle Loader des Owners, auch künftige). `Long.MAX_VALUE` = dauerhaft. In `data.yml` unter `members.loaders.<id>.<uuid>` bzw. `members.owners.<owner>.<uuid>`. Abgelaufene Einträge fallen beim Lesen (`members`) und beim Speichern weg, die eines gelöschten Loaders mit dem Loader.
+- **Rechte (`AdminActions`):** `canToggle` = `canManage` (Owner\/Admin) oder `isMember`. Umbenennen, Löschen und `canManageInvites` bleiben Owner (`mrchunks.invite`) und Admins (`mrchunks.admin.manage`) vorbehalten. Beim Aktivieren durch Eingeladene gilt das Aktiv-Limit des Owners, der Owner wird benachrichtigt. Eingeladene dürfen das Menü öffnen (`canView`).
+- **Menüs:** `MembersMenu` (Liste, Klick = entfernen, bei einem Loader werden die Einladungen für alle Loader grau mit angezeigt), `InviteDialog` (Paper-Dialog mit Namensfeld und Dauer-Auswahl aus `invites.durations`), `SharedLoadersMenu` („Mit mir geteilt“). Einstieg: Button **Mitglieder** im `LoaderMenu`, **Mitglieder für alle Loader** und **Mit mir geteilt** in `MyLoadersMenu`.
+- **`mrchunks.exempt` (streng):** blockiert `give`, Setzen, Einladen des Spielers und seine Rechte als Eingeladener. `enforceExempt` löscht beim Join und bei `/mrchunks reload` seine Loader und Items. Permissions sind nur online bekannt, Offline-Spieler werden beim nächsten Join bereinigt.

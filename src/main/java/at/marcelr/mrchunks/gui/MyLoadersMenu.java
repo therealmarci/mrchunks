@@ -1,5 +1,6 @@
 package at.marcelr.mrchunks.gui;
 
+import at.marcelr.mrchunks.AdminActions;
 import at.marcelr.mrchunks.Loader;
 import at.marcelr.mrchunks.MRChunks;
 import at.marcelr.mrchunks.Messages;
@@ -40,6 +41,23 @@ public final class MyLoadersMenu extends Menu {
         }
         if (own.isEmpty()) {
             set(22, Items.of(Material.STRUCTURE_VOID).name(messages.item("gui-empty")).build());
+        }
+        Pages.navigation(this, messages, page, pages, p -> page = p);
+        if (plugin.settings().invites().enabled()) {
+            if (AdminActions.canManageInvites(viewer, viewer.getUniqueId())) {
+                int members = plugin.loaders().members(viewer.getUniqueId(), null).size();
+                set(47, Items.of(Material.PLAYER_HEAD).name(messages.item("gui-members-all-name", tag("count", members)))
+                        .lore(messages.lore("gui-members-all-lore")).build(), click -> {
+                    clickSound();
+                    new MembersMenu(plugin, viewer, viewer.getUniqueId(), null, this).open();
+                });
+            }
+            int shared = plugin.adminActions().sharedWith(viewer).size();
+            set(51, Items.of(Material.CHEST_MINECART).name(messages.item("gui-shared-name", tag("count", shared)))
+                    .lore(messages.lore("gui-shared-lore")).build(), click -> {
+                clickSound();
+                new SharedLoadersMenu(plugin, viewer, this).open();
+            });
         }
         Pages.navigation(this, messages, page, pages, p -> page = p);
         set(49, Items.of(Material.BARRIER).name(messages.item("gui-close")).build(), click -> viewer.closeInventory());

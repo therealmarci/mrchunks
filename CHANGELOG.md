@@ -15,6 +15,13 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 - **Neue Grenzanzeige:** leuchtende Linien an jedem Chunk der Außenkante, durch Blöcke sichtbar, nur für den
   Betrachter. Sie folgt der Höhe, lässt sich im Menü ausblenden und verschwindet beim Löschen des Loaders.
   Neue Optionen unter `border` (Farbe, Block, Dicke, Höhe), `particle` und `spacing` entfallen.
+- **Einladungen:** Owner laden andere Spieler ein, ihre Chunkloader an- und auszuschalten - für einen Loader
+  (Menü → Mitglieder) oder für alle (`/chunkloader list` → Mitglieder für alle Loader), befristet oder dauerhaft.
+  Eingeladene sehen die Loader unter „Mit mir geteilt“ und dürfen nur an/aus schalten; löschen kann nur der Owner.
+  Zählt bei niemandem zum Limit, das Aktiv-Limit des Owners gilt. Neue Optionen unter `invites`, Permission
+  `mrchunks.invite`, Discord-Events `loader-invite` und `loader-uninvite`.
+- **`mrchunks.exempt`:** schließt Spieler (z.B. Zweit-Accounts) komplett vom Chunkloading aus. Vorhandene Loader und
+  Items werden beim Join bzw. Reload gelöscht (Discord-Event `exempt-cleared`). Gilt streng, auch für `*`.
 - **Überschneidungen** wählbar über `loaders.overlap`: `allow`, `warn` (Standard: Hinweis + Grenze), `deny-own`, `deny-all`.
 - **Adresse der Webkarte** über `squaremap.address` (Domain/FQDN, IP oder komplette URL), automatisch mit squaremaps
   `web-address`, `server-ip` oder der öffentlichen IP. `squaremap.reverse-proxy: true` für Links ohne Port per https,
@@ -30,7 +37,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 - `/chunkloader info` ist jetzt eine reine Befehlshilfe; die eigenen Loader zeigt `/chunkloader list`.
   Die Permission `mrchunks.info` entfällt.
 - Admin-Befehle `tp`, `toggle` und `delete` nehmen `<spieler> <nr>` statt einer internen ID.
-- Config-Version 3.
+- Config-Version 4.
 - **Versionsschema mit Minecraft-Version:** `mc26.3-v0.2.0` (Git-Tag, JAR-Name, Modrinth), im Spiel `0.2.0+mc26.3`.
   Mehrere Minecraft-Versionen lassen sich parallel versorgen (Wartungs-Branches `mc/<version>`, siehe
   `docs/RELEASES.md`). Der Update-Checker meldet nur Versionen für dieselbe Minecraft-Version.

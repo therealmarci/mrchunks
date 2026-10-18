@@ -102,6 +102,8 @@ public final class MRChunks extends JavaPlugin {
         updateChecker.start();
         menuListener.start();
         maps.start();
+        // Permissions may have changed (e.g. mrchunks.exempt given via LuckPerms).
+        Bukkit.getOnlinePlayers().forEach(adminActions::enforceExempt);
     }
 
     private void loadConfiguration() {

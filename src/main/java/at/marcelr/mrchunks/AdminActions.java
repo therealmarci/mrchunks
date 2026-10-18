@@ -6,6 +6,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.Map;
 import java.util.UUID;
 
 import static at.marcelr.mrchunks.Messages.tag;
@@ -22,6 +23,9 @@ public final class AdminActions {
     public static final String PERM_TELEPORT = "mrchunks.admin.teleport";
     public static final String PERM_LIMIT = "mrchunks.admin.limit";
     public static final String PERM_BAN = "mrchunks.admin.ban";
+    public static final String PERM_INVITE = "mrchunks.invite";
+    /** Excludes a player from chunk loaders completely (e.g. second accounts). Strict: also for admins. */
+    public static final String PERM_EXEMPT = "mrchunks.exempt";
 
     private final MRChunks plugin;
 
@@ -51,15 +55,42 @@ public final class AdminActions {
         return (isOwner(sender, loader) && sender.hasPermission(PERM_USE)) || sender.hasPermission(PERM_MANAGE);
     }
 
-    /** Owner, admins and everyone with mrchunks.view may open a loader's menu. */
-    public static boolean canView(CommandSender sender, Loader loader) {
-        return isOwner(sender, loader) || sender.hasPermission(PERM_VIEW) || sender.hasPermission(PERM_MANAGE);
+    /** Owner, invited players, admins and everyone with mrchunks.view may open a loader's menu. */
+    public boolean canView(CommandSender sender, Loader loader) {
+        return isOwner(sender, loader) || isMember(sender, loader) || sender.hasPermission(PERM_VIEW)
+                || sender.hasPermission(PERM_MANAGE);
+    }
+
+    public static boolean isExempt(CommandSender sender) {
+        return sender instanceof Player && sender.hasPermission(PERM_EXEMPT);
+    }
+
+    /** Invited (directly or for all loaders of the owner) and not excluded via mrchunks.exempt. */
+    public boolean isMember(CommandSender sender, Loader loader) {
+        return sender instanceof Player player && !isExempt(player)
+                && plugin.loaders().isMember(player.getUniqueId(), loader);
+    }
+
+    /** Loaders of other players the viewer was invited to (none if excluded via mrchunks.exempt). */
+    public java.util.List<Loader> sharedWith(Player player) {
+        return isExempt(player) ? java.util.List.of() : plugin.loaders().sharedWith(player.getUniqueId());
+    }
+
+    /** Switching on/off: owner, admins - and invited players (only this, never deleting or renaming). */
+    public boolean canToggle(CommandSender sender, Loader loader) {
+        return canManage(sender, loader) || isMember(sender, loader);
+    }
+
+    /** Managing the invites of a loader / of all loaders of {@code owner}: the owner (mrchunks.invite) or admins. */
+    public static boolean canManageInvites(CommandSender sender, UUID owner) {
+        boolean isOwner = sender instanceof Player player && player.getUniqueId().equals(owner);
+        return (isOwner && sender.hasPermission(PERM_INVITE) && !isExempt(sender)) || sender.hasPermission(PERM_MANAGE);
     }
 
     // ------------------------------------------------------------- loaders
 
     public void toggle(CommandSender sender, Loader loader) {
-        if (!canManage(sender, loader)) {
+        if (!canToggle(sender, loader)) {
             messages().send(sender, isOwner(sender, loader) ? "no-permission" : "not-owner");
             return;
         }
@@ -143,6 +174,104 @@ public final class AdminActions {
         target.setPitch(player.getLocation().getPitch());
         player.teleportAsync(target);
         messages().send(player, "teleported", Texts.loader(plugin, loader));
+    }
+
+    // ------------------------------------------------------------- invites
+
+    /** "Farm" or "alle deine Chunkloader" - what an invite covers, for messages. */
+    private String scope(Loader loader, String allKey, UUID owner) {
+        return loader != null ? Texts.name(plugin, loader)
+                : messages().plain(allKey, "owner", LoaderManager.name(owner));
+    }
+
+    /**
+     * Invites a player to switch one loader ({@code loader}) or all loaders of {@code owner} ({@code loader == null})
+     * on and off. Only the owner (or an admin) may invite; the invited player must have been on the server before.
+     * @param durationMillis duration, or {@link Settings#PERMANENT}
+     */
+    public void invite(CommandSender sender, UUID owner, Loader loader, String targetName, long durationMillis) {
+        if (!canManageInvites(sender, owner)) {
+            messages().send(sender, "no-permission");
+            return;
+        }
+        String name = targetName == null ? "" : targetName.trim();
+        OfflinePlayer target = name.isEmpty() ? null : org.bukkit.Bukkit.getPlayerExact(name);
+        if (target == null && !name.isEmpty()) {
+            target = org.bukkit.Bukkit.getOfflinePlayerIfCached(name);
+        }
+        if (target == null) {
+            messages().send(sender, "player-not-found", tag("player", name));
+            return;
+        }
+        if (target.getUniqueId().equals(owner)) {
+            messages().send(sender, "invite-self");
+            return;
+        }
+        Player online = target.getPlayer();
+        if (online != null && isExempt(online)) {
+            messages().send(sender, "invite-exempt", tag("player", name(target)));
+            return;
+        }
+        Map<UUID, Long> members = loaders().members(owner, loader);
+        int max = plugin.settings().invites().maxMembers();
+        if (!members.containsKey(target.getUniqueId()) && members.size() >= max) {
+            messages().send(sender, "invite-full", tag("max", max));
+            return;
+        }
+        loaders().invite(owner, loader, target.getUniqueId(), durationMillis);
+        long until = loaders().members(owner, loader).getOrDefault(target.getUniqueId(), Long.MAX_VALUE);
+        String duration = Texts.until(plugin, until);
+        messages().send(sender, "invited", tag("player", name(target)),
+                tag("scope", scope(loader, "invite-scope-all", owner)), tag("duration", duration));
+        if (online != null) {
+            messages().send(online, "invite-notify", tag("owner", LoaderManager.name(owner)),
+                    tag("scope", scope(loader, "invite-scope-all-of", owner)), tag("duration", duration));
+        }
+        plugin.discord().log("loader-invite", "owner", LoaderManager.name(owner), "player", name(target),
+                "scope", loader == null ? messages().plain("invite-scope-all-of", "owner", LoaderManager.name(owner))
+                        : Texts.name(plugin, loader),
+                "time", duration, "admin", sender.getName());
+    }
+
+    public void uninvite(CommandSender sender, UUID owner, Loader loader, UUID member) {
+        if (!canManageInvites(sender, owner)) {
+            messages().send(sender, "no-permission");
+            return;
+        }
+        if (!loaders().uninvite(owner, loader, member)) {
+            return;
+        }
+        String memberName = LoaderManager.name(member);
+        messages().send(sender, "uninvited", tag("player", memberName),
+                tag("scope", scope(loader, "invite-scope-all", owner)));
+        Player online = org.bukkit.Bukkit.getPlayer(member);
+        if (online != null) {
+            messages().send(online, "uninvite-notify", tag("owner", LoaderManager.name(owner)),
+                    tag("scope", scope(loader, "invite-scope-all-of", owner)));
+        }
+        plugin.discord().log("loader-uninvite", "owner", LoaderManager.name(owner), "player", memberName,
+                "scope", loader == null ? messages().plain("invite-scope-all-of", "owner", LoaderManager.name(owner))
+                        : Texts.name(plugin, loader),
+                "admin", sender.getName());
+    }
+
+    /**
+     * mrchunks.exempt: the player may not have chunk loaders at all. Deletes their loaders and takes their loader
+     * items (on join and on reload). Permissions are only known while the player is online.
+     */
+    public void enforceExempt(Player player) {
+        if (!isExempt(player)) {
+            return;
+        }
+        int items = plugin.loaderItem().remove(player, Integer.MAX_VALUE);
+        int deleted = loaders().deleteAll(player.getUniqueId());
+        if (deleted == 0 && items == 0) {
+            return;
+        }
+        messages().send(player, "exempt-cleared-notify", tag("count", deleted));
+        plugin.getLogger().info(player.getName() + " has mrchunks.exempt: " + deleted + " chunk loader(s) deleted, "
+                + items + " item(s) removed.");
+        plugin.discord().log("exempt-cleared", "player", player.getName(), "count", deleted);
     }
 
     // ------------------------------------------------------------- players

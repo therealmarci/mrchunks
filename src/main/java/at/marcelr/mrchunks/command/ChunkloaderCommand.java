@@ -75,6 +75,10 @@ public final class ChunkloaderCommand implements TabExecutor {
         if (!check(player, AdminActions.PERM_USE)) {
             return;
         }
+        if (AdminActions.isExempt(player)) {
+            messages.send(player, "exempt");
+            return;
+        }
         LoaderManager loaders = plugin.loaders();
         LoaderManager.Ban ban = loaders.ban(player.getUniqueId());
         if (ban != null) {

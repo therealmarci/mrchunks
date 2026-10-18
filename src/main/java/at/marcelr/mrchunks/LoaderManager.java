@@ -54,6 +54,10 @@ public final class LoaderManager {
     private final Map<UUID, Integer> limitOverrides = new HashMap<>();
     private final Map<UUID, Integer> activeOverrides = new HashMap<>();
     private final Map<UUID, Ban> bans = new HashMap<>();
+    /** loader id -> invited player -> valid until (ms, Long.MAX_VALUE = permanent) */
+    private final Map<Integer, Map<UUID, Long>> loaderMembers = new HashMap<>();
+    /** owner -> invited player -> valid until; such an invite covers all loaders of the owner, also future ones */
+    private final Map<UUID, Map<UUID, Long>> ownerMembers = new HashMap<>();
 
     /** Exclusion from chunk loaders. {@code until == Long.MAX_VALUE} means permanent. */
     public record Ban(long until, String reason, String by) {
@@ -236,6 +240,7 @@ public final class LoaderManager {
         }
         loaders.remove(loader.id());
         unindex(loader);
+        loaderMembers.remove(loader.id());
         plugin.border().loaderRemoved(loader);
         World world = loader.world();
         if (world != null) {
@@ -565,6 +570,66 @@ public final class LoaderManager {
         return result;
     }
 
+    // ------------------------------------------------------------- invites
+
+    /**
+     * Invites {@code member} to switch loaders on and off: one loader, or with {@code loader == null} all loaders of
+     * {@code owner}. Invites never count towards anyone's limits.
+     * @param durationMillis duration, or {@link Settings#PERMANENT}
+     */
+    public void invite(UUID owner, Loader loader, UUID member, long durationMillis) {
+        long until = durationMillis == Settings.PERMANENT ? Long.MAX_VALUE : System.currentTimeMillis() + durationMillis;
+        membersOf(owner, loader, true).put(member, until);
+        save();
+    }
+
+    /** @return true if the player was invited */
+    public boolean uninvite(UUID owner, Loader loader, UUID member) {
+        Map<UUID, Long> members = membersOf(owner, loader, false);
+        boolean had = members != null && members.remove(member) != null;
+        if (had) {
+            save();
+        }
+        return had;
+    }
+
+    /** Current invites (not expired) of one loader, or with {@code loader == null} the owner-wide ones. */
+    public Map<UUID, Long> members(UUID owner, Loader loader) {
+        Map<UUID, Long> members = membersOf(owner, loader, false);
+        if (members == null) {
+            return Map.of();
+        }
+        long now = System.currentTimeMillis();
+        members.values().removeIf(until -> until <= now);
+        return Map.copyOf(members);
+    }
+
+    private Map<UUID, Long> membersOf(UUID owner, Loader loader, boolean create) {
+        if (loader == null) {
+            return create ? ownerMembers.computeIfAbsent(owner, k -> new HashMap<>()) : ownerMembers.get(owner);
+        }
+        return create ? loaderMembers.computeIfAbsent(loader.id(), k -> new HashMap<>()) : loaderMembers.get(loader.id());
+    }
+
+    /** Whether {@code player} is invited to this loader (directly or for all loaders of its owner). */
+    public boolean isMember(UUID player, Loader loader) {
+        long now = System.currentTimeMillis();
+        Map<UUID, Long> direct = loaderMembers.get(loader.id());
+        Map<UUID, Long> owner = ownerMembers.get(loader.owner());
+        return (direct != null && direct.getOrDefault(player, 0L) > now) || (owner != null && owner.getOrDefault(player, 0L) > now);
+    }
+
+    /** Loaders of other players that {@code player} may switch on and off. */
+    public List<Loader> sharedWith(UUID player) {
+        List<Loader> result = new ArrayList<>();
+        for (Loader loader : loaders.values()) {
+            if (!loader.owner().equals(player) && isMember(player, loader)) {
+                result.add(loader);
+            }
+        }
+        return result;
+    }
+
     // --------------------------------------------------------- persistence
 
     public void load() {
@@ -574,6 +639,8 @@ public final class LoaderManager {
         limitOverrides.clear();
         activeOverrides.clear();
         bans.clear();
+        loaderMembers.clear();
+        ownerMembers.clear();
         nextId = 1;
         if (!dataFile.exists()) {
             return;
@@ -633,9 +700,42 @@ public final class LoaderManager {
                 }
             }
         }
+        readMembers(data.getConfigurationSection("members.loaders"), true);
+        readMembers(data.getConfigurationSection("members.owners"), false);
         // Only now (limits and bans are read), because it may save.
         assignMissingNumbers();
         loaders.values().forEach(this::index);
+    }
+
+    private void readMembers(ConfigurationSection section, boolean perLoader) {
+        if (section == null) {
+            return;
+        }
+        for (String key : section.getKeys(false)) {
+            ConfigurationSection entries = section.getConfigurationSection(key);
+            if (entries == null) {
+                continue;
+            }
+            Map<UUID, Long> members = new HashMap<>();
+            for (String member : entries.getKeys(false)) {
+                UUID uuid = parseUuid(member);
+                if (uuid != null) {
+                    members.put(uuid, entries.getLong(member));
+                }
+            }
+            if (perLoader) {
+                try {
+                    loaderMembers.put(Integer.parseInt(key), members);
+                } catch (NumberFormatException ignored) {
+                    // hand-edited garbage
+                }
+            } else {
+                UUID owner = parseUuid(key);
+                if (owner != null) {
+                    ownerMembers.put(owner, members);
+                }
+            }
+        }
     }
 
     /**
@@ -692,6 +792,18 @@ public final class LoaderManager {
             data.set("bans." + uuid + ".reason", ban.reason());
             data.set("bans." + uuid + ".by", ban.by());
         });
+        long now = System.currentTimeMillis();
+        loaderMembers.keySet().removeIf(id -> !loaders.containsKey(id));
+        loaderMembers.forEach((id, members) -> members.forEach((uuid, until) -> {
+            if (until > now) {
+                data.set("members.loaders." + id + "." + uuid, until);
+            }
+        }));
+        ownerMembers.forEach((owner, members) -> members.forEach((uuid, until) -> {
+            if (until > now) {
+                data.set("members.owners." + owner + "." + uuid, until);
+            }
+        }));
         try {
             data.save(dataFile);
         } catch (IOException e) {

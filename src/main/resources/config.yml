@@ -15,7 +15,7 @@
 # ==============================================================================
 
 # Nicht ändern - wird für automatische Config-Updates verwendet.
-config-version: 3
+config-version: 4
 
 # Sprache aller Texte: de = Deutsch, en = English. Die Texte stehen in plugins/MRchunks/lang/<sprache>.yml
 # und können dort angepasst werden. Eigene Sprache: Datei kopieren (z.B. fr.yml), übersetzen, language: fr.
@@ -68,6 +68,17 @@ loaders:
   # Wie oft das geprüft wird (in Sekunden).
   check-interval-seconds: 60
 
+
+# Einladungen: Owner können andere Spieler einladen, ihre Chunkloader an- und auszuschalten - für einen Loader
+# (Menü des Loaders -> Mitglieder) oder für alle (/chunkloader list -> Mitglieder für alle Loader).
+# Eingeladene dürfen nur an/aus schalten, nicht umbenennen oder löschen. Das zählt bei niemandem zum Limit,
+# das Aktiv-Limit des Owners gilt weiter. Eingeladene finden die Loader unter /chunkloader list -> Mit mir geteilt.
+invites:
+  enabled: true
+  # Auswahl der Dauer im Einladen-Dialog ("permanent" = dauerhaft).
+  durations: ["1d", "7d", "30d", "permanent"]
+  # Höchstens so viele Eingeladene pro Loader bzw. für "alle Loader".
+  max-members: 10
 
 # ------------------------------------------------------------------------------
 #   2) ITEM & BLOCK
@@ -213,6 +224,15 @@ discord:
     admin-reload:
       enabled: true
       color: "#3498DB"
+    loader-invite:
+      enabled: true
+      color: "#1ABC9C"
+    loader-uninvite:
+      enabled: true
+      color: "#95A5A6"
+    exempt-cleared:
+      enabled: true
+      color: "#E74C3C"
 
 
 # ------------------------------------------------------------------------------

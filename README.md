@@ -45,6 +45,20 @@ Texte auf der Webkarte (Ebenen-Namen, Tooltips, Dimensionsnamen), Discord-Logs u
 - Im Menü kannst du ihn über **Umbenennen** frei benennen (höchstens `gui.max-name-length` Zeichen, leer = wieder Standardname). Der Name erscheint im Chat, in Menüs, auf der Webkarte und in den Discord-Logs.
 - Admin-Befehle sprechen einen Loader über Spieler und Nummer an: `/mrchunks tp Steve 3`.
 
+### Mitspieler einladen
+Owner können andere Spieler einladen, ihre Chunkloader **an- und auszuschalten**, z.B. Farm-Partner, damit die Farm auch läuft, wenn der Owner offline ist.
+- **Ein Loader:** Menü des Loaders → **Mitglieder** → **Spieler einladen**.
+- **Alle Loader** (auch künftige): `/chunkloader list` → **Mitglieder für alle Loader**.
+- Im Dialog Spielername und Dauer wählen (`invites.durations`, Standard 1d / 7d / 30d / dauerhaft). Ein Klick auf einen Kopf in der Mitgliederliste nimmt die Einladung zurück, befristete laufen von selbst ab.
+- **Eingeladene** finden die Loader unter `/chunkloader list` → **Mit mir geteilt** und dürfen sie **nur an- und ausschalten**. Umbenennen, Löschen und Einladen bleibt dem Owner (und Admins).
+- Einladungen zählen bei **niemandem** zum Limit. Schaltet ein Eingeladener einen Loader an, gilt das **Aktiv-Limit des Owners**, und der Owner bekommt eine Nachricht.
+- Höchstens `invites.max-members` Eingeladene pro Liste. Abschalten: `invites.enabled: false`. Permission zum Einladen: `mrchunks.invite` (alle).
+
+### Spieler ausschließen (`mrchunks.exempt`)
+Wer `mrchunks.exempt` hat, ist **komplett vom Chunkloading ausgeschlossen**, z.B. Zweit-Accounts in einer eigenen LuckPerms-Rolle: kein `give`, kein Setzen, keine Einladungen, auch nicht als Eingeladener. Vorhandene Loader und Chunkloader-Items werden beim Betreten des Servers (und bei `/mrchunks reload`) **gelöscht**.
+
+> ⚠️ **Streng:** Auch Admins sind betroffen. LuckPerms-Gruppen mit `*` oder `mrchunks.*` bekommen `mrchunks.exempt` mit, dort also ausdrücklich `/lp group admin permission set mrchunks.exempt false` setzen, sonst werden die Loader dieser Admins gelöscht.
+
 ### Grenze anzeigen
 Die Grenze ist ein leuchtender „Zaun“ an jedem Chunk der Außenkante, sichtbar auch durch Blöcke. Nur du siehst sie, sie folgt deiner Höhe und verschwindet nach `border.duration-seconds`, über **Grenze ausblenden** im Menü oder sobald der Loader gelöscht wird. Farbe, Block, Dicke und Höhe stellst du unter `border` ein.
 
@@ -103,6 +117,8 @@ Owner können ihre eigenen Loader auch mit `toggle` und `delete` steuern.
 | `mrchunks.use` | alle | Chunkloader holen, setzen und die eigenen verwalten |
 | `mrchunks.map` | alle | `/chunkloader map` |
 | `mrchunks.view` | alle | Menü fremder Chunkloader ansehen und deren Grenze anzeigen |
+| `mrchunks.invite` | alle | Andere Spieler zu den eigenen Loadern einladen (nur an/aus) |
+| `mrchunks.exempt` | niemand | Vom Chunkloading komplett ausgeschlossen, vorhandene Loader werden gelöscht (siehe oben, Vorsicht mit `*`) |
 | `mrchunks.limit.<anzahl>` / `mrchunks.active.<anzahl>` | – | Mehr setzbare bzw. gleichzeitig aktive Loader, siehe [Limits](#limits-setzen-und-gleichzeitig-aktiv) |
 | `mrchunks.limit.unlimited` / `mrchunks.active.unlimited` | niemand | Beliebig viele |
 | `mrchunks.admin` | OP | Enthält alle `mrchunks.admin.*` |
@@ -209,7 +225,7 @@ MRchunks zeigt die Chunkloader auf **[squaremap](https://modrinth.com/plugin/squ
 Webhook in Discord anlegen (*Kanal bearbeiten → Integrationen → Webhooks*), dann `discord.enabled: true` setzen, die `webhook-url` eintragen und `/mrchunks reload` ausführen.
 `/mrchunks discord test` prüft die Einrichtung.
 
-Diese Events gibt es: Loader gesetzt, gelöscht, an/aus geschaltet, umbenannt, Block wiederhergestellt oder fehlend, dazu die Admin-Aktionen Löschen, Sperren, Entsperren, Limit und Reload. An/aus und Farben stellst du unter `discord.events` in der Config ein, die Texte unter `discord` in der Sprachdatei.
+Diese Events gibt es: Loader gesetzt, gelöscht, an/aus geschaltet, umbenannt, Einladung erteilt und zurückgenommen, Spieler per exempt bereinigt, Block wiederhergestellt oder fehlend, dazu die Admin-Aktionen Löschen, Sperren, Entsperren, Limit und Reload. An/aus und Farben stellst du unter `discord.events` in der Config ein, die Texte unter `discord` in der Sprachdatei.
 
 ---
 

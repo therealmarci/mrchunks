@@ -13,7 +13,7 @@
 lang-version: 4
 
 # Texte der Discord-Logs (Markdown wie in Discord). Platzhalter: {name} {number} {player} {admin} {world} {x} {y} {z}
-# {state} {old} {time} {reason} {count} {type} {limit}. An/aus und Farbe stehen in der config.yml.
+# {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit}. An/aus und Farbe stehen in der config.yml.
 discord:
   test-message: "🔧 Testnachricht von MRchunks - der Webhook funktioniert!"
   loader-placed: "🟩 **{player}** hat **{name}** gesetzt ({world} {x}, {y}, {z})."
@@ -27,6 +27,9 @@ discord:
   admin-unban: "🔓 **{admin}** hat die Sperre von **{player}** aufgehoben."
   admin-limit: "🛠️ **{admin}** hat das {type} von **{player}** auf **{limit}** gesetzt."
   admin-reload: "🔄 **{admin}** hat die MRchunks-Konfiguration neu geladen."
+  loader-invite: "🤝 **{owner}** hat **{player}** eingeladen: {scope} an-/ausschalten ({time})."
+  loader-uninvite: "👋 **{owner}** hat die Einladung von **{player}** für {scope} zurückgenommen."
+  exempt-cleared: "🚫 **{player}** ist vom Chunkloading ausgeschlossen (mrchunks.exempt) - {count} Chunkloader gelöscht."
 
 # --- Chunkloader-Item ----------------------------------------------------------
 # Platzhalter: <size> (z.B. 7), <chunks> (z.B. 49)
@@ -90,6 +93,8 @@ give-inventory-full: "<prefix><red>Dein Inventar ist voll."
 remove-ok: "<prefix><green><white><count></white> Chunkloader-Item(s) aus deinem Inventar entfernt."
 remove-none: "<prefix><gray>Du hast keine Chunkloader-Items im Inventar."
 banned: "<prefix><red>Du bist für Chunkloader gesperrt <dark_gray>(<duration>, Grund: <reason>)<red>."
+exempt: "<prefix><red>Du bist vom Chunkloading ausgeschlossen."
+exempt-cleared-notify: "<prefix><red>Du bist vom Chunkloading ausgeschlossen. <white><count></white> Chunkloader und deine Chunkloader-Items wurden entfernt."
 map-link: "<prefix><gray>Webkarte mit allen Chunkloadern: <link>"
 map-link-label: "<aqua><u><url></u></aqua>"
 map-unavailable: "<prefix><gray>Für diesen Server gibt es gerade keine öffentliche Webkarte."
@@ -125,6 +130,23 @@ rename-hint: "<gray>Gib einen Namen ein (höchstens <max> Zeichen). Leer lassen 
 rename-label: "Name"
 rename-save: "<green>Speichern"
 rename-cancel: "<red>Abbrechen"
+# --- Einladungen ---------------------------------------------------------------
+# Eingeladene dürfen fremde Chunkloader nur an- und ausschalten. <scope> = Name des Loaders oder invite-scope-all(-of)
+invite-scope-all: "alle deine Chunkloader"
+invite-scope-all-of: "alle Chunkloader von <owner>"
+invited: "<prefix><green><white><player></white> darf jetzt <white><scope></white> an- und ausschalten <gray>(<duration>)."
+invite-notify: "<prefix><green><white><owner></white> hat dich eingeladen: Du darfst <white><scope></white> an- und ausschalten <gray>(<duration>). <dark_gray>/chunkloader list → Mit mir geteilt"
+uninvited: "<prefix><green>Einladung von <white><player></white> für <white><scope></white> zurückgenommen."
+uninvite-notify: "<prefix><gray><white><owner></white> hat deine Einladung für <white><scope></white> zurückgenommen."
+invite-self: "<prefix><red>Dich selbst musst du nicht einladen."
+invite-exempt: "<prefix><red><white><player></white> ist vom Chunkloading ausgeschlossen und kann nicht eingeladen werden."
+invite-full: "<prefix><red>Es sind schon <white><max></white> Spieler eingeladen."
+invite-title: "Spieler einladen - <scope>"
+invite-hint: "<gray>Eingeladene dürfen <white><scope></white> nur an- und ausschalten. Löschen und Umbenennen kann nur der Owner."
+invite-label-player: "Spielername"
+invite-label-duration: "Dauer"
+invite-save: "<green>Einladen"
+invite-cancel: "<red>Abbrechen"
 
 # --- Admin -------------------------------------------------------------------
 admin-usage: |-
@@ -259,6 +281,37 @@ gui-border-lore:
 gui-border-hide-name: "<aqua>Grenze ausblenden"
 gui-border-hide-lore:
   - "<gray>Blendet die angezeigte Grenze aus."
+gui-members-name: "<aqua>Mitglieder <gray>(<count>)"
+gui-members-lore:
+  - "<gray>Spieler einladen, die diesen"
+  - "<gray>Chunkloader an- und ausschalten dürfen."
+gui-members-all-name: "<aqua>Mitglieder für alle Loader <gray>(<count>)"
+gui-members-all-lore:
+  - "<gray>Eingeladene dürfen alle deine"
+  - "<gray>Chunkloader an- und ausschalten,"
+  - "<gray>auch künftige."
+gui-shared-name: "<green>Mit mir geteilt <gray>(<count>)"
+gui-shared-lore:
+  - "<gray>Chunkloader anderer Spieler,"
+  - "<gray>die du an- und ausschalten darfst."
+gui-title-members: "<dark_gray>Mitglieder » <dark_green><scope>"
+gui-title-shared: "<dark_gray>Mit mir geteilt"
+gui-member-name: "<white><player>"
+gui-member-lore:
+  - "<gray>Eingeladen: <white><duration>"
+  - ""
+  - "<red>» Klicken zum Entfernen"
+gui-member-lore-readonly:
+  - "<gray>Eingeladen: <white><duration>"
+gui-member-inherited-lore:
+  - "<gray>Für alle Loader eingeladen: <white><duration>"
+  - "<dark_gray>Verwalten unter \"Meine Chunkloader\""
+gui-members-empty: "<gray>Noch niemand eingeladen"
+gui-shared-empty: "<gray>Niemand hat dich eingeladen"
+gui-invite-name: "<green>Spieler einladen <gray>(<count>/<max>)"
+gui-invite-lore:
+  - "<gray>Öffnet einen Dialog für"
+  - "<gray>Spielername und Dauer."
 gui-delete-name: "<red>Löschen"
 gui-delete-lore:
   - "<gray>Entfernt den Block und den Chunkloader."

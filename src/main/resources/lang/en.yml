@@ -13,7 +13,7 @@
 lang-version: 4
 
 # Discord log texts (Discord markdown). Placeholders: {name} {number} {player} {admin} {world} {x} {y} {z}
-# {state} {old} {time} {reason} {count} {type} {limit}. On/off and colour are set in config.yml.
+# {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit}. On/off and colour are set in config.yml.
 discord:
   test-message: "🔧 Test message from MRchunks - the webhook works!"
   loader-placed: "🟩 **{player}** placed **{name}** ({world} {x}, {y}, {z})."
@@ -27,6 +27,9 @@ discord:
   admin-unban: "🔓 **{admin}** lifted the ban of **{player}**."
   admin-limit: "🛠️ **{admin}** set the {type} of **{player}** to **{limit}**."
   admin-reload: "🔄 **{admin}** reloaded the MRchunks configuration."
+  loader-invite: "🤝 **{owner}** invited **{player}** to switch {scope} on/off ({time})."
+  loader-uninvite: "👋 **{owner}** withdrew the invite of **{player}** for {scope}."
+  exempt-cleared: "🚫 **{player}** is excluded from chunk loading (mrchunks.exempt) - {count} chunk loaders deleted."
 
 # --- Chunk loader item ---------------------------------------------------------
 # Placeholders: <size> (e.g. 7), <chunks> (e.g. 49)
@@ -90,6 +93,8 @@ give-inventory-full: "<prefix><red>Your inventory is full."
 remove-ok: "<prefix><green>Removed <white><count></white> chunk loader item(s) from your inventory."
 remove-none: "<prefix><gray>You have no chunk loader items in your inventory."
 banned: "<prefix><red>You are banned from chunk loaders <dark_gray>(<duration>, reason: <reason>)<red>."
+exempt: "<prefix><red>You are excluded from chunk loading."
+exempt-cleared-notify: "<prefix><red>You are excluded from chunk loading. <white><count></white> chunk loaders and your chunk loader items were removed."
 map-link: "<prefix><gray>Web map with all chunk loaders: <link>"
 map-link-label: "<aqua><u><url></u></aqua>"
 map-unavailable: "<prefix><gray>There is currently no public web map for this server."
@@ -125,6 +130,23 @@ rename-hint: "<gray>Enter a name (at most <max> characters). Leave empty for the
 rename-label: "Name"
 rename-save: "<green>Save"
 rename-cancel: "<red>Cancel"
+# --- Invites -------------------------------------------------------------------
+# Invited players may only switch other players' chunk loaders on and off. <scope> = loader name or invite-scope-all(-of)
+invite-scope-all: "all your chunk loaders"
+invite-scope-all-of: "all chunk loaders of <owner>"
+invited: "<prefix><green><white><player></white> may now switch <white><scope></white> on and off <gray>(<duration>)."
+invite-notify: "<prefix><green><white><owner></white> invited you: you may switch <white><scope></white> on and off <gray>(<duration>). <dark_gray>/chunkloader list → Shared with me"
+uninvited: "<prefix><green>Invite of <white><player></white> for <white><scope></white> withdrawn."
+uninvite-notify: "<prefix><gray><white><owner></white> withdrew your invite for <white><scope></white>."
+invite-self: "<prefix><red>You don't need to invite yourself."
+invite-exempt: "<prefix><red><white><player></white> is excluded from chunk loading and can't be invited."
+invite-full: "<prefix><red><white><max></white> players are already invited."
+invite-title: "Invite a player - <scope>"
+invite-hint: "<gray>Invited players may only switch <white><scope></white> on and off. Only the owner can delete or rename."
+invite-label-player: "Player name"
+invite-label-duration: "Duration"
+invite-save: "<green>Invite"
+invite-cancel: "<red>Cancel"
 
 # --- Admin -------------------------------------------------------------------
 admin-usage: |-
@@ -259,6 +281,37 @@ gui-border-lore:
 gui-border-hide-name: "<aqua>Hide border"
 gui-border-hide-lore:
   - "<gray>Hides the border that is shown."
+gui-members-name: "<aqua>Members <gray>(<count>)"
+gui-members-lore:
+  - "<gray>Invite players who may switch"
+  - "<gray>this chunk loader on and off."
+gui-members-all-name: "<aqua>Members for all loaders <gray>(<count>)"
+gui-members-all-lore:
+  - "<gray>Invited players may switch all your"
+  - "<gray>chunk loaders on and off,"
+  - "<gray>including future ones."
+gui-shared-name: "<green>Shared with me <gray>(<count>)"
+gui-shared-lore:
+  - "<gray>Chunk loaders of other players"
+  - "<gray>that you may switch on and off."
+gui-title-members: "<dark_gray>Members » <dark_green><scope>"
+gui-title-shared: "<dark_gray>Shared with me"
+gui-member-name: "<white><player>"
+gui-member-lore:
+  - "<gray>Invited: <white><duration>"
+  - ""
+  - "<red>» Click to remove"
+gui-member-lore-readonly:
+  - "<gray>Invited: <white><duration>"
+gui-member-inherited-lore:
+  - "<gray>Invited for all loaders: <white><duration>"
+  - "<dark_gray>Manage in \"My chunk loaders\""
+gui-members-empty: "<gray>Nobody invited yet"
+gui-shared-empty: "<gray>Nobody invited you"
+gui-invite-name: "<green>Invite a player <gray>(<count>/<max>)"
+gui-invite-lore:
+  - "<gray>Opens a dialog for"
+  - "<gray>player name and duration."
 gui-delete-name: "<red>Delete"
 gui-delete-lore:
   - "<gray>Removes the block and the chunk loader."

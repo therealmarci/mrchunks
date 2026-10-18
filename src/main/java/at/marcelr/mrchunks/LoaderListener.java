@@ -55,6 +55,8 @@ public final class LoaderListener implements Listener {
         String denial = null;
         if (!player.hasPermission(AdminActions.PERM_USE)) {
             denial = "no-permission";
+        } else if (AdminActions.isExempt(player)) {
+            denial = "exempt";
         } else if (!loaders().isWorldAllowed(event.getBlock().getWorld())) {
             denial = "place-world-disabled";
         } else {
@@ -224,7 +226,7 @@ public final class LoaderListener implements Listener {
         }
         event.setCancelled(true);
         Player player = event.getPlayer();
-        if (!AdminActions.canView(player, loader)) {
+        if (!plugin.adminActions().canView(player, loader)) {
             plugin.messages().send(player, "no-permission");
             return;
         }
@@ -257,6 +259,7 @@ public final class LoaderListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+        plugin.adminActions().enforceExempt(player);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (player.isOnline()) {
                 plugin.updateChecker().notifyIfOutdated(player);

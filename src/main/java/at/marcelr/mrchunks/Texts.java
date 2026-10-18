@@ -67,6 +67,21 @@ public final class Texts {
     }
 
     /** "dauerhaft" or "noch 2h 5m". */
+    /** "dauerhaft" for {@code Long.MAX_VALUE}, otherwise "noch 6d 23h" (same texts as for bans). */
+    public static String until(MRChunks plugin, long until) {
+        Messages messages = plugin.messages();
+        if (until == Long.MAX_VALUE) {
+            return messages.plain("ban-duration-permanent");
+        }
+        return messages.plain("ban-duration-temporary")
+                .replace("<time>", DurationUtil.format(Math.max(0, until - System.currentTimeMillis())));
+    }
+
+    /** One quick-select duration as text: "dauerhaft" or e.g. "7d". */
+    public static String duration(MRChunks plugin, long millis) {
+        return millis == Settings.PERMANENT ? plugin.messages().plain("ban-duration-permanent") : DurationUtil.format(millis);
+    }
+
     public static String banDuration(MRChunks plugin, LoaderManager.Ban ban) {
         Messages messages = plugin.messages();
         if (ban == null || ban.permanent()) {
