@@ -13,6 +13,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
   die squaremap-Texte (Ebenen, Tooltips, Dimensionsnamen), Discord-Texte, der Sperrgrund und das Datumsformat.
   Fehlende Texte werden bei Updates automatisch ergänzt.
 
+### Geändert
+- **Versionsschema mit Minecraft-Version:** `mc26.3-v0.2.0` (Git-Tag, JAR-Name, Modrinth), im Spiel `0.2.0+mc26.3`.
+  Mehrere Minecraft-Versionen lassen sich parallel versorgen (Wartungs-Branches `mc/<version>`, siehe
+  `docs/RELEASES.md`). Der Update-Checker meldet nur Versionen für dieselbe Minecraft-Version.
+- **Konsole immer auf Englisch:** Log-Ausgaben und Antworten auf Konsolenbefehle, unabhängig von `language`.
+
 ### Behoben
 - Kaputtes „Ã¼“ in der Meldung, wenn ein Loader wegen des Aktiv-Limits deaktiviert gesetzt wird.
 

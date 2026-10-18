@@ -53,7 +53,7 @@ public final class MRChunks extends JavaPlugin {
         register("chunkloader", new ChunkloaderCommand(this));
         register("mrchunks", new MRChunksCommand(this));
 
-        getLogger().info(loaders.all().size() + " Chunkloader geladen, " + loaders.loadedChunkCount() + " Chunks werden geladen gehalten.");
+        getLogger().info(loaders.all().size() + " chunk loader(s) loaded, " + loaders.loadedChunkCount() + " chunks are kept loaded.");
     }
 
     @Override
@@ -110,10 +110,10 @@ public final class MRChunks extends JavaPlugin {
             for (Map.Entry<Loader, Boolean> entry : loaders.validate().entrySet()) {
                 Loader loader = entry.getKey();
                 if (entry.getValue()) {
-                    getLogger().info("Block von Chunkloader #" + loader.id() + " fehlte und wurde wiederhergestellt.");
+                    getLogger().info("Block of chunk loader #" + loader.id() + " was missing and has been restored.");
                     discord.log("loader-restored", adminActions.discordTags(loader));
                 } else {
-                    getLogger().info("Chunkloader #" + loader.id() + " wurde gelöscht, weil sein Block fehlte.");
+                    getLogger().info("Chunk loader #" + loader.id() + " was deleted because its block was missing.");
                     discord.log("loader-removed-missing", adminActions.discordTags(loader));
                 }
             }

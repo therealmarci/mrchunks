@@ -189,7 +189,7 @@ discord-error-rate-limit: "Discord rate limit, message dropped"
 discord-error-interrupted: "interrupted"
 
 # --- Version & updates -------------------------------------------------------
-version: "<prefix><gray>MRchunks <white>v<version></white> by <white><author></white>"
+version: "<prefix><gray>MRchunks <white>v<version></white> <dark_gray>(MC <mc>)</dark_gray> by <white><author></white>"
 version-latest: "<prefix><green>You are running the latest version."
 version-outdated: "<prefix><gold>New version available: <white><latest></white> <gray>(installed: <current>) <download>"
 version-unknown: "<prefix><gray>Update status unknown: <reason>"
@@ -261,7 +261,7 @@ gui-stats-lore:
   - "<gray>Loaded chunks: <white><chunks>"
   - "<gray>Players with loaders: <white><owners>"
   - "<gray>Banned: <white><banned>"
-gui-info-name: "<green>MRchunks <white>v<version>"
+gui-info-name: "<green>MRchunks <white>v<version> <dark_gray>(MC <mc>)"
 gui-info-lore:
   - "<gray>Version: <update>"
   - "<gray>squaremap map: <squaremap>"

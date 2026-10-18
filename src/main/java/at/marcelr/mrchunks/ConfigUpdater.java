@@ -76,10 +76,10 @@ public final class ConfigUpdater {
             File backup = new File(plugin.getDataFolder(), "config.v" + version + ".backup.yml");
             Files.copy(file.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING);
             Files.writeString(file.toPath(), BOM + template.saveToString(), StandardCharsets.UTF_8);
-            plugin.getLogger().info("config.yml von Version " + version + " auf " + CURRENT_VERSION + " aktualisiert ("
-                    + carried + " Einstellungen übernommen, Sicherung: " + backup.getName() + ").");
+            plugin.getLogger().info("Updated config.yml from version " + version + " to " + CURRENT_VERSION + " ("
+                    + carried + " settings carried over, backup: " + backup.getName() + ").");
         } catch (IOException | InvalidConfigurationException e) {
-            plugin.getLogger().log(Level.WARNING, "config.yml konnte nicht aktualisiert werden: " + e.getMessage());
+            plugin.getLogger().log(Level.WARNING, "Could not update config.yml: " + e.getMessage());
         }
     }
 
@@ -92,7 +92,7 @@ public final class ConfigUpdater {
                 config.loadFromString(stripBom(Files.readString(file.toPath(), StandardCharsets.UTF_8)));
             }
         } catch (IOException | InvalidConfigurationException e) {
-            plugin.getLogger().log(Level.SEVERE, "config.yml ist fehlerhaft, verwende Standardwerte: " + e.getMessage());
+            plugin.getLogger().log(Level.SEVERE, "config.yml is invalid, using defaults: " + e.getMessage());
         }
         try (InputStream in = plugin.getResource("config.yml")) {
             if (in != null) {
@@ -108,7 +108,7 @@ public final class ConfigUpdater {
                 }
             }
         } catch (IOException | InvalidConfigurationException e) {
-            plugin.getLogger().log(Level.WARNING, "Standard-Config konnte nicht gelesen werden: " + e.getMessage());
+            plugin.getLogger().log(Level.WARNING, "Could not read the bundled config: " + e.getMessage());
         }
         return config;
     }

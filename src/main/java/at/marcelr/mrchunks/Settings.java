@@ -84,7 +84,7 @@ public record Settings(
 
         Material material = Material.matchMaterial(c.getString("item.material", "EMERALD_BLOCK"));
         if (material == null || !material.isBlock() || !material.isSolid()) {
-            log.warning("item.material '" + c.getString("item.material") + "' ist kein fester Block, verwende EMERALD_BLOCK.");
+            log.warning("item.material '" + c.getString("item.material") + "' is not a solid block, using EMERALD_BLOCK.");
             material = Material.EMERALD_BLOCK;
         }
         ItemSettings item = new ItemSettings(material,
@@ -95,7 +95,7 @@ public record Settings(
         Particle particle = parseEnum(c.getString("border.particle"), Particle.HAPPY_VILLAGER, "border.particle", log);
         if (particle.getDataType() != Void.class) {
             // Particles like DUST need extra data and would throw when spawned without it.
-            log.warning("border.particle '" + particle.name() + "' braucht Zusatzdaten und wird nicht unterstützt, verwende HAPPY_VILLAGER.");
+            log.warning("border.particle '" + particle.name() + "' needs extra data and is not supported, using HAPPY_VILLAGER.");
             particle = Particle.HAPPY_VILLAGER;
         }
         BorderSettings border = new BorderSettings(
@@ -138,7 +138,7 @@ public record Settings(
 
         String source = c.getString("update-checker.source", "github").toLowerCase(Locale.ROOT);
         if (!source.equals("modrinth") && !source.equals("github")) {
-            log.warning("Ungültige update-checker.source '" + source + "', verwende github.");
+            log.warning("Invalid update-checker.source '" + source + "', using github.");
             source = "github";
         }
         UpdateSettings update = new UpdateSettings(
@@ -168,7 +168,7 @@ public record Settings(
         try {
             return new java.awt.Color(Integer.parseInt(raw.replace("#", "").trim(), 16));
         } catch (RuntimeException e) {
-            log.warning("Ungültige Farbe '" + raw + "' für " + path + ", verwende #8A958E.");
+            log.warning("Invalid colour '" + raw + "' for " + path + ", using #8A958E.");
             return new java.awt.Color(0x8A958E);
         }
     }
@@ -181,7 +181,7 @@ public record Settings(
         try {
             return Enum.valueOf(fallback.getDeclaringClass(), raw.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
-            log.warning("Ungültiger Wert '" + raw + "' für " + path + ", verwende " + fallback.name().toLowerCase(Locale.ROOT) + ".");
+            log.warning("Invalid value '" + raw + "' for " + path + ", using " + fallback.name().toLowerCase(Locale.ROOT) + ".");
             return fallback;
         }
     }
@@ -194,7 +194,7 @@ public record Settings(
             String value = i < raw.size() ? raw.get(i) : defaults.get(i);
             long parsed = parseBanDuration(value);
             if (parsed == 0) {
-                log.warning("Ungültige Dauer '" + value + "' in gui.ban-durations, verwende " + defaults.get(i) + ".");
+                log.warning("Invalid duration '" + value + "' in gui.ban-durations, using " + defaults.get(i) + ".");
                 parsed = parseBanDuration(defaults.get(i));
             }
             result.add(parsed);

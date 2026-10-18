@@ -1,7 +1,7 @@
 name: MRchunks
 version: '${version}'
 main: at.marcelr.mrchunks.MRChunks
-api-version: '26.3'
+api-version: '${mcVersion}'
 softdepend: [squaremap]
 author: _therealmarci
 website: https://github.com/${githubRepository}

@@ -121,7 +121,7 @@ public final class AdminMenu extends Menu {
         };
         Component squaremap = messages.get(plugin.maps().squaremapActive() ? "gui-web-on" : "gui-web-off");
         return Items.of(Material.KNOWLEDGE_BOOK)
-                .name(messages.item("gui-info-name", tag("version", updates.currentVersion())))
+                .name(messages.item("gui-info-name", tag("version", updates.currentVersion()), tag("mc", updates.minecraftVersion())))
                 .lore(messages.lore("gui-info-lore", tag("update", update), tag("squaremap", squaremap)))
                 .build();
     }

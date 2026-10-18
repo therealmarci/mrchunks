@@ -497,7 +497,7 @@ public final class LoaderManager {
                     world = Bukkit.getWorld(rawWorld).getUID();
                 }
                 if (owner == null || world == null) {
-                    plugin.getLogger().warning("Chunkloader #" + key + " in data.yml ist unvollständig und wird übersprungen.");
+                    plugin.getLogger().warning("Chunk loader #" + key + " in data.yml is incomplete and is skipped.");
                     continue;
                 }
                 int id = Integer.parseInt(key);
@@ -563,7 +563,7 @@ public final class LoaderManager {
         try {
             data.save(dataFile);
         } catch (IOException e) {
-            plugin.getLogger().log(Level.WARNING, "Konnte data.yml nicht speichern", e);
+            plugin.getLogger().log(Level.WARNING, "Could not save data.yml", e);
         }
     }
 

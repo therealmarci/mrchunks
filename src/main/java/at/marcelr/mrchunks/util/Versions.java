@@ -1,12 +1,42 @@
 package at.marcelr.mrchunks.util;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
- * Version helpers following Semantic Versioning: {@code MAJOR.MINOR.PATCH[-prerelease][+build]}.
- * A leading "v" (as in Git tags) is ignored, build metadata after "+" too.
+ * Version helpers. Published versions look like {@code mc26.3-v1.2.0} (Minecraft version + plugin version);
+ * the plugin version follows Semantic Versioning: {@code MAJOR.MINOR.PATCH[-prerelease][+build]}.
+ * The "mc...-" prefix, a leading "v" and build metadata after "+" are ignored when comparing.
  */
 public final class Versions {
 
+    private static final Pattern MC_PREFIX = Pattern.compile("^[mM][cC]([0-9][0-9.]*)-");
+    private static final Pattern MC_SUFFIX = Pattern.compile("\\+(?:.*\\.)?[mM][cC]([0-9][0-9.]*)$");
+
     private Versions() {
+    }
+
+    /**
+     * The Minecraft version of a version string: "mc26.3-v1.2.0" (tag) or "1.2.0+mc26.3" (plugin.yml) -&gt; "26.3".
+     * Null for plain versions ("v1.0.0").
+     */
+    public static String minecraft(String version) {
+        Matcher m = MC_PREFIX.matcher(version.trim());
+        if (m.find()) {
+            return m.group(1);
+        }
+        Matcher suffix = MC_SUFFIX.matcher(version.trim());
+        return suffix.find() ? suffix.group(1) : null;
+    }
+
+    /** The plugin version without Minecraft prefix, "v" and build metadata ("mc26.3-v1.2.0" -&gt; "1.2.0"). */
+    public static String plugin(String version) {
+        return normalize(version);
+    }
+
+    /** Builds the published version: {@code full("26.3", "1.2.0")} -&gt; "mc26.3-v1.2.0". */
+    public static String full(String minecraft, String plugin) {
+        return "mc" + minecraft + "-v" + plugin;
     }
 
     /** 0.x versions and versions with a suffix ("1.0.0-rc.1") are pre-releases. */
@@ -71,7 +101,7 @@ public final class Versions {
     }
 
     private static String normalize(String version) {
-        String v = version.trim();
+        String v = MC_PREFIX.matcher(version.trim()).replaceFirst("");
         if (v.startsWith("v") || v.startsWith("V")) {
             v = v.substring(1);
         }

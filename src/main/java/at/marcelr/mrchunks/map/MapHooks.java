@@ -1,6 +1,7 @@
 package at.marcelr.mrchunks.map;
 
 import at.marcelr.mrchunks.MRChunks;
+import at.marcelr.mrchunks.Messages;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.event.EventHandler;
@@ -55,12 +56,12 @@ public final class MapHooks implements Listener {
             squaremap.update();
             squaremap.hidePlayers(plugin.settings().squaremap().hidePlayers());
             status = "map-state-active";
-            plugin.getLogger().info("squaremap gefunden - Chunkloader werden auf der Webkarte eingezeichnet.");
+            plugin.getLogger().info("squaremap found - chunk loaders are shown on the web map.");
         } catch (LinkageError | RuntimeException e) {
             squaremap = null;
             status = "map-state-error";
             error = e.getClass().getSimpleName();
-            plugin.getLogger().log(Level.WARNING, "squaremap-Anbindung fehlgeschlagen (passende squaremap-Version installiert?)", e);
+            plugin.getLogger().log(Level.WARNING, "squaremap integration failed (is a matching squaremap version installed?)", e);
             return;
         }
         if (setup.pending()) {
@@ -79,14 +80,17 @@ public final class MapHooks implements Listener {
             return;
         }
         try {
-            List<String> changes = setup.apply();
+            List<SquaremapSetup.Change> changes = setup.apply();
             if (changes.isEmpty()) {
                 plugin.messages().send(sender, "map-setup-nothing");
                 return;
             }
-            plugin.getLogger().info("squaremap eingerichtet: " + String.join(", ", changes) + ".");
+            Messages messages = plugin.messages();
+            plugin.getLogger().info("squaremap configured: " + String.join(", ", changes.stream()
+                    .map(c -> messages.console(c.key(), c.placeholders())).toList()) + ".");
             if (sender != Bukkit.getConsoleSender()) {
-                plugin.messages().send(sender, "map-setup-done", tag("changes", String.join(", ", changes)));
+                messages.send(sender, "map-setup-done", tag("changes", String.join(", ", changes.stream()
+                        .map(c -> messages.plain(c.key(), c.placeholders())).toList())));
             }
             // squaremap reads its config only on (re)load; our layers and the grid are restored right after.
             Bukkit.getScheduler().runTask(plugin, () -> {
@@ -94,7 +98,7 @@ public final class MapHooks implements Listener {
                 Bukkit.getScheduler().runTaskLater(plugin, this::refreshNow, 40L);
             });
         } catch (IOException | RuntimeException e) {
-            plugin.getLogger().log(Level.WARNING, "squaremap-Config konnte nicht angepasst werden", e);
+            plugin.getLogger().log(Level.WARNING, "Could not adjust the squaremap config", e);
             plugin.messages().send(sender, "map-setup-failed", tag("reason", String.valueOf(e.getMessage())));
         }
     }
@@ -133,7 +137,7 @@ public final class MapHooks implements Listener {
             squaremap.update();
             squaremap.hidePlayers(plugin.settings().squaremap().hidePlayers());
         } catch (LinkageError | RuntimeException e) {
-            plugin.getLogger().log(Level.WARNING, "squaremap: Markierungen konnten nicht aktualisiert werden", e);
+            plugin.getLogger().log(Level.WARNING, "squaremap: could not update the markers", e);
         }
     }
 

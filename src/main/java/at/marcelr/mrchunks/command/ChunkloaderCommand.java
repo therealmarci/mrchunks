@@ -42,6 +42,11 @@ public final class ChunkloaderCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        // From the console every text is English, also values built along the way.
+        return plugin.messages().as(sender, () -> handle(sender, command, label, args));
+    }
+
+    private boolean handle(CommandSender sender, Command command, String label, String[] args) {
         Messages messages = plugin.messages();
         if (!(sender instanceof Player player)) {
             messages.send(sender, "players-only");

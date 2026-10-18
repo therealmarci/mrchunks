@@ -1,7 +1,6 @@
 package at.marcelr.mrchunks.map;
 
 import at.marcelr.mrchunks.MRChunks;
-import at.marcelr.mrchunks.Messages;
 import at.marcelr.mrchunks.Settings;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -43,21 +42,20 @@ final class SquaremapSetup {
      * Applies the settings and records that it happened.
      * @return the changes made (for the log / the admin), empty if the squaremap config does not exist yet
      */
-    List<String> apply() throws IOException {
-        List<String> changes = new ArrayList<>();
+    List<Change> apply() throws IOException {
+        List<Change> changes = new ArrayList<>();
         if (!squaremapConfig.exists()) {
             return changes;
         }
         Settings.SquaremapSettings settings = plugin.settings().squaremap();
         YamlConfiguration config = YamlConfiguration.loadConfiguration(squaremapConfig);
-        Messages texts = plugin.messages();
 
         set(config, changes, "world-settings.default.map.render.background.interval-seconds", 5,
-                texts.plain("map-setup-change-interval"));
+                new Change("map-setup-change-interval"));
         set(config, changes, "world-settings.default.player-tracker.enabled", false,
-                texts.plain("map-setup-change-tracker"));
+                new Change("map-setup-change-tracker"));
         set(config, changes, "settings.ui.sidebar.pinned", "pinned",
-                texts.plain("map-setup-change-sidebar"));
+                new Change("map-setup-change-sidebar"));
 
         for (World world : Bukkit.getWorlds()) {
             String base = "world-settings." + world.getKey().asString() + ".map.";
@@ -68,11 +66,11 @@ final class SquaremapSetup {
                 default -> null;
             };
             if (name != null && !name.isBlank()) {
-                set(config, changes, base + "display-name", name, texts.plain("map-setup-change-name", "world", world.getName(), "name", name));
+                set(config, changes, base + "display-name", name, new Change("map-setup-change-name", "world", world.getName(), "name", name));
             }
             if (world.getEnvironment() == World.Environment.NETHER) {
                 // Without this the nether map only shows the bedrock roof.
-                set(config, changes, base + "iterate-up", true, texts.plain("map-setup-change-nether", "world", world.getName()));
+                set(config, changes, base + "iterate-up", true, new Change("map-setup-change-nether", "world", world.getName()));
                 set(config, changes, base + "max-height", 127, null);
             }
         }
@@ -85,7 +83,11 @@ final class SquaremapSetup {
         return changes;
     }
 
-    private static void set(YamlConfiguration config, List<String> changes, String path, Object value, String label) {
+    /** One applied setting: language key (map-setup-change-*) and its placeholders as name/value pairs. */
+    public record Change(String key, Object... placeholders) {
+    }
+
+    private static void set(YamlConfiguration config, List<Change> changes, String path, Object value, Change label) {
         if (!value.equals(config.get(path))) {
             config.set(path, value);
             if (label != null) {

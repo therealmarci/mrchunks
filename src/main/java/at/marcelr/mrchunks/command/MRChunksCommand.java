@@ -57,6 +57,11 @@ public final class MRChunksCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        // From the console every text is English, also values built along the way.
+        return plugin.messages().as(sender, () -> handle(sender, command, label, args));
+    }
+
+    private boolean handle(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
             messages().send(sender, ADMIN_PERMS.stream().anyMatch(sender::hasPermission) ? "admin-usage" : "no-permission");
             return true;
@@ -232,7 +237,7 @@ public final class MRChunksCommand implements TabExecutor {
             return;
         }
         messages().send(sender, "discord-test-sending");
-        discord.test().whenComplete((error, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
+        discord.test(sender).whenComplete((error, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
             String problem = throwable != null ? throwable.getMessage() : error;
             if (problem == null) {
                 messages().send(sender, "discord-test-ok");
@@ -245,7 +250,7 @@ public final class MRChunksCommand implements TabExecutor {
     private void version(CommandSender sender) {
         UpdateChecker updates = plugin.updateChecker();
         messages().send(sender, "version",
-                tag("version", updates.currentVersion()),
+                tag("version", updates.currentVersion()), tag("mc", updates.minecraftVersion()),
                 tag("author", String.join(", ", plugin.getPluginMeta().getAuthors())));
         Runnable links = () -> {
             sender.sendMessage(Component.empty());

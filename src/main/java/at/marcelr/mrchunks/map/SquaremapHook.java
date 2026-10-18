@@ -96,7 +96,7 @@ final class SquaremapHook {
                 Files.writeString(index, patched, StandardCharsets.UTF_8);
             }
         } catch (IOException e) {
-            plugin.getLogger().warning("squaremap: Chunkraster konnte nicht eingebunden werden: " + e.getMessage());
+            plugin.getLogger().warning("squaremap: could not inject the chunk grid: " + e.getMessage());
         }
     }
 
@@ -127,7 +127,7 @@ final class SquaremapHook {
         config.addProperty("hidePlayerList", plugin.settings().squaremap().hidePlayers());
         try (InputStream in = plugin.getResource("web/squaremap-grid.js")) {
             if (in == null) {
-                throw new IOException("web/squaremap-grid.js fehlt im Plugin");
+                throw new IOException("web/squaremap-grid.js is missing in the plugin");
             }
             // Gson output is valid JavaScript and escapes "<" etc., so config values cannot break out.
             return new String(in.readAllBytes(), StandardCharsets.UTF_8)
@@ -227,7 +227,7 @@ final class SquaremapHook {
         try {
             removeGrid();
         } catch (IOException e) {
-            plugin.getLogger().warning("squaremap: Chunkraster konnte nicht entfernt werden: " + e.getMessage());
+            plugin.getLogger().warning("squaremap: could not remove the chunk grid: " + e.getMessage());
         }
     }
 

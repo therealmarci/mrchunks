@@ -3,6 +3,7 @@ package at.marcelr.mrchunks;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.Configuration;
 import org.bukkit.configuration.ConfigurationSection;
 
@@ -115,14 +116,14 @@ public final class DiscordWebhook {
                 Map.copyOf(events));
         disabledReason = null;
         int[] counts = eventCounts();
-        plugin.getLogger().info("Discord-Webhook aktiv (" + counts[0] + "/" + counts[1] + " Events eingeschaltet).");
+        plugin.getLogger().info("Discord webhook active (" + counts[0] + "/" + counts[1] + " events enabled).");
     }
 
     private void disable(String reasonKey, boolean warn) {
         config = Config.DISABLED;
         disabledReason = reasonKey;
         if (warn) {
-            plugin.getLogger().warning("Discord-Webhook deaktiviert: " + plugin.messages().plain(reasonKey));
+            plugin.getLogger().warning("Discord webhook disabled: " + plugin.messages().console(reasonKey));
         }
     }
 
@@ -159,15 +160,16 @@ public final class DiscordWebhook {
      * Sends the test message ({@code discord.test-message}) and waits for Discord's answer ({@code ?wait=true}).
      * @return future with null on success, or the error description
      */
-    public CompletableFuture<String> test() {
+    public CompletableFuture<String> test(CommandSender sender) {
         Config current = config;
         if (!current.enabled()) {
-            return CompletableFuture.completedFuture(disabledReason());
+            return CompletableFuture.completedFuture(plugin.messages().as(sender, this::disabledReason));
         }
         String text = plugin.messages().optional("discord.test-message");
         String payload = buildPayload(current, 0x2ECC71, text.isEmpty() ? "MRchunks" : text);
         URI waitUrl = URI.create(current.url() + (current.url().getQuery() == null ? "?" : "&") + "wait=true");
-        return CompletableFuture.supplyAsync(() -> send(waitUrl, payload), executor);
+        // The error text goes back to the sender, so build it in their language (English for the console).
+        return CompletableFuture.supplyAsync(() -> plugin.messages().as(sender, () -> send(waitUrl, payload)), executor);
     }
 
     /**
@@ -183,7 +185,7 @@ public final class DiscordWebhook {
         if (event == null) {
             // Should not happen thanks to the defaults - but if it does, say so once instead of failing silently.
             if (missingEventsLogged.add(eventKey)) {
-                plugin.getLogger().warning("Discord-Event '" + eventKey + "' fehlt in discord.events - wird nicht gesendet.");
+                plugin.getLogger().warning("Discord event '" + eventKey + "' is missing in discord.events - not sent.");
             }
             return;
         }
@@ -239,7 +241,6 @@ public final class DiscordWebhook {
                 .header("User-Agent", "MRchunks/" + plugin.getPluginMeta().getVersion())
                 .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
                 .build();
-        String error;
         try {
             for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -249,32 +250,38 @@ public final class DiscordWebhook {
                     return null;
                 }
                 if (status != 429) {
-                    return fail("HTTP " + status + " - " + explain(messages, status) + " " + abbreviate(response.body()));
+                    return fail(explainKey(status), "HTTP " + status + " - ", " " + abbreviate(response.body()));
                 }
                 Thread.sleep(retryAfterMillis(response));
             }
-            error = messages.plain("discord-error-rate-limit");
+            return fail("discord-error-rate-limit", "", "");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            error = messages.plain("discord-error-interrupted");
+            return fail("discord-error-interrupted", "", "");
         } catch (Exception e) {
-            error = e.getClass().getSimpleName() + (e.getMessage() == null ? "" : ": " + e.getMessage());
+            return fail(null, e.getClass().getSimpleName() + (e.getMessage() == null ? "" : ": " + e.getMessage()), "");
         }
-        return fail(error);
     }
 
-    private String fail(String error) {
-        lastResult = plugin.messages().plain("discord-result-error", "time", now(), "error", error);
-        plugin.getLogger().log(Level.WARNING, "Discord-Webhook: " + error);
+    /**
+     * Records and logs a failed delivery: the admin sees the text in the configured language, the console in English.
+     * @param key language key of the explanation, or null if there is none
+     * @return the error in the configured language
+     */
+    private String fail(String key, String before, String after) {
+        Messages messages = plugin.messages();
+        String error = before + (key == null ? "" : messages.plain(key)) + after;
+        lastResult = messages.plain("discord-result-error", "time", now(), "error", error);
+        plugin.getLogger().log(Level.WARNING, "Discord webhook: " + before + (key == null ? "" : messages.console(key)) + after);
         return error;
     }
 
-    private static String explain(Messages messages, int status) {
+    private static String explainKey(int status) {
         return switch (status) {
-            case 400 -> messages.plain("discord-error-400");
-            case 401, 403 -> messages.plain("discord-error-401");
-            case 404 -> messages.plain("discord-error-404");
-            default -> "";
+            case 400 -> "discord-error-400";
+            case 401, 403 -> "discord-error-401";
+            case 404 -> "discord-error-404";
+            default -> null;
         };
     }
 
