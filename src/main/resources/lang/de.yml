@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Nicht ändern - damit erkennt das Plugin bei Updates, welche Texte erneuert werden müssen.
-lang-version: 5
+lang-version: 6
 
 # Texte der Discord-Logs (Markdown wie in Discord). Platzhalter: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit}. An/aus und Farbe stehen in der config.yml.
@@ -256,7 +256,7 @@ gui-state-active: "<green>● aktiv"
 gui-state-inactive: "<red>● deaktiviert"
 
 # Menü eines Chunkloaders
-gui-title-loader: "<dark_gray>MRchunks » <dark_green><name>"
+gui-title-loader: "<dark_gray>Loader » <dark_green><name>"
 gui-toggle-off-name: "<red>Deaktivieren"
 gui-toggle-off-lore:
   - "<gray>Die Chunks werden nicht mehr"
@@ -289,7 +289,9 @@ gui-shared-name: "<green>Mit mir geteilt <gray>(<count>)"
 gui-shared-lore:
   - "<gray>Chunkloader anderer Spieler,"
   - "<gray>die du an- und ausschalten darfst."
+# Fenstertitel sind auf ca. 160 Pixel begrenzt (etwa 26 Zeichen) - längere werden automatisch mit "…" gekürzt.
 gui-title-members: "<dark_gray>Mitglieder » <dark_green><scope>"
+gui-members-scope-all: "alle Loader"
 gui-title-shared: "<dark_gray>Mit mir geteilt"
 gui-member-name: "<white><player>"
 gui-member-lore:
@@ -330,11 +332,11 @@ gui-delete-confirm-lore:
 gui-teleport-name: "<aqua>Hinteleportieren"
 
 # Eigene Chunkloader (/chunkloader list)
-gui-title-mine: "<dark_gray>Meine Chunkloader <gray>(<placed>/<limit>, <active>/<active-limit> aktiv)"
+gui-title-mine: "<dark_gray>Meine Chunkloader <gray>(<placed>/<limit>)"
 
 # Admin-Menü
 gui-title-admin: "<dark_gray>MRchunks <gray>» <dark_green>Übersicht"
-gui-title-player: "<dark_gray>MRchunks <gray>» <dark_green><player>"
+gui-title-player: "<dark_gray>Spieler » <dark_green><player>"
 gui-stats-name: "<green>Übersicht"
 gui-stats-lore:
   - "<gray>Chunkloader: <white><loaders></white> <dark_gray>(<active> aktiv)"

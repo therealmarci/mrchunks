@@ -1,7 +1,9 @@
 package at.marcelr.mrchunks.gui;
 
 import at.marcelr.mrchunks.MRChunks;
+import at.marcelr.mrchunks.util.TitleWidth;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -30,7 +32,19 @@ public abstract class Menu implements InventoryHolder {
     protected Menu(MRChunks plugin, Player viewer, int rows, Component title) {
         this.plugin = plugin;
         this.viewer = viewer;
-        this.inventory = Bukkit.createInventory(this, rows * 9, title);
+        this.inventory = Bukkit.createInventory(this, rows * 9, fit(title));
+    }
+
+    /**
+     * Keeps the title inside the window: Minecraft does not cut titles off, a long one (e.g. with a long loader or
+     * player name) runs out of the box. Too long titles are shortened with "…" in the colour of their first part.
+     */
+    static Component fit(Component title) {
+        String plain = PlainTextComponentSerializer.plainText().serialize(title);
+        if (TitleWidth.width(plain) <= TitleWidth.MAX) {
+            return title;
+        }
+        return Component.text(TitleWidth.fit(plain, TitleWidth.MAX), title.style());
     }
 
     /** Fills the inventory. Implementations call {@link #set} for every slot they use. */

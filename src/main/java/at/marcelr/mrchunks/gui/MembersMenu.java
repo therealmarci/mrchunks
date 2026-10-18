@@ -42,7 +42,7 @@ public final class MembersMenu extends Menu {
     private static String scope(MRChunks plugin, UUID owner, Integer loaderId) {
         Loader loader = loaderId == null ? null : plugin.loaders().byId(loaderId);
         return loader != null ? Texts.name(plugin, loader)
-                : plugin.messages().plain("invite-scope-all-of", "owner", LoaderManager.name(owner));
+                : plugin.messages().plain("gui-members-scope-all");
     }
 
     @Override
