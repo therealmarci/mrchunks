@@ -7,6 +7,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -202,6 +203,70 @@ public final class AdminActions {
         notifyOwner(loader.owner(), "owner-notify-deleted", tags, tag("admin", admin));
         plugin.getLogger().info(admin + " (web) deleted " + Texts.consoleName(plugin, loader) + ".");
         plugin.discord().log("admin-delete", discordTags(loader, "admin", admin));
+        return null;
+    }
+
+    // Player actions from the web (MRadmin checks mrchunks.admin.limit, .ban or .manage first).
+
+    /** Sets or (limit null) resets one of the two caps, like /mrchunks limit; a lower active limit switches loaders off. */
+    public String webSetLimit(String admin, OfflinePlayer target, LoaderManager.LimitKind kind, Integer limit) {
+        loaders().setLimitOverride(target.getUniqueId(), kind, limit);
+        String name = name(target);
+        String effective = Texts.limit(loaders().limit(target, kind));
+        String type = messages().plain(kind == LoaderManager.LimitKind.PLACE ? "limit-type-place" : "limit-type-active");
+        notifyOwner(target.getUniqueId(), "limit-notify", tag("limit", effective), tag("type", type));
+        plugin.getLogger().info(admin + " (web) set the " + kind.name().toLowerCase(java.util.Locale.ROOT) + " limit of "
+                + name + " to " + (limit == null ? "default" : limit) + ".");
+        plugin.discord().log("admin-limit", "admin", admin, "player", name, "limit", effective, "type", type);
+        if (kind == LoaderManager.LimitKind.ACTIVE) {
+            int switchedOff = loaders().enforceActiveLimit(target).size();
+            if (switchedOff > 0) {
+                notifyOwner(target.getUniqueId(), "active-limit-enforced-notify", tag("count", switchedOff));
+            }
+        }
+        return null;
+    }
+
+    /** Bans the player from chunk loaders: their loaders are deleted, loader items taken (if online). */
+    public String webBan(String admin, OfflinePlayer target, long duration, String reason) {
+        String cleanReason = reason == null || reason.isBlank() ? messages().plain("ban-no-reason") : reason;
+        UUID uuid = target.getUniqueId();
+        int deleted = loaders().deleteAll(uuid);
+        loaders().ban(uuid, duration, cleanReason, admin);
+        Player online = target.getPlayer();
+        if (online != null) {
+            plugin.loaderItem().remove(online, Integer.MAX_VALUE);
+        }
+        String name = name(target);
+        String durationText = Texts.banDuration(plugin, loaders().ban(uuid));
+        notifyOwner(uuid, "ban-notify", tag("duration", durationText), tag("reason", cleanReason));
+        plugin.getLogger().info(admin + " (web) banned " + name + " from chunk loaders (" + durationText + ", "
+                + deleted + " loader(s) deleted).");
+        plugin.discord().log("admin-ban", "admin", admin, "player", name,
+                "time", durationText, "reason", cleanReason, "count", deleted);
+        return null;
+    }
+
+    public String webUnban(String admin, OfflinePlayer target) {
+        if (!loaders().unban(target.getUniqueId())) {
+            return "not-banned";
+        }
+        String name = name(target);
+        notifyOwner(target.getUniqueId(), "unban-notify");
+        plugin.getLogger().info(admin + " (web) lifted the chunk loader ban of " + name + ".");
+        plugin.discord().log("admin-unban", "admin", admin, "player", name);
+        return null;
+    }
+
+    /** Deletes all loaders of the player (without banning). */
+    public String webDeleteAll(String admin, OfflinePlayer target) {
+        List<Loader> owned = loaders().byOwner(target.getUniqueId());
+        if (owned.isEmpty()) {
+            return "no-loaders";
+        }
+        for (Loader loader : List.copyOf(owned)) {
+            webDelete(admin, loader);
+        }
         return null;
     }
 

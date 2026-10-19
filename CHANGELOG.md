@@ -14,7 +14,8 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
   Sperrgrenze sofort gesperrt. Vorher konnte die Pause ihn verstecken (Chunks frei, Lag weg, Pause vorbei, von vorn).
 - **MRadmin-Weboberfläche:** Schnittstelle Version 4 (`MRadminHook.web`) liefert Chunkloader, Status, Messwerte,
   Mitglieder und die Zahl der geladenen Chunks (für den Health-Verlauf von MRadmin) als Daten und nimmt Aktionen an
-  (ein-/ausschalten, entsperren, löschen) - der Owner wird wie ingame benachrichtigt, Discord- und Server-Log inklusive.
+  (ein-/ausschalten, entsperren, löschen); dazu pro Spieler Loader, Limits, Sperre und Einladungen
+  (`player`, `flags`) und Spieler-Aktionen (Limits setzen, sperren, entsperren, alle löschen) - der Owner wird wie ingame benachrichtigt, Discord- und Server-Log inklusive.
 - **Server-Pause:** Liegt die TPS des Servers 30 Sekunden lang unter 15, geben alle Chunkloader ihre Chunks frei,
   egal woher der Lag kommt. Sobald die TPS 60 Sekunden lang wieder bei mindestens 18 liegt, laden sie automatisch
   wieder. An/aus der Loader bleibt dabei unverändert. Owner aktiver Loader und Admins werden informiert, dazu

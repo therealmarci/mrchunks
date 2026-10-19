@@ -11,6 +11,9 @@ import at.marcelr.mrchunks.lag.LagLimits;
 import at.marcelr.mrchunks.lag.LagLock;
 import at.marcelr.mrchunks.lag.Metric;
 import at.marcelr.mrchunks.lag.ServerPause;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -28,6 +31,9 @@ import java.util.UUID;
  *  loaders                          all loaders with status
  *  loader  {id}                     one loader with every measured value, lock, members
  *  action  {id, action, admin}      toggle | unlock | delete  -> null or an error key
+ *  player  {uuid}                   one player: loaders, limits (with source), ban, invites, loaders shared with them
+ *  flags                            uuid -> marks for MRadmin's player list (chunks-locked, chunks-warn, chunks-banned)
+ *  playerAction {uuid, action, admin, kind?, value?, reason?}   limit | ban | unban | deleteAll  -> null or an error key
  * </pre>
  */
 final class WebData {
@@ -45,8 +51,147 @@ final class WebData {
                 yield loader == null ? null : detail(plugin, loader);
             }
             case "action" -> action(plugin, args);
+            case "player" -> {
+                OfflinePlayer target = target(args.get("uuid"));
+                yield target == null ? null : player(plugin, target);
+            }
+            case "flags" -> flags(plugin);
+            case "playerAction" -> playerAction(plugin, args);
             default -> null;
         };
+    }
+
+    // ---------------------------------------------------------------- players
+
+    /** A player's part of MRadmin's profile page: their loaders, limits, ban, invites and loaders shared with them. */
+    private static Map<String, Object> player(MRChunks plugin, OfflinePlayer target) {
+        LoaderManager loaders = plugin.loaders();
+        UUID id = target.getUniqueId();
+        Map<String, Object> m = new LinkedHashMap<>();
+        List<Map<String, Object>> own = new ArrayList<>();
+        for (Loader loader : loaders.byOwner(id)) {
+            own.add(summary(plugin, loader));
+        }
+        m.put("loaders", own);
+        m.put("active", loaders.activeCount(id));
+        m.put("limit", limit(loaders, target, LoaderManager.LimitKind.PLACE));
+        m.put("activeLimit", limit(loaders, target, LoaderManager.LimitKind.ACTIVE));
+        m.put("defaultLimit", plugin.settings().loaders().defaultLimit());
+        m.put("defaultActiveLimit", plugin.settings().loaders().defaultActiveLimit());
+        // Permissions (limits by permission, exempt) are only known while the player is online.
+        Player online = target.getPlayer();
+        m.put("online", online != null);
+        m.put("exempt", online != null && online.hasPermission(at.marcelr.mrchunks.AdminActions.PERM_EXEMPT));
+        LoaderManager.Ban ban = loaders.ban(id);
+        if (ban != null) {
+            Map<String, Object> b = new LinkedHashMap<>();
+            b.put("permanent", ban.until() == Long.MAX_VALUE);
+            b.put("until", ban.until() == Long.MAX_VALUE ? 0 : ban.until());
+            b.put("reason", ban.reason());
+            b.put("by", ban.by());
+            m.put("ban", b);
+        }
+        List<Map<String, Object>> members = new ArrayList<>();
+        addMembers(members, loaders.members(id, null), "all");
+        m.put("members", members);
+        List<Map<String, Object>> shared = new ArrayList<>();
+        for (Loader loader : loaders.sharedWith(id)) {
+            shared.add(summary(plugin, loader));
+        }
+        m.put("shared", shared);
+        m.put("banDurations", plugin.settings().gui().banDurations());
+        return m;
+    }
+
+    /** value -1 = unlimited; source default | permission | custom | unlimited; custom = the admin's value or null. */
+    private static Map<String, Object> limit(LoaderManager loaders, OfflinePlayer target, LoaderManager.LimitKind kind) {
+        LoaderManager.Limit limit = loaders.limit(target, kind);
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("value", limit.value() == Integer.MAX_VALUE ? -1 : limit.value());
+        m.put("source", limit.source().name().toLowerCase(Locale.ROOT));
+        m.put("custom", loaders.limitOverride(target.getUniqueId(), kind));
+        return m;
+    }
+
+    /** Marks for MRadmin's player list: owners of locked or conspicuous loaders, players banned from loaders. */
+    private static Map<String, List<String>> flags(MRChunks plugin) {
+        Map<String, List<String>> flags = new LinkedHashMap<>();
+        for (Loader loader : plugin.loaders().all()) {
+            LoaderStatus status = LoaderStatus.of(plugin, loader);
+            String flag = status == LoaderStatus.LOCKED ? "chunks-locked" : status == LoaderStatus.WARN ? "chunks-warn" : null;
+            if (flag != null) {
+                List<String> f = flags.computeIfAbsent(loader.owner().toString(), k -> new ArrayList<>());
+                if (!f.contains(flag)) {
+                    f.add(flag);
+                }
+            }
+        }
+        for (UUID id : plugin.loaders().activeBans().keySet()) {
+            flags.computeIfAbsent(id.toString(), k -> new ArrayList<>()).add("chunks-banned");
+        }
+        return flags;
+    }
+
+    /**
+     * Player actions: limit {kind place|active, value number or "" = back to default/permission}, ban {value = duration
+     * in ms from gui.ban-durations, reason}, unban, deleteAll. @return null or an error key
+     */
+    private static String playerAction(MRChunks plugin, Map<?, ?> args) {
+        OfflinePlayer target = target(args.get("uuid"));
+        if (target == null) {
+            return "player-unknown";
+        }
+        String admin = String.valueOf(args.get("admin"));
+        String value = args.get("value") == null ? "" : String.valueOf(args.get("value")).trim();
+        var actions = plugin.adminActions();
+        return switch (String.valueOf(args.get("action"))) {
+            case "limit" -> {
+                LoaderManager.LimitKind kind = switch (String.valueOf(args.get("kind"))) {
+                    case "place" -> LoaderManager.LimitKind.PLACE;
+                    case "active" -> LoaderManager.LimitKind.ACTIVE;
+                    default -> null;
+                };
+                if (kind == null) {
+                    yield "unknown-action";
+                }
+                Integer limit;
+                try {
+                    limit = value.isEmpty() ? null : Integer.parseInt(value);
+                } catch (NumberFormatException e) {
+                    yield "invalid-limit";
+                }
+                if (limit != null && (limit < 0 || limit > 1000)) {
+                    yield "invalid-limit";
+                }
+                yield actions.webSetLimit(admin, target, kind, limit);
+            }
+            case "ban" -> {
+                long duration;
+                try {
+                    duration = Long.parseLong(value);
+                } catch (NumberFormatException e) {
+                    yield "invalid-duration";
+                }
+                if (!plugin.settings().gui().banDurations().contains(duration)) {
+                    yield "invalid-duration";
+                }
+                String reason = args.get("reason") instanceof String r ? r.strip() : "";
+                yield actions.webBan(admin, target, duration, reason.length() > 200 ? reason.substring(0, 200) : reason);
+            }
+            case "unban" -> actions.webUnban(admin, target);
+            case "deleteAll" -> actions.webDeleteAll(admin, target);
+            default -> "unknown-action";
+        };
+    }
+
+    /** A player who has been on the server (or is online); null for anything else. */
+    private static OfflinePlayer target(Object uuid) {
+        try {
+            OfflinePlayer player = Bukkit.getOfflinePlayer(UUID.fromString(String.valueOf(uuid)));
+            return player.isOnline() || player.hasPlayedBefore() ? player : null;
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     private static Loader loader(MRChunks plugin, Map<?, ?> args) {
