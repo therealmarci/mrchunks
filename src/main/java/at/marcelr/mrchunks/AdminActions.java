@@ -162,6 +162,49 @@ public final class AdminActions {
         }
     }
 
+    // ----------------------------------------------------- web (MRadmin)
+
+    // Actions from MRadmin's web interface: the admin is usually not online, so there is no sender to answer - the
+    // owner hears about it, the Discord and server log get it as in game. MRadmin checks mrchunks.admin.manage
+    // first. Each returns an error key for the web interface, or null if it worked.
+
+    public String webToggle(String admin, Loader loader) {
+        boolean active = !loader.active();
+        if (active && loaders().lagLocked(loader)) {
+            return "loader-locked";
+        }
+        loaders().setActive(loader, active);
+        String state = Texts.state(plugin, active);
+        notifyOwner(loader.owner(), "owner-notify-toggled", Texts.loader(plugin, loader), tag("state", state), tag("admin", admin));
+        plugin.getLogger().info(admin + " (web) switched " + Texts.consoleName(plugin, loader) + (active ? " on." : " off."));
+        plugin.discord().log("loader-toggled", discordTags(loader, "admin", admin, "state", state));
+        return null;
+    }
+
+    public String webUnlock(String admin, Loader loader) {
+        if (loaders().lagLock(loader) == null) {
+            return "loader-not-locked";
+        }
+        loaders().lagUnlock(loader);
+        plugin.lag().unlocked(loader);
+        notifyOwner(loader.owner(), "lag-unlocked-owner", Texts.loader(plugin, loader), tag("admin", admin));
+        plugin.getLogger().info(admin + " (web) lifted the lag lock of " + Texts.consoleName(plugin, loader) + ".");
+        plugin.discord().log("loader-lag-unlocked", discordTags(loader, "admin", admin));
+        var data = at.marcelr.mrchunks.lag.LagMonitor.eventData(plugin, loader, "unlock");
+        data.put("by", admin);
+        org.bukkit.Bukkit.getPluginManager().callEvent(new at.marcelr.mrchunks.api.LoaderLockEvent(data));
+        return null;
+    }
+
+    public String webDelete(String admin, Loader loader) {
+        TagResolver tags = Texts.loader(plugin, loader);
+        loaders().delete(loader);
+        notifyOwner(loader.owner(), "owner-notify-deleted", tags, tag("admin", admin));
+        plugin.getLogger().info(admin + " (web) deleted " + Texts.consoleName(plugin, loader) + ".");
+        plugin.discord().log("admin-delete", discordTags(loader, "admin", admin));
+        return null;
+    }
+
     /**
      * Gives the loader a name, or with an empty name the default name back ("Chunkloader 3").
      * The name is plain text: no formatting, no control characters, at most gui.max-name-length characters.

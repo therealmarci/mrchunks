@@ -30,11 +30,12 @@ import static at.marcelr.mrchunks.Messages.tag;
  * <p>
  * Version 1: summary, playerSummary, openPlayerMenu. Version 2 adds activity and openActivity (conspicuous loaders
  * in MRadmin's server health). Version 3 adds {@link #EVENT} (MRadmin opens a ticket when a loader is locked; the team lifts the lock
- * through openActivity, the loader's menu). MRadmin uses them only if they exist, so both plugins stay independent.
+ * through openActivity, the loader's menu). Version 4 adds {@link #web} (data and actions for the web
+ * interface). MRadmin uses them only if they exist, so both plugins stay independent.
  */
 public final class MRadminHook {
 
-    public static final int API_VERSION = 3;
+    public static final int API_VERSION = 4;
     /** Fired on every lag lock and unlock; MRadmin listens to it while both plugins run. */
     public static final Class<LoaderLockEvent> EVENT = LoaderLockEvent.class;
     private static final int MAX_ACTIVITY = 21;
@@ -157,6 +158,17 @@ public final class MRadminHook {
         }
         new LoaderMenu(plugin, viewer, loader.id(), back).open();
         return true;
+    }
+
+    /**
+     * Data and actions for MRadmin's web interface (hook version 4): {@code overview}, {@code loaders},
+     * {@code loader} (args: id), {@code action} (args: id, action = toggle | unlock | delete, admin = name).
+     * Answers with plain values only (maps, lists, strings, numbers); an action answers null or an error key.
+     * MRadmin checks the permissions (mrchunks.admin.gui to look, mrchunks.admin.manage to act) and calls this on the
+     * server thread.
+     */
+    public static Object web(String request, Map<String, Object> args) {
+        return WebData.handle(plugin(), request, args);
     }
 
     /** Opens the player's loader menu; "back" returns to MRadmin. @return false without permission */
