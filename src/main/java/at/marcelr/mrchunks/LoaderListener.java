@@ -4,6 +4,7 @@ import at.marcelr.mrchunks.gui.LoaderMenu;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -15,6 +16,7 @@ import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
@@ -26,7 +28,9 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 import static at.marcelr.mrchunks.Messages.tag;
 
@@ -193,6 +197,30 @@ public final class LoaderListener implements Listener {
             event.setCancelled(true);
         }
     }
+
+    /**
+     * No mobs on the loader block: spawns the world itself makes (natural, chunk generation, spawners, patrols, raids,
+     * portals, reinforcements ...) are cancelled when they stand on it. What a player does on purpose (spawn eggs,
+     * commands, breeding, building golems, buckets) stays allowed.
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onSpawn(CreatureSpawnEvent event) {
+        if (WORLD_SPAWNS.contains(event.getSpawnReason())
+                && loaders().isLoaderBlock(event.getLocation().getBlock().getRelative(BlockFace.DOWN))) {
+            event.setCancelled(true);
+        }
+    }
+
+    private static final Set<CreatureSpawnEvent.SpawnReason> WORLD_SPAWNS = EnumSet.of(
+            CreatureSpawnEvent.SpawnReason.NATURAL,
+            CreatureSpawnEvent.SpawnReason.JOCKEY, CreatureSpawnEvent.SpawnReason.SPAWNER,
+            CreatureSpawnEvent.SpawnReason.TRIAL_SPAWNER, CreatureSpawnEvent.SpawnReason.OMINOUS_ITEM_SPAWNER,
+            CreatureSpawnEvent.SpawnReason.PATROL, CreatureSpawnEvent.SpawnReason.RAID,
+            CreatureSpawnEvent.SpawnReason.REINFORCEMENTS, CreatureSpawnEvent.SpawnReason.VILLAGE_DEFENSE,
+            CreatureSpawnEvent.SpawnReason.VILLAGE_INVASION, CreatureSpawnEvent.SpawnReason.NETHER_PORTAL,
+            CreatureSpawnEvent.SpawnReason.TRAP, CreatureSpawnEvent.SpawnReason.LIGHTNING,
+            CreatureSpawnEvent.SpawnReason.SILVERFISH_BLOCK, CreatureSpawnEvent.SpawnReason.ENDER_PEARL,
+            CreatureSpawnEvent.SpawnReason.DROWNED, CreatureSpawnEvent.SpawnReason.BEEHIVE);
 
     /** Only relevant if item.material is a flammable block. */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

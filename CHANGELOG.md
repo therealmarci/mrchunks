@@ -43,6 +43,10 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
   (`remove`) und **Webkarte** (`map`). `list` ist das Menü selbst, `info` und `version` entfallen (Version für
   Admins: `/mrchunks version`). Die Admin-Befehle unter `/mrchunks` bleiben unverändert.
 
+### Behoben
+- Auf dem Chunkloader-Block spawnen keine Mobs mehr (natürlich, Spawner, Patrouillen, Raids, Portale ...). Was Spieler
+  selbst auslösen (Spawn-Eier, Befehle, Züchten, Golems bauen), bleibt möglich.
+
 ## [0.3.0] - 2026-10-19
 Dritte Testversion für Minecraft **26.3** (`mc26.3-v0.3.0`). Update von 0.2.0: JAR austauschen und neu starten,
 Config und Texte werden automatisch ergänzt (Backup `config.v4.backup.yml`).
