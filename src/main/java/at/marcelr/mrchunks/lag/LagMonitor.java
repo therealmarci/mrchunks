@@ -7,6 +7,7 @@ import at.marcelr.mrchunks.MRChunks;
 import at.marcelr.mrchunks.Messages;
 import at.marcelr.mrchunks.Settings;
 import at.marcelr.mrchunks.Texts;
+import at.marcelr.mrchunks.api.LoaderLockEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import org.bukkit.Bukkit;
@@ -194,7 +195,8 @@ public final class LagMonitor implements Listener {
         int radius = plugin.settings().loaders().radius();
         Map<UUID, Map<Long, List<Integer>>> build = new HashMap<>();
         for (Loader loader : loaders().all()) {
-            if (!loader.active()) {
+            // Locked loaders too: admins want to see whether things calmed down before lifting the lock.
+            if (!loader.active() && !loaders().lagLocked(loader)) {
                 continue;
             }
             Map<Long, List<Integer>> chunks = build.computeIfAbsent(loader.worldId(), k -> new HashMap<>());
@@ -219,61 +221,82 @@ public final class LagMonitor implements Listener {
     private void sample() {
         Settings.LagSettings s = settings();
         long now = System.currentTimeMillis();
+        if (loaders().paused()) {
+            // Server pause: the loaders hold nothing, so whatever happens in their areas is not their doing.
+            strikes.clear();
+            counts.clear();
+            windowStart = now;
+            return;
+        }
         double seconds = Math.max(1, (now - windowStart) / 1000.0);
         int radius = plugin.settings().loaders().radius();
         boolean serverLags = Bukkit.getAverageTickTime() >= s.serverLagMspt();
 
         for (Loader loader : loaders().all()) {
+            boolean locked = loaders().lagLocked(loader);
             if (!loader.active()) {
-                // Keep the last measurement of locked loaders (admins see why), forget the others.
-                if (!loaders().lagLocked(loader)) {
-                    activity.remove(loader.id());
-                }
                 strikes.remove(loader.id());
-                continue;
+                if (!locked) {
+                    activity.remove(loader.id());
+                    continue;
+                }
             }
             World world = loader.world();
             if (world == null) {
                 continue;
             }
-            Map<Metric, Double> values = new EnumMap<>(Metric.class);
-            int entities = 0;
-            int items = 0;
-            for (int dx = -radius; dx <= radius; dx++) {
-                for (int dz = -radius; dz <= radius; dz++) {
-                    int cx = loader.chunkX() + dx;
-                    int cz = loader.chunkZ() + dz;
-                    if (!world.isChunkLoaded(cx, cz)) {
-                        continue;
-                    }
-                    Chunk chunk = world.getChunkAt(cx, cz);
-                    for (Entity entity : chunk.getEntities()) {
-                        if (entity instanceof Player) {
-                            continue;
-                        }
-                        entities++;
-                        if (entity instanceof Item) {
-                            items++;
-                        }
-                    }
-                }
+            Activity a = measure(loader, world, radius, seconds, now);
+            if (loader.active()) {
+                activity.put(loader.id(), a);
+                judge(loader, a, serverLags, now);
+            } else if (a.loadedChunks() > 0) {
+                // Locked: measured while someone keeps (part of) the area loaded, never judged. Otherwise the last
+                // measurement stays, so admins still see why it was locked.
+                activity.put(loader.id(), a);
             }
-            values.put(Metric.ENTITIES, (double) entities);
-            values.put(Metric.ITEMS, (double) items);
-            long[] c = counts.get(loader.id());
-            for (Metric metric : Metric.values()) {
-                if (metric.rate()) {
-                    values.put(metric, c == null ? 0 : c[metric.ordinal()] / seconds);
-                }
-            }
-            Activity a = Activity.of(values, s.limits(), now);
-            activity.put(loader.id(), a);
-            judge(loader, a, serverLags, now);
         }
         activity.keySet().removeIf(id -> loaders().byId(id) == null);
         counts.clear();
         windowStart = now;
         rebuildIndex();
+    }
+
+    /** Counts entities and items in the loaded chunks of the area and the events since the last sample. */
+    private Activity measure(Loader loader, World world, int radius, double seconds, long now) {
+        Map<Metric, Double> values = new EnumMap<>(Metric.class);
+        int entities = 0;
+        int items = 0;
+        int loaded = 0;
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                int cx = loader.chunkX() + dx;
+                int cz = loader.chunkZ() + dz;
+                if (!world.isChunkLoaded(cx, cz)) {
+                    continue;
+                }
+                loaded++;
+                Chunk chunk = world.getChunkAt(cx, cz);
+                for (Entity entity : chunk.getEntities()) {
+                    if (entity instanceof Player) {
+                        continue;
+                    }
+                    entities++;
+                    if (entity instanceof Item) {
+                        items++;
+                    }
+                }
+            }
+        }
+        values.put(Metric.ENTITIES, (double) entities);
+        values.put(Metric.ITEMS, (double) items);
+        long[] c = counts.get(loader.id());
+        for (Metric metric : Metric.values()) {
+            if (metric.rate()) {
+                values.put(metric, c == null ? 0 : c[metric.ordinal()] / seconds);
+            }
+        }
+        int size = radius * 2 + 1;
+        return Activity.of(values, settings().limits(), now, loaded, size * size);
     }
 
     private void judge(Loader loader, Activity a, boolean serverLags, long now) {
@@ -335,7 +358,53 @@ public final class LagMonitor implements Listener {
         plugin.discord().log("loader-lag-locked", plugin.adminActions().discordTags(loader,
                 "metric", messages.plain("lag-metric-" + metric.key()),
                 "value", format(lock.value()), "limit", format(lock.limit())));
+
+        // Other plugins (MRadmin opens a ticket for the owner) - after our own messages, so its notice comes last.
+        Map<String, Object> data = eventData(plugin, loader, "lock");
+        data.put("details", details(loader, lock, a));
+        Bukkit.getPluginManager().callEvent(new LoaderLockEvent(data));
     }
+
+    /** The common values of a {@link LoaderLockEvent} (see there). */
+    public static Map<String, Object> eventData(MRChunks plugin, Loader loader, String type) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("type", type);
+        data.put("loader", String.valueOf(loader.id()));
+        data.put("number", loader.number());
+        data.put("owner", loader.owner());
+        data.put("owner-name", LoaderManager.name(loader.owner()));
+        data.put("name", Texts.name(plugin, loader));
+        data.put("world", loader.worldName());
+        data.put("x", loader.x());
+        data.put("y", loader.y());
+        data.put("z", loader.z());
+        return data;
+    }
+
+    /** The lock as readable plain text (several lines): loader, time, reason, all measured values, server state. */
+    private String details(Loader loader, LagLock lock, Activity a) {
+        Messages messages = plugin.messages();
+        LagLimits limits = settings().limits();
+        List<String> lines = new ArrayList<>();
+        for (Component line : messages.lore("lock-details", tags(loader, lock),
+                tag("tps", String.format(java.util.Locale.ROOT, "%.1f", Math.min(20, Bukkit.getTPS()[0]))),
+                tag("mspt", String.format(java.util.Locale.ROOT, "%.1f", Bukkit.getAverageTickTime())))) {
+            lines.add(PLAIN.serialize(line));
+        }
+        for (Metric metric : Metric.values()) {
+            if ((limits.warn(metric) > 0 || limits.lock(metric) > 0) && a.value(metric) > 0) {
+                lines.add(PLAIN.serialize(messages.get("lock-details-metric",
+                        tag("metric", messages.plain("lag-metric-" + metric.key())),
+                        tag("value", format(a.value(metric))),
+                        tag("warn", format(limits.warn(metric))),
+                        tag("lock", format(limits.lock(metric))))));
+            }
+        }
+        return String.join("\n", lines);
+    }
+
+    private static final net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer PLAIN =
+            net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText();
 
     /** After an admin lifted a lock: no new lock for unlock-grace, so the owner can fix the machine. */
     public void unlocked(Loader loader) {

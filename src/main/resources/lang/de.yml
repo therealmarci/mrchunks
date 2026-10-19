@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Nicht ändern - damit erkennt das Plugin bei Updates, welche Texte erneuert werden müssen.
-lang-version: 7
+lang-version: 9
 
 # Texte der Discord-Logs (Markdown wie in Discord). Platzhalter: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. An/aus und Farbe stehen in der config.yml.
@@ -33,6 +33,8 @@ discord:
   loader-lag-warning: "⚠️ **{name}** von **{player}** ist auffällig: {metric} {value} (Warngrenze {limit}) - {world} {x}, {y}, {z}"
   loader-lag-locked: "🔒 **{name}** von **{player}** wurde wegen Lag gesperrt: {metric} {value} (Grenze {limit}) - {world} {x}, {y}, {z}"
   loader-lag-unlocked: "🔓 **{admin}** hat die Lag-Sperre von **{name}** ({player}) aufgehoben."
+  server-paused: "⏸️ Der Server laggt ({value} TPS) - alle Chunkloader sind pausiert ({count} Chunks freigegeben)."
+  server-resumed: "▶️ Der Server läuft wieder flüssig ({value} TPS) - die Chunkloader laden wieder (Pause: {time})."
 
 # --- Chunkloader-Item ----------------------------------------------------------
 # Platzhalter: <size> (z.B. 7), <chunks> (z.B. 49)
@@ -74,6 +76,7 @@ invalid-duration: "<prefix><red>Ungültige Dauer <white><input></white>. Beispie
 invalid-number: "<prefix><red><white><input></white> ist keine gültige Zahl."
 state-active: "aktiv"
 state-inactive: "deaktiviert"
+state-paused: "pausiert (Server laggt)"
 ban-duration-permanent: "dauerhaft"
 ban-duration-temporary: "noch <time>"
 ban-no-reason: "kein Grund angegeben"
@@ -136,6 +139,21 @@ lag-list-header: "<prefix><gray>Auffällige und gesperrte Chunkloader:"
 lag-list-entry: "<dark_gray>- <gold><name></gold> <gray>von <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray><metric>: <white><value></white> <dark_gray>(Warngrenze <limit>)"
 lag-list-locked: "<dark_gray>- <red>🔒 <name></red> <gray>von <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray>gesperrt seit <time>: <metric> <value>"
 lag-list-empty: "<prefix><green>Kein Chunkloader ist auffällig oder gesperrt."
+# Details einer Lag-Sperre als reiner Text (z.B. im Ticket, das MRadmin dazu öffnet). Darunter folgt je Messwert
+# eine Zeile lock-details-metric.
+lock-details:
+  - "Dein Chunkloader <name> (Nr. <number>) wurde wegen Lag automatisch gesperrt und ist aus."
+  - "Ort: <world> <x> <y> <z>"
+  - "Gesperrt: <time>"
+  - "Grund: <metric> <value> (Sperrgrenze <limit>)"
+  - "Server: <tps> TPS, <mspt> ms pro Tick"
+  - "Gemessen im ganzen Bereich des Loaders:"
+lock-details-metric: "- <metric>: <value> (Warnung <warn>, Sperre <lock>)"
+pause-started: "<prefix><yellow>⏸ Der Server laggt <gray>(<white><tps></white> TPS)</gray> - alle Chunkloader sind pausiert.</yellow> <gray>Sie laden automatisch wieder, sobald der Server sich erholt hat (ab <resume> TPS)."
+pause-ended: "<prefix><green>▶ Der Server läuft wieder flüssig <gray>(<white><tps></white> TPS)</gray> - die Chunkloader laden wieder.</green> <dark_gray>(Pause: <time>)"
+pause-toggle-hint: "<prefix><yellow>⏸ Alle Chunkloader sind gerade pausiert, weil der Server laggt.</yellow> <gray>Er lädt automatisch, sobald der Server wieder flüssig läuft."
+pause-status: "<prefix><yellow>⏸ Alle Chunkloader sind pausiert</yellow> <gray>(seit <time>, aktuell <white><tps></white> TPS, fortgesetzt ab <resume> TPS)."
+pause-over: "<prefix><green>Die Server-Pause ist vorbei - die Chunkloader laden wieder."
 deleted: "<prefix><green><white><name></white> gelöscht."
 delete-confirm: "<prefix><yellow>Zum Löschen von <white><name></white> noch einmal klicken."
 not-owner: "<prefix><red>Das ist nicht dein Chunkloader."
@@ -158,7 +176,7 @@ rename-cancel: "<red>Abbrechen"
 invite-scope-all: "alle deine Chunkloader"
 invite-scope-all-of: "alle Chunkloader von <owner>"
 invited: "<prefix><green><white><player></white> darf jetzt <white><scope></white> an- und ausschalten <gray>(<duration>)."
-invite-notify: "<prefix><green><white><owner></white> hat dich eingeladen: Du darfst <white><scope></white> an- und ausschalten <gray>(<duration>). <dark_gray>/chunkloader list → Mit mir geteilt"
+invite-notify: "<prefix><green><white><owner></white> hat dich eingeladen: Du darfst <white><scope></white> an- und ausschalten <gray>(<duration>). <dark_gray>/chunkloader → Mit mir geteilt"
 uninvited: "<prefix><green>Einladung von <white><player></white> für <white><scope></white> zurückgenommen."
 uninvite-notify: "<prefix><gray><white><owner></white> hat deine Einladung für <white><scope></white> zurückgenommen."
 invite-self: "<prefix><red>Dich selbst musst du nicht einladen."
@@ -281,6 +299,16 @@ gui-loader-locked:
   - "<red>🔒 Wegen Lag gesperrt"
   - "<gray>seit <white><time></white>: <metric> <white><value></white> <dark_gray>(Grenze <limit>)"
   - "<gray>Nur ein Admin kann die Sperre aufheben."
+gui-loader-paused:
+  - ""
+  - "<yellow>⏸ Pausiert - der Server laggt"
+  - "<gray>Lädt automatisch wieder, sobald der Server"
+  - "<gray>wieder flüssig läuft (ab <resume> TPS)."
+gui-loader-warn:
+  - ""
+  - "<gold>⚠ Über der Warnschwelle"
+  - "<gray><metric>: <white><value></white> <dark_gray>(Warngrenze <limit>)"
+  - "<gray>Bitte prüf die Farm, sonst droht eine Sperre."
 gui-loader-click: "<yellow>» Klicken für Aktionen"
 gui-state-active: "<green>● aktiv"
 gui-state-inactive: "<red>● deaktiviert"
@@ -312,6 +340,11 @@ gui-activity-header-high: "<gray>Aktivität: <red>über der Sperrgrenze"
 gui-activity-line: "<dark_gray>- <gray><metric>: <white><value></white> <dark_gray>(Warnung <warn>, Sperre <lock>)"
 gui-activity-unknown: "<gray>Aktivität: <white>noch nicht gemessen"
 gui-activity-off: "<gray>Aktivität: <white>wird nur gemessen, wenn der Loader an ist"
+# Gesperrte Loader laden nichts mehr - gemessen wird, solange jemand (z.B. ein Admin daneben) den Bereich lädt.
+gui-activity-locked-unknown: "<gray>Aktivität: <white>noch keine neue Messung <dark_gray>- stell dich in die Nähe des Loaders"
+gui-activity-measured: "<dark_gray>Gemessen vor <ago>, <loaded>/<total> Chunks geladen"
+gui-activity-stale: "<dark_gray>Bereich nicht geladen - für eine neue Messung in die Nähe gehen"
+gui-activity-partial: "<dark_gray>Nur ein Teil des Bereichs ist geladen - die Werte können niedriger sein"
 gui-rename-name: "<aqua>Umbenennen"
 gui-rename-lore:
   - "<gray>Gib dem Chunkloader einen eigenen Namen."
@@ -378,8 +411,32 @@ gui-delete-confirm-lore:
   - "<red>Noch einmal klicken zum Löschen."
 gui-teleport-name: "<aqua>Hinteleportieren"
 
-# Eigene Chunkloader (/chunkloader list)
+# Eigene Chunkloader (/chunkloader)
 gui-title-mine: "<dark_gray>Meine Chunkloader <gray>(<placed>/<limit>)"
+gui-mine-empty: "<gray>Du hast noch keine Chunkloader"
+gui-mine-empty-lore:
+  - "<gray>Hol dir unten rechts einen und platziere ihn."
+# Untere Leiste von /chunkloader. Platzhalter beim Holen/Zurückgeben: <held> <placed> <limit> <free>
+gui-items-name: "<green>Chunkloader holen"
+gui-items-lore:
+  - "<gray>Im Inventar: <white><held></white> <dark_gray>| <gray>Gesetzt: <white><placed>"
+  - "<gray>Limit: <white><limit></white> <dark_gray>| <gray>Noch frei: <white><free>"
+  - ""
+  - "<yellow>Linksklick: 1 holen"
+  - "<yellow>Shift-Klick: bis zu 64 holen"
+gui-return-name: "<gold>Chunkloader zurückgeben"
+gui-return-lore:
+  - "<gray>Im Inventar: <white><held></white>"
+  - "<gray>Zurückgegebene Items sind wieder frei für dein Limit."
+  - ""
+  - "<yellow>Linksklick: 1 zurückgeben"
+  - "<yellow>Shift-Klick: alle zurückgeben"
+gui-map-name: "<aqua>Webkarte"
+gui-map-lore:
+  - "<gray>Alle Chunkloader auf der Karte des Servers."
+  - ""
+  - "<yellow>Klick: Link im Chat"
+players-only-menu: "<prefix><red>/chunkloader öffnet ein Menü und geht nur ingame. <gray>Für die Konsole: /mrchunks"
 
 # Admin-Menü
 gui-title-admin: "<dark_gray>MRchunks <gray>» <dark_green>Übersicht"
@@ -422,6 +479,15 @@ mradmin-activity-name-locked: "<red>🔒 <name> <gray>von <white><player>"
 mradmin-activity-lore:
   - "<gray>Ort: <white><world> <x> <y> <z>"
 mradmin-activity-click: "<yellow>Klick: Menü des Chunkloaders (Teleport, Sperre aufheben ...)"
+mradmin-summary-paused:
+  - "<yellow>⏸ Server-Pause: alle Loader pausiert <dark_gray>(seit <time>)"
+mradmin-pause-name: "<yellow>⏸ Server-Pause: alle Chunkloader pausiert"
+mradmin-pause-lore:
+  - "<gray>Der Server laggt - die Chunkloader halten"
+  - "<gray>keine Chunks geladen, bis er sich erholt hat."
+  - ""
+  - "<gray>Seit: <white><time>"
+  - "<gray>TPS: <white><tps></white> <dark_gray>(fortgesetzt ab <resume>)"
 gui-player-click: "<yellow>» Klicken für Chunkloader & Aktionen"
 gui-online: "<green>online"
 gui-offline: "<gray>offline"

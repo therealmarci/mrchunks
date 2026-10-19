@@ -3,7 +3,7 @@ package at.marcelr.mrchunks.util;
 import java.util.Locale;
 
 /**
- * Builds the public address of the web map that players get from /chunkloader map.
+ * Builds the public address of the web map that players get from the web map button in /chunkloader.
  * <ol>
  *   <li>{@code address} with a scheme ("https://example.com/map/") is used exactly as written.</li>
  *   <li>{@code address} without a scheme is a host name or IP ("map.example.com").</li>

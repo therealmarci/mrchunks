@@ -1,13 +1,13 @@
 package at.marcelr.mrchunks.api;
 
 import at.marcelr.mrchunks.Loader;
+import at.marcelr.mrchunks.LoaderStatus;
 import at.marcelr.mrchunks.MRChunks;
 import at.marcelr.mrchunks.Texts;
 import at.marcelr.mrchunks.gui.LoaderIcons;
 import at.marcelr.mrchunks.gui.LoaderMenu;
 import at.marcelr.mrchunks.gui.PlayerIcons;
 import at.marcelr.mrchunks.gui.PlayerLoadersMenu;
-import at.marcelr.mrchunks.lag.Activity;
 import at.marcelr.mrchunks.lag.LagLock;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -29,13 +29,18 @@ import static at.marcelr.mrchunks.Messages.tag;
  * direction) and calls these methods; MRchunks works the same without MRadmin. Keep the signatures stable.
  * <p>
  * Version 1: summary, playerSummary, openPlayerMenu. Version 2 adds activity and openActivity (conspicuous loaders
- * in MRadmin's server health) - MRadmin uses them only if they exist, so both plugins stay independent.
+ * in MRadmin's server health). Version 3 adds {@link #EVENT} (MRadmin opens a ticket when a loader is locked; the team lifts the lock
+ * through openActivity, the loader's menu). MRadmin uses them only if they exist, so both plugins stay independent.
  */
 public final class MRadminHook {
 
-    public static final int API_VERSION = 2;
+    public static final int API_VERSION = 3;
+    /** Fired on every lag lock and unlock; MRadmin listens to it while both plugins run. */
+    public static final Class<LoaderLockEvent> EVENT = LoaderLockEvent.class;
     private static final int MAX_ACTIVITY = 21;
     private static final String PERM_GUI = "mrchunks.admin.gui";
+    /** Activity id of the server-pause entry (loaders use their numeric id). */
+    private static final String PAUSE_ID = "pause";
 
     private MRadminHook() {
     }
@@ -49,11 +54,16 @@ public final class MRadminHook {
         MRChunks plugin = plugin();
         return plugin.messages().as(viewer, () -> {
             var all = plugin.loaders().all();
-            return plugin.messages().lore("mradmin-summary",
+            List<Component> lines = plugin.messages().lore("mradmin-summary",
                     tag("loaders", all.size()),
                     tag("active", all.stream().filter(Loader::active).count()),
                     tag("chunks", plugin.loaders().loadedChunkCount()),
                     tag("bans", plugin.loaders().activeBans().size()));
+            if (plugin.loaders().paused()) {
+                lines = new ArrayList<>(lines);
+                lines.addAll(plugin.messages().lore("mradmin-summary-paused", plugin.pause().tags()));
+            }
+            return lines;
         });
     }
 
@@ -73,12 +83,15 @@ public final class MRadminHook {
      */
     public static List<Map<String, Object>> activity(Player viewer) {
         MRChunks plugin = plugin();
-        if (!viewer.hasPermission(PERM_GUI) || !plugin.settings().lag().enabled()) {
+        if (!viewer.hasPermission(PERM_GUI) || (!plugin.settings().lag().enabled() && !plugin.loaders().paused())) {
             return List.of();
         }
         return plugin.messages().as(viewer, () -> {
             List<Map<String, Object>> entries = new ArrayList<>();
-            for (Loader loader : plugin.lag().conspicuous()) {
+            if (plugin.loaders().paused()) {
+                entries.add(Map.of("icon", pauseIcon(plugin), "id", PAUSE_ID));
+            }
+            for (Loader loader : plugin.settings().lag().enabled() ? plugin.lag().conspicuous() : List.<Loader>of()) {
                 if (entries.size() == MAX_ACTIVITY) {
                     break;
                 }
@@ -88,13 +101,21 @@ public final class MRadminHook {
         });
     }
 
+    /** Server pause: all loaders hold no chunks until the TPS has recovered. */
+    private static ItemStack pauseIcon(MRChunks plugin) {
+        ItemStack item = new ItemStack(Material.COBWEB);
+        item.editMeta(meta -> {
+            meta.displayName(plugin.messages().item("mradmin-pause-name"));
+            meta.lore(plugin.messages().lore("mradmin-pause-lore", plugin.pause().tags()));
+        });
+        return item;
+    }
+
     private static ItemStack activityIcon(MRChunks plugin, Loader loader) {
         var messages = plugin.messages();
         LagLock lock = plugin.loaders().lagLock(loader);
-        Activity activity = plugin.lag().activity(loader);
-        boolean high = activity != null && activity.lockRatio() >= 1;
-        Material material = lock != null ? Material.REDSTONE_BLOCK : high ? Material.MAGMA_BLOCK : Material.ORANGE_CONCRETE;
-        ItemStack item = new ItemStack(material);
+        // Same materials as in MRchunks' own menus (see LoaderStatus).
+        ItemStack item = new ItemStack(LoaderStatus.of(plugin, loader).material(plugin));
         item.editMeta(meta -> {
             meta.displayName(messages.item(lock != null ? "mradmin-activity-name-locked" : "mradmin-activity-name",
                     Texts.loader(plugin, loader)));
@@ -120,6 +141,10 @@ public final class MRadminHook {
         if (!viewer.hasPermission(PERM_GUI)) {
             plugin.messages().send(viewer, "no-permission");
             return false;
+        }
+        if (id.equals(PAUSE_ID)) {
+            plugin.messages().send(viewer, plugin.loaders().paused() ? "pause-status" : "pause-over", plugin.pause().tags());
+            return true;
         }
         Loader loader;
         try {

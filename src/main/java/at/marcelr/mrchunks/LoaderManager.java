@@ -52,6 +52,8 @@ public final class LoaderManager {
     /** radius and method the current tickets were created with (they must be removed the same way) */
     private int appliedRadius;
     private Settings.LoadMethod appliedMethod;
+    /** Server pause (see {@link at.marcelr.mrchunks.lag.ServerPause}): no tickets at all, loaders keep their state. */
+    private boolean paused;
 
     private final Map<UUID, Integer> limitOverrides = new HashMap<>();
     private final Map<UUID, Integer> activeOverrides = new HashMap<>();
@@ -332,6 +334,28 @@ public final class LoaderManager {
 
     // ------------------------------------------------------------- tickets
 
+    public boolean paused() {
+        return paused;
+    }
+
+    /**
+     * Pausing releases every ticket, resuming adds them again for all active loaders. Loaders keep their on/off
+     * state; loaders switched on during the pause start loading when it ends.
+     */
+    public void setPaused(boolean paused) {
+        if (this.paused == paused) {
+            return;
+        }
+        if (paused) {
+            releaseAll();
+            this.paused = true;
+        } else {
+            this.paused = false;
+            applyAll();
+        }
+        plugin.maps().refreshSoon();
+    }
+
     /** Adds tickets for all active loaders of all loaded worlds (on enable / after reload). */
     public void applyAll() {
         appliedRadius = plugin.settings().loaders().radius();
@@ -367,8 +391,8 @@ public final class LoaderManager {
 
     private void cover(Loader loader) {
         World world = loader.world();
-        if (world == null) {
-            return; // applied later by applyWorld when the world loads
+        if (world == null || paused) {
+            return; // applied later by applyWorld when the world loads, or by applyAll when the pause ends
         }
         Map<Long, Integer> chunks = coverage.computeIfAbsent(world.getUID(), k -> new HashMap<>());
         int r = appliedRadius;

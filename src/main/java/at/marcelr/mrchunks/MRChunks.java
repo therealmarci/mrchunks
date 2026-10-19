@@ -4,6 +4,7 @@ import at.marcelr.mrchunks.command.ChunkloaderCommand;
 import at.marcelr.mrchunks.command.MRChunksCommand;
 import at.marcelr.mrchunks.gui.MenuListener;
 import at.marcelr.mrchunks.lag.LagMonitor;
+import at.marcelr.mrchunks.lag.ServerPause;
 import at.marcelr.mrchunks.map.MapHooks;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
@@ -20,8 +21,8 @@ public final class MRChunks extends JavaPlugin {
 
     private FileConfiguration config;
     private Settings settings;
-    /** lang-version 2: version display with MC version; 3: loaders by name/number; 4: squaremap.address; 5: merged admin commands; 6: shorter window titles; 7: lag protection (admin usage). */
-    private final Messages messages = new Messages(7, Map.of(
+    /** lang-version 2: version display with MC version; 3: loaders by name/number; 4: squaremap.address; 5: merged admin commands; 6: shorter window titles; 7: lag protection (admin usage); 8: /chunkloader is only the menu (invite notice); 9: get/return as two buttons. */
+    private final Messages messages = new Messages(9, Map.of(
             2, Set.of("version", "gui-info-name"),
             3, Set.of("discord.loader-placed", "discord.loader-deleted", "discord.loader-toggled",
                     "discord.loader-restored", "discord.loader-removed-missing", "discord.admin-delete",
@@ -32,7 +33,9 @@ public final class MRChunks extends JavaPlugin {
             4, Set.of("map-url-unknown"),
             5, Set.of("admin-usage", "gui-invite-lore"),
             6, Set.of("gui-title-loader", "gui-title-mine", "gui-title-player"),
-            7, Set.of("admin-usage")));
+            7, Set.of("admin-usage"),
+            8, Set.of("invite-notify"),
+            9, Set.of("gui-items-lore", "gui-mine-empty-lore")));
     private final DiscordWebhook discord = new DiscordWebhook(this);
     private final AdminActions adminActions = new AdminActions(this);
     private LoaderManager loaders;
@@ -42,6 +45,7 @@ public final class MRChunks extends JavaPlugin {
     private MenuListener menuListener;
     private MapHooks maps;
     private LagMonitor lag;
+    private ServerPause pause;
     private BukkitTask validationTask;
 
     @Override
@@ -57,7 +61,9 @@ public final class MRChunks extends JavaPlugin {
         loaders.applyAll();
         startValidation();
         lag = new LagMonitor(this);
+        pause = new ServerPause(this);
         lag.start();
+        pause.start();
 
         updateChecker = new UpdateChecker(this);
         updateChecker.start();
@@ -99,6 +105,9 @@ public final class MRChunks extends JavaPlugin {
         if (lag != null) {
             lag.stop();
         }
+        if (pause != null) {
+            pause.stop();
+        }
         discord.shutdown();
     }
 
@@ -110,6 +119,7 @@ public final class MRChunks extends JavaPlugin {
         loaders.applyAll();
         startValidation();
         lag.start();
+        pause.start();
         updateChecker.start();
         menuListener.start();
         maps.start();
@@ -201,6 +211,10 @@ public final class MRChunks extends JavaPlugin {
 
     public LagMonitor lag() {
         return lag;
+    }
+
+    public ServerPause pause() {
+        return pause;
     }
 
     public MapHooks maps() {

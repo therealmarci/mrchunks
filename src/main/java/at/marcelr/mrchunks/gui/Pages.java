@@ -15,16 +15,21 @@ final class Pages {
     }
 
     static void navigation(Menu menu, Messages messages, int page, int pages, IntConsumer setPage) {
+        navigation(menu, messages, page, pages, setPage, 45, 53);
+    }
+
+    /** Like above with own slots for "back" and "forward" (menus whose corners are taken). */
+    static void navigation(Menu menu, Messages messages, int page, int pages, IntConsumer setPage, int prevSlot, int nextSlot) {
         var lore = messages.lore("gui-page-lore", tag("page", page + 1), tag("pages", pages));
         if (page > 0) {
-            menu.set(45, Items.of(Material.ARROW).name(messages.item("gui-prev")).lore(lore).build(), click -> {
+            menu.set(prevSlot, Items.of(Material.ARROW).name(messages.item("gui-prev")).lore(lore).build(), click -> {
                 setPage.accept(page - 1);
                 menu.clickSound();
                 menu.render();
             });
         }
         if (page < pages - 1) {
-            menu.set(53, Items.of(Material.ARROW).name(messages.item("gui-next")).lore(lore).build(), click -> {
+            menu.set(nextSlot, Items.of(Material.ARROW).name(messages.item("gui-next")).lore(lore).build(), click -> {
                 setPage.accept(page + 1);
                 menu.clickSound();
                 menu.render();
