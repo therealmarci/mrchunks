@@ -15,7 +15,7 @@
 # ==============================================================================
 
 # Nicht ändern - wird für automatische Config-Updates verwendet.
-config-version: 6
+config-version: 7
 
 # Sprache aller Texte: de = Deutsch, en = English. Die Texte stehen in plugins/MRchunks/lang/<sprache>.yml
 # und können dort angepasst werden. Eigene Sprache: Datei kopieren (z.B. fr.yml), übersetzen, language: fr.
@@ -94,6 +94,7 @@ lag-protection:
   # Alle so viele Sekunden wird gemessen.
   sample-seconds: 30
   # So viele Messungen hintereinander über "lock", bevor gesperrt wird (3 x 30 s = 1,5 Minuten).
+  # Das gilt auch nach dem Entsperren: frühestens nach so vielen neuen Messungen kann wieder gesperrt werden.
   lock-after-samples: 3
   # true = nur sperren, wenn der Server dabei wirklich laggt (durchschnittliche Tick-Zeit ab server-lag-mspt).
   #        Eine große Farm, mit der der Server gut zurechtkommt, wird dann nicht gesperrt.
@@ -101,8 +102,6 @@ lag-protection:
   only-when-server-lags: true
   # Ab dieser durchschnittlichen Tick-Zeit (ms) gilt der Server als laggend (50 = 20 TPS gerade noch gehalten).
   server-lag-mspt: 40
-  # Nach dem Entsperren so lange keine neue Sperre, damit der Owner seine Farm reparieren kann.
-  unlock-grace: "30m"
   # Grenzen für den gesamten Bereich eines Loaders (Standard 7x7 Chunks).
   limits:
     # Entities (Mobs, Tiere, Loren, Rüstungsständer ... inkl. Items am Boden, ohne Spieler)

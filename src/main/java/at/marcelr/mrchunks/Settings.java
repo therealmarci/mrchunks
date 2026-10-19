@@ -43,7 +43,7 @@ public record Settings(
      * only while the server's average tick time is at least {@code serverLagMspt}). Durations in ms.
      */
     public record LagSettings(boolean enabled, int sampleSeconds, int lockAfterSamples, boolean onlyWhenServerLags,
-                              double serverLagMspt, long unlockGrace, LagLimits limits) {
+                              double serverLagMspt, LagLimits limits) {
     }
 
     /** Marker for a permanent ban. */
@@ -210,14 +210,12 @@ public record Settings(
             warn.put(metric, w);
             lock.put(metric, l);
         }
-        long grace = DurationUtil.parse(c.getString("lag-protection.unlock-grace", "30m"));
         LagSettings lag = new LagSettings(
                 c.getBoolean("lag-protection.enabled", true),
                 Math.clamp(c.getInt("lag-protection.sample-seconds", 30), 5, 600),
                 Math.clamp(c.getInt("lag-protection.lock-after-samples", 3), 1, 100),
                 c.getBoolean("lag-protection.only-when-server-lags", true),
                 Math.clamp(c.getDouble("lag-protection.server-lag-mspt", 40), 1, 1000),
-                grace < 0 ? 30 * 60_000L : grace,
                 new LagLimits(Map.copyOf(warn), Map.copyOf(lock)));
 
         double below = Math.clamp(c.getDouble("server-pause.below-tps", 15), 1, 19.9);

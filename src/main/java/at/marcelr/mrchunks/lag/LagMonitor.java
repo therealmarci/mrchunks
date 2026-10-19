@@ -66,7 +66,8 @@ public final class LagMonitor implements Listener {
 
     private final Map<Integer, Activity> activity = new HashMap<>();
     private final Map<Integer, Integer> strikes = new HashMap<>();
-    private final Map<Integer, Long> graceUntil = new HashMap<>();
+    /** loader id -> samples judged since an admin lifted its lock (cooldown, removed after lock-after-samples) */
+    private final Map<Integer, Integer> sinceUnlock = new HashMap<>();
     private final Map<Integer, Long> lastWarn = new HashMap<>();
 
     public LagMonitor(MRChunks plugin) {
@@ -302,8 +303,9 @@ public final class LagMonitor implements Listener {
     private void judge(Loader loader, Activity a, boolean serverLags, long now) {
         Settings.LagSettings s = settings();
         int id = loader.id();
-        boolean grace = graceUntil.getOrDefault(id, 0L) > now;
-        if (a.lockRatio() >= 1 && !grace && (!s.onlyWhenServerLags() || serverLags)) {
+        // Cooldown after an unlock: exactly lock-after-samples measurements, which the strikes below need anyway.
+        sinceUnlock.computeIfPresent(id, (k, n) -> n + 1 >= s.lockAfterSamples() ? null : n + 1);
+        if (a.lockRatio() >= 1 && (!s.onlyWhenServerLags() || serverLags)) {
             int count = strikes.merge(id, 1, Integer::sum);
             if (count >= s.lockAfterSamples()) {
                 lock(loader, a, now);
@@ -406,10 +408,37 @@ public final class LagMonitor implements Listener {
     private static final net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer PLAIN =
             net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText();
 
-    /** After an admin lifted a lock: no new lock for unlock-grace, so the owner can fix the machine. */
+    /** After an admin lifted a lock: the next lock needs lock-after-samples new measurements over the limit. */
     public void unlocked(Loader loader) {
-        graceUntil.put(loader.id(), System.currentTimeMillis() + settings().unlockGrace());
+        sinceUnlock.put(loader.id(), 0);
         strikes.remove(loader.id());
+    }
+
+    /**
+     * Called right before a server pause releases all chunks: active loaders that are over a lock limit now are
+     * locked at once (the server lags for sure). Otherwise the pause would hide them - their chunks unload, the lag
+     * is gone, the pause ends and it starts again, without the cause ever being locked. Loaders still in their
+     * cooldown after an unlock are left alone.
+     */
+    public void lockOffendersBeforePause() {
+        if (!settings().enabled()) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        double seconds = Math.max(1, (now - windowStart) / 1000.0);
+        int radius = plugin.settings().loaders().radius();
+        for (Loader loader : new ArrayList<>(loaders().all())) {
+            World world = loader.world();
+            if (!loader.active() || loaders().lagLocked(loader) || sinceUnlock.containsKey(loader.id())
+                    || world == null) {
+                continue;
+            }
+            Activity a = measure(loader, world, radius, seconds, now);
+            activity.put(loader.id(), a);
+            if (a.lockRatio() >= 1) {
+                lock(loader, a, now);
+            }
+        }
     }
 
     /** Owners whose loader was locked while they were offline hear about it when they join. */

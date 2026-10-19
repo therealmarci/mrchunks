@@ -22,7 +22,7 @@ public final class MRChunks extends JavaPlugin {
     private FileConfiguration config;
     private Settings settings;
     /** lang-version 2: version display with MC version; 3: loaders by name/number; 4: squaremap.address; 5: merged admin commands; 6: shorter window titles; 7: lag protection (admin usage); 8: /chunkloader is only the menu (invite notice); 9: get/return as two buttons. */
-    private final Messages messages = new Messages(9, Map.of(
+    private final Messages messages = new Messages(10, Map.of(
             2, Set.of("version", "gui-info-name"),
             3, Set.of("discord.loader-placed", "discord.loader-deleted", "discord.loader-toggled",
                     "discord.loader-restored", "discord.loader-removed-missing", "discord.admin-delete",
@@ -35,7 +35,9 @@ public final class MRChunks extends JavaPlugin {
             6, Set.of("gui-title-loader", "gui-title-mine", "gui-title-player"),
             7, Set.of("admin-usage"),
             8, Set.of("invite-notify"),
-            9, Set.of("gui-items-lore", "gui-mine-empty-lore")));
+            9, Set.of("gui-items-lore", "gui-mine-empty-lore"),
+            // The ticket shows the location itself - no second "Location" line in the lock details.
+            10, Set.of("lock-details")));
     private final DiscordWebhook discord = new DiscordWebhook(this);
     private final AdminActions adminActions = new AdminActions(this);
     private LoaderManager loaders;

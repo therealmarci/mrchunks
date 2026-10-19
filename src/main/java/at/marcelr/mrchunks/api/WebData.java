@@ -24,6 +24,7 @@ import java.util.UUID;
  * maps, texts already in MRchunks' language. Server thread only (MRadmin calls it there).
  * <pre>
  *  overview                         counts, server pause, lag protection on/off
+ *  chunks                           number of chunks the loaders keep loaded (cheap, MRadmin asks every second)
  *  loaders                          all loaders with status
  *  loader  {id}                     one loader with every measured value, lock, members
  *  action  {id, action, admin}      toggle | unlock | delete  -> null or an error key
@@ -37,6 +38,7 @@ final class WebData {
     static Object handle(MRChunks plugin, String request, Map<?, ?> args) {
         return switch (request) {
             case "overview" -> overview(plugin);
+            case "chunks" -> plugin.loaders().loadedChunkCount();
             case "loaders" -> loaders(plugin);
             case "loader" -> {
                 Loader loader = loader(plugin, args);

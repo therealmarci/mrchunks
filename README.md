@@ -252,8 +252,9 @@ seines 7×7-Bereichs zusammen:
     Chat). Darin kann er erklären, was passiert ist. Schließen kann es nur das Team, das den Loader über
     „Chunkloader-Menü“ im Ticket entsperren kann. Erneute Sperren und das Entsperren werden im selben Ticket vermerkt.
 - **Aufheben** können nur Admins (`mrchunks.admin.manage`): im Menü des Loaders („Lag-Sperre aufheben“) oder per
-  `/mrchunks unlock <spieler> <nr>`. Der Loader bleibt danach aus, der Owner schaltet ihn wieder ein. Danach gibt es
-  `unlock-grace` (30 min) lang keine neue Sperre, damit die Farm repariert werden kann.
+  `/mrchunks unlock <spieler> <nr>`. Der Loader bleibt danach aus, der Owner schaltet ihn wieder ein. Eine neue Sperre
+  braucht danach wieder `lock-after-samples` (3) Messungen hintereinander über der Grenze, also frühestens 1,5 Minuten
+  nach dem Einschalten.
 - **Aktivität einsehen:** Das Menü jedes aktiven Loaders zeigt die letzte Messung, also die Werte, die ihren Grenzen
   am nächsten sind. Das hilft auch Spielern, ihre Farm einzuschätzen.
 - Alle Grenzen stehen in der `config.yml` unter `lag-protection.limits`. Ein Wert von `0` schaltet die jeweilige
@@ -266,6 +267,10 @@ sind bewusst großzügig: Normale Farmen bleiben weit darunter, außer Kontrolle
 Laggt der **ganze Server**, egal ob wegen Chunkloadern oder etwas anderem, pausiert MRchunks **alle** Chunkloader:
 - **Pause:** Liegt die TPS (Durchschnitt der letzten Minute) `pause-after-seconds` lang (Standard 30 s) unter
   `below-tps` (Standard 15), geben alle Loader ihre Chunks frei. Kurze Lag-Spitzen lösen nichts aus.
+- **Verursacher zuerst:** Direkt vor der Pause misst MRchunks alle aktiven Loader noch einmal. Wer dabei über einer
+  Sperrgrenze (`lag-protection.limits`) liegt, wird sofort gesperrt (mit Ticket in MRadmin), ohne die sonst nötigen
+  Messungen hintereinander. Sonst würde die Pause den Verursacher verstecken: Seine Chunks werden frei, der Lag ist
+  weg, die Pause endet und alles beginnt von vorn.
 - **Fortsetzen:** Liegt die TPS `resume-after-seconds` lang (Standard 60 s) wieder bei mindestens `resume-tps`
   (Standard 18), laden alle aktiven Loader automatisch wieder. Der Abstand zwischen 15 und 18 verhindert, dass die
   Loader ständig an- und ausgehen, wenn der Server knapp an der Grenze läuft.
@@ -274,7 +279,7 @@ Laggt der **ganze Server**, egal ob wegen Chunkloadern oder etwas anderem, pausi
 - Spieler können die Pause nicht umgehen: Auch Ein- und Ausschalten, Neusetzen oder `/mrchunks reload` laden
   während der Pause keine Chunks. Nur die Config (`server-pause.enabled: false` + Reload) beendet sie vorzeitig.
 - Owner aktiver Loader und Admins werden im Chat informiert (`notify-owners`), dazu kommen Discord-Logs. Im Menü
-  steht bei aktiven Loadern „⏸ Pausiert“, `/mrchunks lag` zeigt den Status. Während der Pause wird nicht gesperrt.
+  steht bei aktiven Loadern „⏸ Pausiert“, `/mrchunks lag` zeigt den Status. Während der Pause selbst wird nicht gemessen.
 - Auf der Webkarte erscheinen aktive Loader während der Pause in `squaremap.paused-color` (orange) mit dem Status
   „pausiert“. In MRadmin steht die Pause auf dem MRchunks-Knopf und als erster Eintrag im Serverzustand.
 - Einstellbar unter `server-pause` in der `config.yml`, abschaltbar mit `enabled: false`.

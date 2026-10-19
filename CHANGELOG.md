@@ -10,9 +10,11 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 ## [Unveröffentlicht]
 
 ### Neu
-- **MRadmin-Weboberfläche:** Schnittstelle Version 4 (`MRadminHook.web`) liefert Chunkloader, Status, Messwerte und
-  Mitglieder als Daten und nimmt Aktionen an (ein-/ausschalten, entsperren, löschen) - der Owner wird wie ingame
-  benachrichtigt, Discord- und Server-Log inklusive.
+- **Server-Pause sperrt den Verursacher:** Direkt bevor alle Loader pausieren, wird jeder aktive Loader über einer
+  Sperrgrenze sofort gesperrt. Vorher konnte die Pause ihn verstecken (Chunks frei, Lag weg, Pause vorbei, von vorn).
+- **MRadmin-Weboberfläche:** Schnittstelle Version 4 (`MRadminHook.web`) liefert Chunkloader, Status, Messwerte,
+  Mitglieder und die Zahl der geladenen Chunks (für den Health-Verlauf von MRadmin) als Daten und nimmt Aktionen an
+  (ein-/ausschalten, entsperren, löschen) - der Owner wird wie ingame benachrichtigt, Discord- und Server-Log inklusive.
 - **Server-Pause:** Liegt die TPS des Servers 30 Sekunden lang unter 15, geben alle Chunkloader ihre Chunks frei,
   egal woher der Lag kommt. Sobald die TPS 60 Sekunden lang wieder bei mindestens 18 liegt, laden sie automatisch
   wieder. An/aus der Loader bleibt dabei unverändert. Owner aktiver Loader und Admins werden informiert, dazu
@@ -27,6 +29,11 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
   Spinnennetz = Server-Pause.
 
 ### Geändert
+- **Sperr-Details ohne eigene Ortszeile:** Das Ticket in MRadmin zeigt den Ort schon selbst, er stand dadurch doppelt da.
+  Die Sprachdateien werden automatisch aktualisiert (lang-version 10).
+- **Kein 30-Minuten-Schutz mehr nach dem Entsperren** (`unlock-grace` entfällt): Eine neue Sperre braucht wie immer
+  `lock-after-samples` Messungen hintereinander über der Grenze (Standard 3 x 30 s). Die Config wird automatisch
+  auf Version 7 aktualisiert.
 - **Gesperrte Loader werden weiter gemessen**, solange jemand ihren Bereich lädt (z.B. ein Admin, der daneben
   steht). So sieht man vor dem Entsperren, ob sich die Lage beruhigt hat. Die Aktivität im Menü zeigt dazu, wie alt
   die Messung ist und wie viele Chunks des Bereichs geladen waren. Gesperrt wird dabei nichts.

@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Do not change - tells the plugin which texts need to be renewed on updates.
-lang-version: 9
+lang-version: 10
 
 # Discord log texts (Discord markdown). Placeholders: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. On/off and colour are set in config.yml.
@@ -143,7 +143,6 @@ lag-list-empty: "<prefix><green>No chunk loader is conspicuous or locked."
 # measured value follows.
 lock-details:
   - "Your chunk loader <name> (no. <number>) was locked automatically because of lag and is off."
-  - "Location: <world> <x> <y> <z>"
   - "Locked: <time>"
   - "Reason: <metric> <value> (lock limit <limit>)"
   - "Server: <tps> TPS, <mspt> ms per tick"

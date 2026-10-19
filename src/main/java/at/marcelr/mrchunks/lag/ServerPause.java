@@ -104,6 +104,8 @@ public final class ServerPause {
     }
 
     private void pause(double tps) {
+        // Lock the loaders that cause the lag first - the pause would otherwise hide them.
+        plugin.lag().lockOffendersBeforePause();
         int chunks = plugin.loaders().loadedChunkCount();
         plugin.loaders().setPaused(true);
         pausedSince = System.currentTimeMillis();

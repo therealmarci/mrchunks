@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Nicht ändern - damit erkennt das Plugin bei Updates, welche Texte erneuert werden müssen.
-lang-version: 9
+lang-version: 10
 
 # Texte der Discord-Logs (Markdown wie in Discord). Platzhalter: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. An/aus und Farbe stehen in der config.yml.
@@ -143,7 +143,6 @@ lag-list-empty: "<prefix><green>Kein Chunkloader ist auffällig oder gesperrt."
 # eine Zeile lock-details-metric.
 lock-details:
   - "Dein Chunkloader <name> (Nr. <number>) wurde wegen Lag automatisch gesperrt und ist aus."
-  - "Ort: <world> <x> <y> <z>"
   - "Gesperrt: <time>"
   - "Grund: <metric> <value> (Sperrgrenze <limit>)"
   - "Server: <tps> TPS, <mspt> ms pro Tick"
