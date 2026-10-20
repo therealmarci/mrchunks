@@ -15,7 +15,7 @@
 # ==============================================================================
 
 # Nicht ändern - wird für automatische Config-Updates verwendet.
-config-version: 7
+config-version: 8
 
 # Sprache aller Texte: de = Deutsch, en = English. Die Texte stehen in plugins/MRchunks/lang/<sprache>.yml
 # und können dort angepasst werden. Eigene Sprache: Datei kopieren (z.B. fr.yml), übersetzen, language: fr.
