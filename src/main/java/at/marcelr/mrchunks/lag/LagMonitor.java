@@ -46,7 +46,8 @@ import static at.marcelr.mrchunks.Messages.tag;
  * <p>
  * Events (redstone, hopper transfers, pistons, spawns) are counted per loader through a chunk index that is rebuilt
  * at every sample; entities and dropped items are counted at the sample itself. A loader is locked when its area is
- * over a lock limit {@code lock-after-samples} times in a row - by default only while the server is actually lagging.
+ * over a lock limit {@code lock-after-samples} times in a row - by default only while the server is actually lagging,
+ * or without lag once it reaches {@code force-lock-multiplier} times the limit.
  * Listeners are only registered for metrics that have a limit, so switching e.g. hoppers off costs nothing.
  */
 public final class LagMonitor implements Listener {
@@ -305,7 +306,9 @@ public final class LagMonitor implements Listener {
         int id = loader.id();
         // Cooldown after an unlock: exactly lock-after-samples measurements, which the strikes below need anyway.
         sinceUnlock.computeIfPresent(id, (k, n) -> n + 1 >= s.lockAfterSamples() ? null : n + 1);
-        if (a.lockRatio() >= 1 && (!s.onlyWhenServerLags() || serverLags)) {
+        // Far enough over a lock limit (force-lock-multiplier), the loader is locked even while the server copes.
+        boolean forced = s.forceLockMultiplier() > 0 && a.lockRatio() >= s.forceLockMultiplier();
+        if (a.lockRatio() >= 1 && (!s.onlyWhenServerLags() || serverLags || forced)) {
             int count = strikes.merge(id, 1, Integer::sum);
             if (count >= s.lockAfterSamples()) {
                 lock(loader, a, now);

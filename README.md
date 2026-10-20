@@ -243,6 +243,9 @@ seines 7×7-Bereichs zusammen:
   liegt (Standard 3, also 1,5 min) **und der Server dabei laggt** (durchschnittliche Tick-Zeit ab `server-lag-mspt`,
   Standard 40 ms). Eine große Farm, mit der der Server gut zurechtkommt, wird nicht gesperrt. Mit
   `only-when-server-lags: false` wird auch ohne Server-Lag gesperrt.
+- **Bedingungslose Sperre:** Liegt ein Wert beim `force-lock-multiplier`-Fachen der Sperrgrenze oder darüber
+  (Standard 2, also z. B. 1600 Entities), wird auch ohne Server-Lag gesperrt, ebenfalls nach `lock-after-samples`
+  Messungen hintereinander. `1` = schon ab der Sperrgrenze, `1.5` = ab 150 %, `0` = aus.
 - **Gesperrt heißt:**
   - Der Loader ist aus, und weder Owner noch Eingeladene können ihn einschalten.
   - Der Owner wird sofort informiert, oder beim nächsten Join, wenn er offline war. In seiner Liste steht der
