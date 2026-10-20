@@ -9,6 +9,14 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+## [0.5.1] - 2026-10-20
+Für Minecraft **26.3** (`mc26.3-v0.5.1`).
+
+### Behoben
+- **Config-Update:** `lag-protection.force-lock-multiplier` wird jetzt auch in bestehende `config.yml` eingetragen
+  (Config-Version 8, die alte Datei bleibt als `config.v7.backup.yml` erhalten). In 0.5.0 fehlte der Versionssprung,
+  der Standardwert 2 galt aber trotzdem.
+
 ## [0.5.0] - 2026-10-20
 Für Minecraft **26.3** (`mc26.3-v0.5.0`).
 
