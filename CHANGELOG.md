@@ -9,6 +9,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+## [0.4.0] - 2026-10-20
+Für Minecraft **26.3** (`mc26.3-v0.4.0`).
+
 ### Neu
 - **Server-Pause sperrt den Verursacher:** Direkt bevor alle Loader pausieren, wird jeder aktive Loader über einer
   Sperrgrenze sofort gesperrt. Vorher konnte die Pause ihn verstecken (Chunks frei, Lag weg, Pause vorbei, von vorn).

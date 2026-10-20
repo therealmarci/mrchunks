@@ -18,7 +18,7 @@ Chunkloader-Plugin für **Paper 26.3** (Java 25).
 ---
 
 ## Installation
-1. Die JAR für deine Minecraft-Version in den Ordner `plugins/` legen, z.B. `MRchunks-mc26.3-v0.3.0.jar` für Minecraft 26.3, und den Server starten.
+1. Die JAR für deine Minecraft-Version in den Ordner `plugins/` legen, z.B. `MRchunks-mc26.3-v0.4.0.jar` für Minecraft 26.3, und den Server starten.
 2. `plugins/MRchunks/config.yml` anpassen und `/mrchunks reload` ausführen.
 
 Bei Updates wird die Config automatisch migriert: Deine Werte bleiben erhalten, und eine Sicherung `config.v<N>.backup.yml` wird angelegt.
