@@ -9,6 +9,14 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+## [0.5.0] - 2026-10-20
+Für Minecraft **26.3** (`mc26.3-v0.5.0`).
+
+### Neu
+- **Bedingungslose Lag-Sperre:** `lag-protection.force-lock-multiplier` (Standard 2) - ab dem so vielfachen einer
+  Sperrgrenze wird ein Loader auch ohne messbaren Server-Lag gesperrt (nach `lock-after-samples` Messungen).
+  `1` = schon ab der Sperrgrenze, `0` = aus (Verhalten wie bisher).
+
 ## [0.4.0] - 2026-10-20
 Für Minecraft **26.3** (`mc26.3-v0.4.0`).
 

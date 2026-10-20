@@ -102,6 +102,11 @@ lag-protection:
   only-when-server-lags: true
   # Ab dieser durchschnittlichen Tick-Zeit (ms) gilt der Server als laggend (50 = 20 TPS gerade noch gehalten).
   server-lag-mspt: 40
+  # Bedingungslose Sperre: Ab dem Wievielfachen der "lock"-Grenze wird auch OHNE Server-Lag gesperrt (ebenfalls erst
+  # nach lock-after-samples Messungen hintereinander). Nur wichtig bei only-when-server-lags: true.
+  # 1 = sobald "lock" überschritten ist, 2 = ab doppelter Grenze (z. B. 1600 Entities bei lock 800), 1.5 geht auch.
+  # 0 = aus, dann wird ohne Server-Lag nie gesperrt.
+  force-lock-multiplier: 2
   # Grenzen für den gesamten Bereich eines Loaders (Standard 7x7 Chunks).
   limits:
     # Entities (Mobs, Tiere, Loren, Rüstungsständer ... inkl. Items am Boden, ohne Spieler)

@@ -40,10 +40,11 @@ public record Settings(
     /**
      * Lag protection: every {@code sampleSeconds} the area of each active loader is measured. A loader is locked when
      * a metric is over its lock limit {@code lockAfterSamples} times in a row (and, with {@code onlyWhenServerLags},
-     * only while the server's average tick time is at least {@code serverLagMspt}). Durations in ms.
+     * only while the server's average tick time is at least {@code serverLagMspt}). From {@code forceLockMultiplier}
+     * times a lock limit on (0 = off) the server state does not matter. Durations in ms.
      */
     public record LagSettings(boolean enabled, int sampleSeconds, int lockAfterSamples, boolean onlyWhenServerLags,
-                              double serverLagMspt, LagLimits limits) {
+                              double serverLagMspt, double forceLockMultiplier, LagLimits limits) {
     }
 
     /** Marker for a permanent ban. */
@@ -216,6 +217,7 @@ public record Settings(
                 Math.clamp(c.getInt("lag-protection.lock-after-samples", 3), 1, 100),
                 c.getBoolean("lag-protection.only-when-server-lags", true),
                 Math.clamp(c.getDouble("lag-protection.server-lag-mspt", 40), 1, 1000),
+                forceLockMultiplier(c.getDouble("lag-protection.force-lock-multiplier", 2), log),
                 new LagLimits(Map.copyOf(warn), Map.copyOf(lock)));
 
         double below = Math.clamp(c.getDouble("server-pause.below-tps", 15), 1, 19.9);
@@ -287,6 +289,18 @@ public record Settings(
     }
 
     /** Exactly three quick-select ban durations; invalid entries fall back to the defaults. */
+    /** 0 (or less) = off; below 1 would lock under the normal lock limit, so it is raised to 1. */
+    private static double forceLockMultiplier(double raw, Logger log) {
+        if (raw <= 0) {
+            return 0;
+        }
+        if (raw < 1) {
+            log.warning("lag-protection.force-lock-multiplier (" + raw + ") is below 1, using 1.");
+            return 1;
+        }
+        return Math.min(raw, 1000);
+    }
+
     private static List<Long> banDurations(List<String> raw, Logger log) {
         List<Long> result = durations(raw, List.of("1d", "7d", "permanent"), "gui.ban-durations", log);
         return result.size() >= 3 ? result.subList(0, 3) : result;
