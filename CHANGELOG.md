@@ -9,6 +9,47 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+## [0.4.0] - 2026-10-20
+Für Minecraft **26.3** (`mc26.3-v0.4.0`).
+
+### Neu
+- **Server-Pause sperrt den Verursacher:** Direkt bevor alle Loader pausieren, wird jeder aktive Loader über einer
+  Sperrgrenze sofort gesperrt. Vorher konnte die Pause ihn verstecken (Chunks frei, Lag weg, Pause vorbei, von vorn).
+- **MRadmin-Weboberfläche:** Schnittstelle Version 4 (`MRadminHook.web`) liefert Chunkloader, Status, Messwerte,
+  Mitglieder und die Zahl der geladenen Chunks (für den Health-Verlauf von MRadmin) als Daten und nimmt Aktionen an
+  (ein-/ausschalten, entsperren, löschen); dazu pro Spieler Loader, Limits, Sperre und Einladungen
+  (`player`, `flags`) und Spieler-Aktionen (Limits setzen, sperren, entsperren, alle löschen) - der Owner wird wie ingame benachrichtigt, Discord- und Server-Log inklusive.
+- **Server-Pause:** Liegt die TPS des Servers 30 Sekunden lang unter 15, geben alle Chunkloader ihre Chunks frei,
+  egal woher der Lag kommt. Sobald die TPS 60 Sekunden lang wieder bei mindestens 18 liegt, laden sie automatisch
+  wieder. An/aus der Loader bleibt dabei unverändert. Owner aktiver Loader und Admins werden informiert, dazu
+  Discord-Logs (`server-paused`, `server-resumed`). Spieler können die Pause nicht umgehen. Auf der Webkarte sind
+  pausierte Loader orange (`squaremap.paused-color`), in MRadmin erscheint die Pause auf dem MRchunks-Knopf und im
+  Serverzustand. Alles einstellbar unter `server-pause` (Config-Version 6, wird automatisch ergänzt).
+- **Ticket bei Lag-Sperre (mit MRadmin):** Wird ein Loader gesperrt, öffnet MRadmin automatisch ein Ticket für den
+  Owner mit allen Details der Sperre und schickt ihm den Link im Chat. Nur das Team kann es schließen und den
+  Loader über „Chunkloader-Menü“ im Ticket entsperren. Ohne MRadmin ändert sich nichts.
+- **Status-Blöcke in allen Menüs** (`/chunkloader`, `/mrchunks gui`, MRadmin): Smaragdblock = OK, grau = aus,
+  Magmablock = über der Warnschwelle (mit Messwert in der Beschreibung), Redstone-Block = gesperrt,
+  Spinnennetz = Server-Pause.
+
+### Geändert
+- **Sperr-Details ohne eigene Ortszeile:** Das Ticket in MRadmin zeigt den Ort schon selbst, er stand dadurch doppelt da.
+  Die Sprachdateien werden automatisch aktualisiert (lang-version 10).
+- **Kein 30-Minuten-Schutz mehr nach dem Entsperren** (`unlock-grace` entfällt): Eine neue Sperre braucht wie immer
+  `lock-after-samples` Messungen hintereinander über der Grenze (Standard 3 x 30 s). Die Config wird automatisch
+  auf Version 7 aktualisiert.
+- **Gesperrte Loader werden weiter gemessen**, solange jemand ihren Bereich lädt (z.B. ein Admin, der daneben
+  steht). So sieht man vor dem Entsperren, ob sich die Lage beruhigt hat. Die Aktivität im Menü zeigt dazu, wie alt
+  die Messung ist und wie viele Chunks des Bereichs geladen waren. Gesperrt wird dabei nichts.
+- **Spieler haben nur noch `/chunkloader`.** Der Befehl öffnet das Menü mit den eigenen Loadern. Die bisherigen
+  Unterbefehle sind Knöpfe in der unteren Leiste: **Chunkloader holen** (`give`), **Chunkloader zurückgeben**
+  (`remove`) und **Webkarte** (`map`). `list` ist das Menü selbst, `info` und `version` entfallen (Version für
+  Admins: `/mrchunks version`). Die Admin-Befehle unter `/mrchunks` bleiben unverändert.
+
+### Behoben
+- Auf dem Chunkloader-Block spawnen keine Mobs mehr (natürlich, Spawner, Patrouillen, Raids, Portale ...). Was Spieler
+  selbst auslösen (Spawn-Eier, Befehle, Züchten, Golems bauen), bleibt möglich.
+
 ## [0.3.0] - 2026-10-19
 Dritte Testversion für Minecraft **26.3** (`mc26.3-v0.3.0`). Update von 0.2.0: JAR austauschen und neu starten,
 Config und Texte werden automatisch ergänzt (Backup `config.v4.backup.yml`).

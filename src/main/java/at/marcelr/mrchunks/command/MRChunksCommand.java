@@ -187,6 +187,9 @@ public final class MRChunksCommand implements TabExecutor {
         if (!plugin.settings().lag().enabled()) {
             messages().send(sender, "lag-disabled");
         }
+        if (plugin.loaders().paused()) {
+            messages().send(sender, "pause-status", plugin.pause().tags());
+        }
         var list = plugin.lag().conspicuous();
         if (list.isEmpty()) {
             messages().send(sender, "lag-list-empty");
@@ -264,7 +267,7 @@ public final class MRChunksCommand implements TabExecutor {
         sendVersion(plugin, sender);
     }
 
-    /** Version, author, update status and links - also used by /chunkloader version. */
+    /** Version, author, update status and links - also used by the help button in /chunkloader. */
     public static void sendVersion(MRChunks plugin, CommandSender sender) {
         Messages messages = plugin.messages();
         UpdateChecker updates = plugin.updateChecker();

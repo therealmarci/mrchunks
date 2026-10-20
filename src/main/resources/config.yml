@@ -3,7 +3,7 @@
 # ==============================================================================
 #   Nach Änderungen:  /mrchunks reload   (kein Neustart nötig)
 #   Admin-Menü:       /mrchunks gui
-#   Spieler-Hilfe:    /chunkloader info
+#   Spieler-Menü:     /chunkloader
 #
 #   Zeitangaben: d = Tage, h = Stunden, m = Minuten, s = Sekunden,
 #                z.B. "30m", "1h30m", "7d". Eine reine Zahl zählt als Minuten.
@@ -15,7 +15,7 @@
 # ==============================================================================
 
 # Nicht ändern - wird für automatische Config-Updates verwendet.
-config-version: 5
+config-version: 7
 
 # Sprache aller Texte: de = Deutsch, en = English. Die Texte stehen in plugins/MRchunks/lang/<sprache>.yml
 # und können dort angepasst werden. Eigene Sprache: Datei kopieren (z.B. fr.yml), übersetzen, language: fr.
@@ -70,9 +70,9 @@ loaders:
 
 
 # Einladungen: Owner können andere Spieler einladen, ihre Chunkloader an- und auszuschalten - für einen Loader
-# (Menü des Loaders -> Mitglieder) oder für alle (/chunkloader list -> Mitglieder für alle Loader).
+# (Menü des Loaders -> Mitglieder) oder für alle (/chunkloader -> Mitglieder für alle Loader).
 # Eingeladene dürfen nur an/aus schalten, nicht umbenennen oder löschen. Das zählt bei niemandem zum Limit,
-# das Aktiv-Limit des Owners gilt weiter. Eingeladene finden die Loader unter /chunkloader list -> Mit mir geteilt.
+# das Aktiv-Limit des Owners gilt weiter. Eingeladene finden die Loader unter /chunkloader -> Mit mir geteilt.
 invites:
   enabled: true
   # Auswahl der Dauer im Einladen-Dialog ("permanent" = dauerhaft).
@@ -94,6 +94,7 @@ lag-protection:
   # Alle so viele Sekunden wird gemessen.
   sample-seconds: 30
   # So viele Messungen hintereinander über "lock", bevor gesperrt wird (3 x 30 s = 1,5 Minuten).
+  # Das gilt auch nach dem Entsperren: frühestens nach so vielen neuen Messungen kann wieder gesperrt werden.
   lock-after-samples: 3
   # true = nur sperren, wenn der Server dabei wirklich laggt (durchschnittliche Tick-Zeit ab server-lag-mspt).
   #        Eine große Farm, mit der der Server gut zurechtkommt, wird dann nicht gesperrt.
@@ -101,8 +102,6 @@ lag-protection:
   only-when-server-lags: true
   # Ab dieser durchschnittlichen Tick-Zeit (ms) gilt der Server als laggend (50 = 20 TPS gerade noch gehalten).
   server-lag-mspt: 40
-  # Nach dem Entsperren so lange keine neue Sperre, damit der Owner seine Farm reparieren kann.
-  unlock-grace: "30m"
   # Grenzen für den gesamten Bereich eines Loaders (Standard 7x7 Chunks).
   limits:
     # Entities (Mobs, Tiere, Loren, Rüstungsständer ... inkl. Items am Boden, ohne Spieler)
@@ -118,13 +117,29 @@ lag-protection:
     # Neue Mobs und Items pro Sekunde
     spawns: { warn: 20, lock: 80 }
 
+# Server-Pause: Laggt der ganze Server (egal ob wegen Chunkloadern oder etwas anderem), geben ALLE Chunkloader ihre
+# Chunks frei, bis er sich erholt hat - danach laden sie automatisch wieder. An/aus der Loader bleibt unverändert,
+# niemand muss etwas wieder einschalten. Owner aktiver Loader und Admins werden informiert (dazu ein Discord-Log).
+# Gemessen wird die TPS des Servers über die letzte Minute (20 = flüssig).
+server-pause:
+  enabled: true
+  # Pausieren, wenn die TPS so lange unter "below-tps" liegt (Sekunden) - kurze Lag-Spitzen lösen nichts aus.
+  below-tps: 15
+  pause-after-seconds: 30
+  # Fortsetzen, wenn die TPS so lange mindestens "resume-tps" ist. Etwas höher als below-tps, damit die Loader
+  # nicht ständig an- und ausgehen, wenn der Server knapp an der Grenze läuft.
+  resume-tps: 18
+  resume-after-seconds: 60
+  # Owner aktiver Loader und Admins im Chat über Pause und Fortsetzen informieren.
+  notify-owners: true
+
 
 # ------------------------------------------------------------------------------
 #   3) ITEM & BLOCK
 # ------------------------------------------------------------------------------
 item:
   # Aussehen des Chunkloaders als Block und als Item.
-  # Normale Blöcke dieses Typs sind KEINE Chunkloader - nur die per /chunkloader give.
+  # Normale Blöcke dieses Typs sind KEINE Chunkloader - nur die aus /chunkloader ("Chunkloader holen").
   # Name und Beschreibung des Items stehen in der Sprachdatei (item-name, item-lore).
   material: EMERALD_BLOCK
   # Verzauberungs-Glanz auf dem Item.
@@ -177,13 +192,15 @@ squaremap:
   # Farbe der Bereiche: "owner" = eigene, gleichbleibende Farbe pro Spieler, oder ein fester Wert wie "#2ECC71".
   color: owner
   inactive-color: "#8A958E"
+  # Farbe aktiver Chunkloader während einer Server-Pause (siehe server-pause).
+  paused-color: "#F39C12"
   # Deckkraft der Fläche (0.0 - 1.0).
   fill-opacity: 0.25
   # Kleines Chunkloader-Symbol in der Mitte des Bereichs.
   show-icon: true
   # Spätestens so oft werden die Markierungen neu abgeglichen (Änderungen erscheinen sonst sofort).
   update-seconds: 60
-  # Adresse der Webkarte für Spieler (/chunkloader map, Link im Chat):
+  # Adresse der Webkarte für Spieler (Knopf "Webkarte" in /chunkloader, Link im Chat):
   #   ""                             = automatisch: "web-address" aus der squaremap-Config (falls geändert),
   #                                    sonst server-ip aus der server.properties, sonst die öffentliche IP
   #   "map.deinserver.de"            = eigene Domain (FQDN) oder IP - der squaremap-Port wird angehängt
@@ -279,6 +296,12 @@ discord:
       enabled: true
       color: "#C0392B"
     loader-lag-unlocked:
+      enabled: true
+      color: "#27AE60"
+    server-paused:
+      enabled: true
+      color: "#E67E22"
+    server-resumed:
       enabled: true
       color: "#27AE60"
 

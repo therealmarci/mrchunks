@@ -11,8 +11,12 @@ import java.util.Map;
  * @param lockRatio highest value / lock limit over all metrics (&ge; 1 = over the lock limit)
  * @param worst     the metric closest to (or furthest over) its warn limit
  * @param time      when it was measured (ms)
+ * @param loadedChunks how many chunks of the area were loaded (a locked loader is only measured while someone else
+ *                  loads them, maybe only partly)
+ * @param totalChunks  chunks of the whole area
  */
-public record Activity(Map<Metric, Double> values, double warnRatio, double lockRatio, Metric worst, long time) {
+public record Activity(Map<Metric, Double> values, double warnRatio, double lockRatio, Metric worst, long time,
+                       int loadedChunks, int totalChunks) {
 
     public double value(Metric metric) {
         return values.getOrDefault(metric, 0.0);
@@ -23,7 +27,7 @@ public record Activity(Map<Metric, Double> values, double warnRatio, double lock
     }
 
     /** Builds the ratios from the values and the configured limits (a limit of 0 switches a metric off). */
-    public static Activity of(Map<Metric, Double> values, LagLimits limits, long time) {
+    public static Activity of(Map<Metric, Double> values, LagLimits limits, long time, int loadedChunks, int totalChunks) {
         Map<Metric, Double> copy = new EnumMap<>(Metric.class);
         copy.putAll(values);
         double warn = 0;
@@ -38,7 +42,7 @@ public record Activity(Map<Metric, Double> values, double warnRatio, double lock
             }
             lock = Math.max(lock, ratio(value, limits.lock(metric)));
         }
-        return new Activity(Map.copyOf(copy), warn, lock, worst, time);
+        return new Activity(Map.copyOf(copy), warn, lock, worst, time, loadedChunks, totalChunks);
     }
 
     private static double ratio(double value, double limit) {

@@ -24,8 +24,18 @@ public record Settings(
         UpdateSettings update,
         GuiSettings gui,
         InviteSettings invites,
-        LagSettings lag
+        LagSettings lag,
+        PauseSettings pause
 ) {
+
+    /**
+     * Server pause: all loaders release their chunks once the server's TPS (1-minute average) has been below
+     * {@code belowTps} for {@code pauseAfterSeconds}, and load them again once it has been at least {@code resumeTps}
+     * for {@code resumeAfterSeconds}. The on/off state of the loaders is not touched.
+     */
+    public record PauseSettings(boolean enabled, double belowTps, double resumeTps, int pauseAfterSeconds,
+                                int resumeAfterSeconds, boolean notifyOwners) {
+    }
 
     /**
      * Lag protection: every {@code sampleSeconds} the area of each active loader is measured. A loader is locked when
@@ -33,7 +43,7 @@ public record Settings(
      * only while the server's average tick time is at least {@code serverLagMspt}). Durations in ms.
      */
     public record LagSettings(boolean enabled, int sampleSeconds, int lockAfterSamples, boolean onlyWhenServerLags,
-                              double serverLagMspt, long unlockGrace, LagLimits limits) {
+                              double serverLagMspt, LagLimits limits) {
     }
 
     /** Marker for a permanent ban. */
@@ -70,7 +80,7 @@ public record Settings(
     /** {@code color == null} means one colour per owner. */
     public record SquaremapSettings(boolean enabled, boolean autoConfigure, String overworldName, String netherName,
                                     String endName, boolean hidePlayers, String layerName, boolean defaultHidden, boolean showInactive,
-                                    java.awt.Color color, java.awt.Color inactiveColor, double fillOpacity,
+                                    java.awt.Color color, java.awt.Color inactiveColor, java.awt.Color pausedColor, double fillOpacity,
                                     boolean showIcon, String hoverTooltip, String clickTooltip, int updateSeconds,
                                     String address, boolean reverseProxy, boolean detectPublicIp, GridSettings grid) {
     }
@@ -141,6 +151,7 @@ public record Settings(
                 c.getBoolean("squaremap.show-inactive", true),
                 rawColor.equalsIgnoreCase("owner") ? null : parseColor(rawColor, "squaremap.color", log),
                 parseColor(c.getString("squaremap.inactive-color", "#8A958E"), "squaremap.inactive-color", log),
+                parseColor(c.getString("squaremap.paused-color", "#F39C12"), "squaremap.paused-color", log),
                 Math.clamp(c.getDouble("squaremap.fill-opacity", 0.25), 0.0, 1.0),
                 c.getBoolean("squaremap.show-icon", true),
                 texts.optional("map-hover-tooltip"),
@@ -199,17 +210,29 @@ public record Settings(
             warn.put(metric, w);
             lock.put(metric, l);
         }
-        long grace = DurationUtil.parse(c.getString("lag-protection.unlock-grace", "30m"));
         LagSettings lag = new LagSettings(
                 c.getBoolean("lag-protection.enabled", true),
                 Math.clamp(c.getInt("lag-protection.sample-seconds", 30), 5, 600),
                 Math.clamp(c.getInt("lag-protection.lock-after-samples", 3), 1, 100),
                 c.getBoolean("lag-protection.only-when-server-lags", true),
                 Math.clamp(c.getDouble("lag-protection.server-lag-mspt", 40), 1, 1000),
-                grace < 0 ? 30 * 60_000L : grace,
                 new LagLimits(Map.copyOf(warn), Map.copyOf(lock)));
 
-        return new Settings(loaders, item, border, squaremap, update, gui, invites, lag);
+        double below = Math.clamp(c.getDouble("server-pause.below-tps", 15), 1, 19.9);
+        double resume = Math.clamp(c.getDouble("server-pause.resume-tps", 18), 1, 20);
+        if (resume < below) {
+            log.warning("server-pause: resume-tps (" + resume + ") is below below-tps (" + below + "), using resume-tps = below-tps.");
+            resume = below;
+        }
+        PauseSettings pause = new PauseSettings(
+                c.getBoolean("server-pause.enabled", true),
+                below,
+                resume,
+                Math.clamp(c.getInt("server-pause.pause-after-seconds", 30), 0, 3600),
+                Math.clamp(c.getInt("server-pause.resume-after-seconds", 60), 0, 3600),
+                c.getBoolean("server-pause.notify-owners", true));
+
+        return new Settings(loaders, item, border, squaremap, update, gui, invites, lag, pause);
     }
 
     /** "#RRGGBB" as written to the web page; anything else becomes the fallback (no script injection). */

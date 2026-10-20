@@ -18,7 +18,7 @@ Chunkloader-Plugin für **Paper 26.3** (Java 25).
 ---
 
 ## Installation
-1. Die JAR für deine Minecraft-Version in den Ordner `plugins/` legen, z.B. `MRchunks-mc26.3-v0.3.0.jar` für Minecraft 26.3, und den Server starten.
+1. Die JAR für deine Minecraft-Version in den Ordner `plugins/` legen, z.B. `MRchunks-mc26.3-v0.4.0.jar` für Minecraft 26.3, und den Server starten.
 2. `plugins/MRchunks/config.yml` anpassen und `/mrchunks reload` ausführen.
 
 Bei Updates wird die Config automatisch migriert: Deine Werte bleiben erhalten, und eine Sicherung `config.v<N>.backup.yml` wird angelegt.
@@ -35,11 +35,23 @@ Texte auf der Webkarte (Ebenen-Namen, Tooltips, Dimensionsnamen), Discord-Logs u
 ---
 
 ## So funktioniert's
-1. **`/chunkloader give`** legt einen Chunkloader ins Inventar, solange dein Limit nicht erreicht ist. Es gibt zwei Limits: wie viele du **setzen** darfst und wie viele davon **gleichzeitig aktiv** sein dürfen (siehe [Limits](#limits-setzen-und-gleichzeitig-aktiv)).
+1. **`/chunkloader`** öffnet dein Menü. Unten rechts legt **Chunkloader holen** einen Loader ins Inventar, solange dein Limit nicht erreicht ist (Linksklick 1, Shift bis zu 64), **Chunkloader zurückgeben** daneben nimmt Items wieder zurück. Es gibt zwei Limits: wie viele du **setzen** darfst und wie viele davon **gleichzeitig aktiv** sein dürfen (siehe [Limits](#limits-setzen-und-gleichzeitig-aktiv)).
 2. **Platzieren:** Ab sofort bleiben `7×7` Chunks um den Block geladen. Den Radius stellst du über `loaders.radius` ein.
 3. **Rechtsklick** auf den Block öffnet das Menü. Dort zeigt **Grenze anzeigen** den Bereich als leuchtende Linien (automatisch beim Öffnen mit `border.show-on-open: true`).
    **Sneak + Rechtsklick** verhält sich normal, du kannst also weiter Blöcke daran bauen.
-4. **Löschen** geht nur über das Menü (zweimal klicken). Danach ist der Loader weg und dein Limit wieder frei. Ein Item gibt es nicht zurück, ein neues bekommst du per `/chunkloader give`.
+4. **Löschen** geht nur über das Menü (zweimal klicken). Danach ist der Loader weg und dein Limit wieder frei. Ein Item gibt es nicht zurück, ein neues holst du dir in `/chunkloader`.
+
+### Status in den Menüs
+In allen Menüs (`/chunkloader`, `/mrchunks gui` und in MRadmin) zeigt der Block eines Loaders seinen Status, der
+Grund steht jeweils in der Beschreibung:
+
+| Block | Status |
+|---|---|
+| Smaragdblock (bzw. `item.material`) | Alles OK |
+| Grauer Beton | Von einem Spieler oder Admin ausgeschaltet |
+| Magmablock | Über einer Warnschwelle des [Lag-Schutzes](#lag-schutz) |
+| Redstone-Block | Wegen Lag gesperrt |
+| Spinnennetz | Pausiert, weil der ganze Server laggt ([Server-Pause](#server-pause)) |
 
 ### Namen & Nummern
 - Jeder Chunkloader bekommt pro Spieler die **kleinste freie Nummer**: Wer 8 gesetzt hat, bekommt als Nächstes „Chunkloader 9“. Wird Nr. 9 gelöscht, heißt der nächste wieder „Chunkloader 9“.
@@ -49,14 +61,14 @@ Texte auf der Webkarte (Ebenen-Namen, Tooltips, Dimensionsnamen), Discord-Logs u
 ### Mitspieler einladen
 Owner können andere Spieler einladen, ihre Chunkloader **an- und auszuschalten**, z.B. Farm-Partner, damit die Farm auch läuft, wenn der Owner offline ist.
 - **Ein Loader:** Menü des Loaders → **Mitglieder** → **Spieler einladen**.
-- **Alle Loader** (auch künftige): `/chunkloader list` → **Mitglieder für alle Loader**.
+- **Alle Loader** (auch künftige): `/chunkloader` → **Mitglieder für alle Loader**.
 - **Spieler einladen** zeigt die Köpfe der Online-Spieler: Dauer mit der Uhr wählen (`invites.durations`, Standard 1d / 7d / 30d / dauerhaft), dann auf einen Kopf klicken. Für Offline-Spieler gibt es **Namen eingeben** (Dialog). Ein Klick auf einen Kopf in der Mitgliederliste nimmt die Einladung zurück, befristete laufen von selbst ab.
-- **Eingeladene** finden die Loader unter `/chunkloader list` → **Mit mir geteilt** und dürfen sie **nur an- und ausschalten**. Umbenennen, Löschen und Einladen bleibt dem Owner (und Admins).
+- **Eingeladene** finden die Loader unter `/chunkloader` → **Mit mir geteilt** und dürfen sie **nur an- und ausschalten**. Umbenennen, Löschen und Einladen bleibt dem Owner (und Admins).
 - Einladungen zählen bei **niemandem** zum Limit. Schaltet ein Eingeladener einen Loader an, gilt das **Aktiv-Limit des Owners**, und der Owner bekommt eine Nachricht.
 - Höchstens `invites.max-members` Eingeladene pro Liste. Abschalten: `invites.enabled: false`. Permission zum Einladen: `mrchunks.invite` (alle).
 
 ### Spieler ausschließen (`mrchunks.exempt`)
-Wer `mrchunks.exempt` hat, ist **komplett vom Chunkloading ausgeschlossen**, z.B. Zweit-Accounts in einer eigenen LuckPerms-Rolle: kein `give`, kein Setzen, keine Einladungen, auch nicht als Eingeladener. Vorhandene Loader und Chunkloader-Items werden beim Betreten des Servers (und bei `/mrchunks reload`) **gelöscht**.
+Wer `mrchunks.exempt` hat, ist **komplett vom Chunkloading ausgeschlossen**, z.B. Zweit-Accounts in einer eigenen LuckPerms-Rolle: keine Chunkloader holen, kein Setzen, keine Einladungen, auch nicht als Eingeladener. Vorhandene Loader und Chunkloader-Items werden beim Betreten des Servers (und bei `/mrchunks reload`) **gelöscht**.
 
 > ⚠️ **Streng:** Auch Admins sind betroffen. LuckPerms-Gruppen mit `*` oder `mrchunks.*` bekommen `mrchunks.exempt` mit, dort also ausdrücklich `/lp group admin permission set mrchunks.exempt false` setzen, sonst werden die Loader dieser Admins gelöscht.
 
@@ -76,21 +88,29 @@ Jeder Chunk wird nur **einmal** geladen gehalten, auch wenn mehrere Loader ihn a
 **Was in geladenen Chunks läuft:** Redstone, Hopper, Öfen, Tiere und Entities, Pflanzenwachstum, also alle Zufalls-Ticks.
 **Was trotzdem einen Spieler in der Nähe braucht:** natürliches Mob-Spawning und Mob-Spawner. Das ist eine Minecraft-Regel, die kein Chunkloader-Plugin ändert.
 
-Nur Items aus `/chunkloader give` sind Chunkloader. Normale Emeraldblöcke bleiben normale Blöcke, und Chunkloader-Items lassen sich nicht zu Smaragden craften.
+Nur Items aus `/chunkloader` (**Chunkloader holen**) sind Chunkloader. Normale Emeraldblöcke bleiben normale Blöcke, und Chunkloader-Items lassen sich nicht zu Smaragden craften.
 
 ---
 
 ## Befehle
 
 ### Spieler: `/chunkloader` (Aliase `/cl`, `/chunkloaders`)
-| Befehl | Beschreibung | Permission |
+Spieler haben nur diesen einen Befehl. Er öffnet das Menü mit den eigenen Chunkloadern (Klick öffnet das Menü des
+Loaders), unten in der Leiste ist alles Weitere:
+
+Die Leiste von links nach rechts:
+
+| Knopf | Funktion | Permission |
 |---|---|---|
-| `/chunkloader give [anzahl]` | Chunkloader ins Inventar (bis zum Limit) | `mrchunks.use` |
-| `/chunkloader remove [anzahl\|all]` | Chunkloader-Items aus dem Inventar entfernen | `mrchunks.use` |
-| `/chunkloader list` | Menü mit deinen Chunkloadern | `mrchunks.use` |
-| `/chunkloader info` | Befehlshilfe, zeigt nur die Befehle, die du nutzen darfst | – |
-| `/chunkloader version` | Version des Plugins | – (alle) |
-| `/chunkloader map` | Link zur Webkarte | `mrchunks.map` |
+| **Mitglieder für alle Loader** | Spieler für alle eigenen Loader einladen | `mrchunks.invite` |
+| **Mit mir geteilt** | Loader anderer Spieler, zu denen du eingeladen bist | – |
+| **Webkarte** | Link zur Webkarte im Chat (nur mit squaremap) | `mrchunks.map` |
+| **Schließen** | | |
+| **Chunkloader holen** | Linksklick 1, Shift-Klick bis zu 64 (bis zum Limit) | `mrchunks.use` |
+| **Chunkloader zurückgeben** | Linksklick 1 Item, Shift-Klick alle Items aus dem Inventar | `mrchunks.use` |
+
+Hast du mehr als 45 Loader, erscheinen links neben der Webkarte und rechts neben „Schließen“ Pfeile zum Blättern.
+Die Version zeigt `/mrchunks version` (Admins).
 
 ### Admin: `/mrchunks`
 | Befehl | Beschreibung | Permission |
@@ -228,9 +248,13 @@ seines 7×7-Bereichs zusammen:
   - Der Owner wird sofort informiert, oder beim nächsten Join, wenn er offline war. In seiner Liste steht der
     Loader mit 🔒 und Grund.
   - Admins mit `mrchunks.admin.manage` bekommen ingame eine Meldung mit [Teleport], dazu ein Discord-Log.
+  - **Mit MRadmin** bekommt der Owner zusätzlich automatisch ein **Ticket** mit allen Details der Sperre (Link im
+    Chat). Darin kann er erklären, was passiert ist. Schließen kann es nur das Team, das den Loader über
+    „Chunkloader-Menü“ im Ticket entsperren kann. Erneute Sperren und das Entsperren werden im selben Ticket vermerkt.
 - **Aufheben** können nur Admins (`mrchunks.admin.manage`): im Menü des Loaders („Lag-Sperre aufheben“) oder per
-  `/mrchunks unlock <spieler> <nr>`. Der Loader bleibt danach aus, der Owner schaltet ihn wieder ein. Danach gibt es
-  `unlock-grace` (30 min) lang keine neue Sperre, damit die Farm repariert werden kann.
+  `/mrchunks unlock <spieler> <nr>`. Der Loader bleibt danach aus, der Owner schaltet ihn wieder ein. Eine neue Sperre
+  braucht danach wieder `lock-after-samples` (3) Messungen hintereinander über der Grenze, also frühestens 1,5 Minuten
+  nach dem Einschalten.
 - **Aktivität einsehen:** Das Menü jedes aktiven Loaders zeigt die letzte Messung, also die Werte, die ihren Grenzen
   am nächsten sind. Das hilft auch Spielern, ihre Farm einzuschätzen.
 - Alle Grenzen stehen in der `config.yml` unter `lag-protection.limits`. Ein Wert von `0` schaltet die jeweilige
@@ -238,6 +262,27 @@ seines 7×7-Bereichs zusammen:
 
 Die Paper-API kennt keine Tick-Zeit pro Chunk. MRchunks misst deshalb die üblichen Verursacher. Die Standardwerte
 sind bewusst großzügig: Normale Farmen bleiben weit darunter, außer Kontrolle geratene Maschinen nicht.
+
+### Server-Pause
+Laggt der **ganze Server**, egal ob wegen Chunkloadern oder etwas anderem, pausiert MRchunks **alle** Chunkloader:
+- **Pause:** Liegt die TPS (Durchschnitt der letzten Minute) `pause-after-seconds` lang (Standard 30 s) unter
+  `below-tps` (Standard 15), geben alle Loader ihre Chunks frei. Kurze Lag-Spitzen lösen nichts aus.
+- **Verursacher zuerst:** Direkt vor der Pause misst MRchunks alle aktiven Loader noch einmal. Wer dabei über einer
+  Sperrgrenze (`lag-protection.limits`) liegt, wird sofort gesperrt (mit Ticket in MRadmin), ohne die sonst nötigen
+  Messungen hintereinander. Sonst würde die Pause den Verursacher verstecken: Seine Chunks werden frei, der Lag ist
+  weg, die Pause endet und alles beginnt von vorn.
+- **Fortsetzen:** Liegt die TPS `resume-after-seconds` lang (Standard 60 s) wieder bei mindestens `resume-tps`
+  (Standard 18), laden alle aktiven Loader automatisch wieder. Der Abstand zwischen 15 und 18 verhindert, dass die
+  Loader ständig an- und ausgehen, wenn der Server knapp an der Grenze läuft.
+- An/aus der Loader bleibt unverändert, niemand muss etwas wieder einschalten. Wer während der Pause einen Loader
+  einschaltet, bekommt einen Hinweis; er lädt, sobald die Pause endet.
+- Spieler können die Pause nicht umgehen: Auch Ein- und Ausschalten, Neusetzen oder `/mrchunks reload` laden
+  während der Pause keine Chunks. Nur die Config (`server-pause.enabled: false` + Reload) beendet sie vorzeitig.
+- Owner aktiver Loader und Admins werden im Chat informiert (`notify-owners`), dazu kommen Discord-Logs. Im Menü
+  steht bei aktiven Loadern „⏸ Pausiert“, `/mrchunks lag` zeigt den Status. Während der Pause selbst wird nicht gemessen.
+- Auf der Webkarte erscheinen aktive Loader während der Pause in `squaremap.paused-color` (orange) mit dem Status
+  „pausiert“. In MRadmin steht die Pause auf dem MRchunks-Knopf und als erster Eintrag im Serverzustand.
+- Einstellbar unter `server-pause` in der `config.yml`, abschaltbar mit `enabled: false`.
 
 ---
 

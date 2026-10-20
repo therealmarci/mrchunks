@@ -191,7 +191,8 @@ final class SquaremapHook {
         int minZ = (loader.chunkZ() - radius) << 4;
         int maxX = (loader.chunkX() + radius + 1) << 4;
         int maxZ = (loader.chunkZ() + radius + 1) << 4;
-        Color color = loader.active() ? colorOf(loader, settings) : settings.inactiveColor();
+        boolean paused = loader.active() && plugin.loaders().paused();
+        Color color = paused ? settings.pausedColor() : loader.active() ? colorOf(loader, settings) : settings.inactiveColor();
         MarkerOptions options = MarkerOptions.builder()
                 .strokeColor(color)
                 .strokeWeight(2)
@@ -268,7 +269,8 @@ final class SquaremapHook {
                 .replace("{z}", String.valueOf(loader.z()))
                 .replace("{size}", String.valueOf(loaders.size()))
                 .replace("{chunks}", String.valueOf(loaders.chunkCount()))
-                .replace("{state}", html(Texts.state(plugin, loader.active())));
+                .replace("{state}", html(loader.active() && plugin.loaders().paused()
+                        ? plugin.messages().plain("state-paused") : Texts.state(plugin, loader.active())));
     }
 
     private static String html(String text) {

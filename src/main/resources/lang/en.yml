@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Do not change - tells the plugin which texts need to be renewed on updates.
-lang-version: 7
+lang-version: 10
 
 # Discord log texts (Discord markdown). Placeholders: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. On/off and colour are set in config.yml.
@@ -33,6 +33,8 @@ discord:
   loader-lag-warning: "⚠️ **{name}** of **{player}** is conspicuous: {metric} {value} (warn limit {limit}) - {world} {x}, {y}, {z}"
   loader-lag-locked: "🔒 **{name}** of **{player}** was locked because of lag: {metric} {value} (limit {limit}) - {world} {x}, {y}, {z}"
   loader-lag-unlocked: "🔓 **{admin}** lifted the lag lock of **{name}** ({player})."
+  server-paused: "⏸️ The server is lagging ({value} TPS) - all chunk loaders are paused ({count} chunks released)."
+  server-resumed: "▶️ The server runs smoothly again ({value} TPS) - the chunk loaders load again (pause: {time})."
 
 # --- Chunk loader item ---------------------------------------------------------
 # Placeholders: <size> (e.g. 7), <chunks> (e.g. 49)
@@ -74,6 +76,7 @@ invalid-duration: "<prefix><red>Invalid duration <white><input></white>. Example
 invalid-number: "<prefix><red><white><input></white> is not a valid number."
 state-active: "active"
 state-inactive: "disabled"
+state-paused: "paused (server is lagging)"
 ban-duration-permanent: "permanent"
 ban-duration-temporary: "<time> left"
 ban-no-reason: "no reason given"
@@ -136,6 +139,20 @@ lag-list-header: "<prefix><gray>Conspicuous and locked chunk loaders:"
 lag-list-entry: "<dark_gray>- <gold><name></gold> <gray>of <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray><metric>: <white><value></white> <dark_gray>(warn limit <limit>)"
 lag-list-locked: "<dark_gray>- <red>🔒 <name></red> <gray>of <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray>locked since <time>: <metric> <value>"
 lag-list-empty: "<prefix><green>No chunk loader is conspicuous or locked."
+# Details of a lag lock as plain text (e.g. in the ticket MRadmin opens for it). One line lock-details-metric per
+# measured value follows.
+lock-details:
+  - "Your chunk loader <name> (no. <number>) was locked automatically because of lag and is off."
+  - "Locked: <time>"
+  - "Reason: <metric> <value> (lock limit <limit>)"
+  - "Server: <tps> TPS, <mspt> ms per tick"
+  - "Measured in the loader's whole area:"
+lock-details-metric: "- <metric>: <value> (warn <warn>, lock <lock>)"
+pause-started: "<prefix><yellow>⏸ The server is lagging <gray>(<white><tps></white> TPS)</gray> - all chunk loaders are paused.</yellow> <gray>They load again automatically once the server has recovered (from <resume> TPS)."
+pause-ended: "<prefix><green>▶ The server runs smoothly again <gray>(<white><tps></white> TPS)</gray> - the chunk loaders load again.</green> <dark_gray>(pause: <time>)"
+pause-toggle-hint: "<prefix><yellow>⏸ All chunk loaders are paused right now because the server is lagging.</yellow> <gray>It starts loading automatically once the server runs smoothly again."
+pause-status: "<prefix><yellow>⏸ All chunk loaders are paused</yellow> <gray>(for <time>, currently <white><tps></white> TPS, resumed from <resume> TPS)."
+pause-over: "<prefix><green>The server pause is over - the chunk loaders load again."
 deleted: "<prefix><green><white><name></white> deleted."
 delete-confirm: "<prefix><yellow>Click again to delete <white><name></white>."
 not-owner: "<prefix><red>This is not your chunk loader."
@@ -158,7 +175,7 @@ rename-cancel: "<red>Cancel"
 invite-scope-all: "all your chunk loaders"
 invite-scope-all-of: "all chunk loaders of <owner>"
 invited: "<prefix><green><white><player></white> may now switch <white><scope></white> on and off <gray>(<duration>)."
-invite-notify: "<prefix><green><white><owner></white> invited you: you may switch <white><scope></white> on and off <gray>(<duration>). <dark_gray>/chunkloader list → Shared with me"
+invite-notify: "<prefix><green><white><owner></white> invited you: you may switch <white><scope></white> on and off <gray>(<duration>). <dark_gray>/chunkloader → Shared with me"
 uninvited: "<prefix><green>Invite of <white><player></white> for <white><scope></white> withdrawn."
 uninvite-notify: "<prefix><gray><white><owner></white> withdrew your invite for <white><scope></white>."
 invite-self: "<prefix><red>You don't need to invite yourself."
@@ -281,6 +298,16 @@ gui-loader-locked:
   - "<red>🔒 Locked because of lag"
   - "<gray>since <white><time></white>: <metric> <white><value></white> <dark_gray>(limit <limit>)"
   - "<gray>Only an admin can lift the lock."
+gui-loader-paused:
+  - ""
+  - "<yellow>⏸ Paused - the server is lagging"
+  - "<gray>Loads again automatically once the server"
+  - "<gray>runs smoothly again (from <resume> TPS)."
+gui-loader-warn:
+  - ""
+  - "<gold>⚠ Over the warn limit"
+  - "<gray><metric>: <white><value></white> <dark_gray>(warn limit <limit>)"
+  - "<gray>Please check the farm, or it may get locked."
 gui-loader-click: "<yellow>» Click for actions"
 gui-state-active: "<green>● active"
 gui-state-inactive: "<red>● disabled"
@@ -312,6 +339,11 @@ gui-activity-header-high: "<gray>Activity: <red>above the lock limit"
 gui-activity-line: "<dark_gray>- <gray><metric>: <white><value></white> <dark_gray>(warn <warn>, lock <lock>)"
 gui-activity-unknown: "<gray>Activity: <white>not measured yet"
 gui-activity-off: "<gray>Activity: <white>only measured while the loader is on"
+# Locked loaders load nothing - they are measured while someone (e.g. an admin next to it) loads the area.
+gui-activity-locked-unknown: "<gray>Activity: <white>no new measurement yet <dark_gray>- go near the loader"
+gui-activity-measured: "<dark_gray>Measured <ago> ago, <loaded>/<total> chunks loaded"
+gui-activity-stale: "<dark_gray>Area not loaded - go near it for a new measurement"
+gui-activity-partial: "<dark_gray>Only part of the area is loaded - values may be lower"
 gui-rename-name: "<aqua>Rename"
 gui-rename-lore:
   - "<gray>Give the chunk loader its own name."
@@ -378,8 +410,32 @@ gui-delete-confirm-lore:
   - "<red>Click again to delete."
 gui-teleport-name: "<aqua>Teleport there"
 
-# Own chunk loaders (/chunkloader list)
+# Own chunk loaders (/chunkloader)
 gui-title-mine: "<dark_gray>My chunk loaders <gray>(<placed>/<limit>)"
+gui-mine-empty: "<gray>You have no chunk loaders yet"
+gui-mine-empty-lore:
+  - "<gray>Get one at the bottom right and place it."
+# Bottom bar of /chunkloader. Placeholders of get/return: <held> <placed> <limit> <free>
+gui-items-name: "<green>Get chunk loaders"
+gui-items-lore:
+  - "<gray>In inventory: <white><held></white> <dark_gray>| <gray>Placed: <white><placed>"
+  - "<gray>Limit: <white><limit></white> <dark_gray>| <gray>Still free: <white><free>"
+  - ""
+  - "<yellow>Left-click: get 1"
+  - "<yellow>Shift-click: get up to 64"
+gui-return-name: "<gold>Return chunk loaders"
+gui-return-lore:
+  - "<gray>In inventory: <white><held></white>"
+  - "<gray>Returned items are free for your limit again."
+  - ""
+  - "<yellow>Left-click: return 1"
+  - "<yellow>Shift-click: return all"
+gui-map-name: "<aqua>Web map"
+gui-map-lore:
+  - "<gray>All chunk loaders on the server's map."
+  - ""
+  - "<yellow>Click: link in chat"
+players-only-menu: "<prefix><red>/chunkloader opens a menu and only works in game. <gray>For the console: /mrchunks"
 
 # Admin menu
 gui-title-admin: "<dark_gray>MRchunks <gray>» <dark_green>Overview"
@@ -422,6 +478,15 @@ mradmin-activity-name-locked: "<red>🔒 <name> <gray>of <white><player>"
 mradmin-activity-lore:
   - "<gray>Location: <white><world> <x> <y> <z>"
 mradmin-activity-click: "<yellow>Click: chunk loader menu (teleport, lift lock ...)"
+mradmin-summary-paused:
+  - "<yellow>⏸ Server pause: all loaders paused <dark_gray>(for <time>)"
+mradmin-pause-name: "<yellow>⏸ Server pause: all chunk loaders paused"
+mradmin-pause-lore:
+  - "<gray>The server is lagging - the chunk loaders"
+  - "<gray>hold no chunks until it has recovered."
+  - ""
+  - "<gray>For: <white><time>"
+  - "<gray>TPS: <white><tps></white> <dark_gray>(resumed from <resume>)"
 gui-player-click: "<yellow>» Click for chunk loaders & actions"
 gui-online: "<green>online"
 gui-offline: "<gray>offline"

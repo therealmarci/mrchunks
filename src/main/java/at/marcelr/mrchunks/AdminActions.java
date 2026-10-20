@@ -7,6 +7,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -113,6 +114,9 @@ public final class AdminActions {
         loaders().setActive(loader, active);
         String state = Texts.state(plugin, active);
         messages().send(sender, "toggled", Texts.loader(plugin, loader), tag("state", state));
+        if (active && loaders().paused()) {
+            messages().send(sender, "pause-toggle-hint", plugin.pause().tags());
+        }
         if (!isOwner(sender, loader)) {
             notifyOwner(loader.owner(), "owner-notify-toggled", Texts.loader(plugin, loader),
                     tag("state", state), tag("admin", sender.getName()));
@@ -137,6 +141,9 @@ public final class AdminActions {
         notifyOwner(loader.owner(), "lag-unlocked-owner", Texts.loader(plugin, loader), tag("admin", sender.getName()));
         plugin.getLogger().info(sender.getName() + " lifted the lag lock of " + Texts.consoleName(plugin, loader) + ".");
         plugin.discord().log("loader-lag-unlocked", discordTags(loader, "admin", sender.getName()));
+        var data = at.marcelr.mrchunks.lag.LagMonitor.eventData(plugin, loader, "unlock");
+        data.put("by", sender.getName());
+        org.bukkit.Bukkit.getPluginManager().callEvent(new at.marcelr.mrchunks.api.LoaderLockEvent(data));
     }
 
     public void delete(CommandSender sender, Loader loader) {
@@ -154,6 +161,113 @@ public final class AdminActions {
             notifyOwner(loader.owner(), "owner-notify-deleted", tags, tag("admin", sender.getName()));
             plugin.discord().log("admin-delete", discordTags(loader, "admin", sender.getName()));
         }
+    }
+
+    // ----------------------------------------------------- web (MRadmin)
+
+    // Actions from MRadmin's web interface: the admin is usually not online, so there is no sender to answer - the
+    // owner hears about it, the Discord and server log get it as in game. MRadmin checks mrchunks.admin.manage
+    // first. Each returns an error key for the web interface, or null if it worked.
+
+    public String webToggle(String admin, Loader loader) {
+        boolean active = !loader.active();
+        if (active && loaders().lagLocked(loader)) {
+            return "loader-locked";
+        }
+        loaders().setActive(loader, active);
+        String state = Texts.state(plugin, active);
+        notifyOwner(loader.owner(), "owner-notify-toggled", Texts.loader(plugin, loader), tag("state", state), tag("admin", admin));
+        plugin.getLogger().info(admin + " (web) switched " + Texts.consoleName(plugin, loader) + (active ? " on." : " off."));
+        plugin.discord().log("loader-toggled", discordTags(loader, "admin", admin, "state", state));
+        return null;
+    }
+
+    public String webUnlock(String admin, Loader loader) {
+        if (loaders().lagLock(loader) == null) {
+            return "loader-not-locked";
+        }
+        loaders().lagUnlock(loader);
+        plugin.lag().unlocked(loader);
+        notifyOwner(loader.owner(), "lag-unlocked-owner", Texts.loader(plugin, loader), tag("admin", admin));
+        plugin.getLogger().info(admin + " (web) lifted the lag lock of " + Texts.consoleName(plugin, loader) + ".");
+        plugin.discord().log("loader-lag-unlocked", discordTags(loader, "admin", admin));
+        var data = at.marcelr.mrchunks.lag.LagMonitor.eventData(plugin, loader, "unlock");
+        data.put("by", admin);
+        org.bukkit.Bukkit.getPluginManager().callEvent(new at.marcelr.mrchunks.api.LoaderLockEvent(data));
+        return null;
+    }
+
+    public String webDelete(String admin, Loader loader) {
+        TagResolver tags = Texts.loader(plugin, loader);
+        loaders().delete(loader);
+        notifyOwner(loader.owner(), "owner-notify-deleted", tags, tag("admin", admin));
+        plugin.getLogger().info(admin + " (web) deleted " + Texts.consoleName(plugin, loader) + ".");
+        plugin.discord().log("admin-delete", discordTags(loader, "admin", admin));
+        return null;
+    }
+
+    // Player actions from the web (MRadmin checks mrchunks.admin.limit, .ban or .manage first).
+
+    /** Sets or (limit null) resets one of the two caps, like /mrchunks limit; a lower active limit switches loaders off. */
+    public String webSetLimit(String admin, OfflinePlayer target, LoaderManager.LimitKind kind, Integer limit) {
+        loaders().setLimitOverride(target.getUniqueId(), kind, limit);
+        String name = name(target);
+        String effective = Texts.limit(loaders().limit(target, kind));
+        String type = messages().plain(kind == LoaderManager.LimitKind.PLACE ? "limit-type-place" : "limit-type-active");
+        notifyOwner(target.getUniqueId(), "limit-notify", tag("limit", effective), tag("type", type));
+        plugin.getLogger().info(admin + " (web) set the " + kind.name().toLowerCase(java.util.Locale.ROOT) + " limit of "
+                + name + " to " + (limit == null ? "default" : limit) + ".");
+        plugin.discord().log("admin-limit", "admin", admin, "player", name, "limit", effective, "type", type);
+        if (kind == LoaderManager.LimitKind.ACTIVE) {
+            int switchedOff = loaders().enforceActiveLimit(target).size();
+            if (switchedOff > 0) {
+                notifyOwner(target.getUniqueId(), "active-limit-enforced-notify", tag("count", switchedOff));
+            }
+        }
+        return null;
+    }
+
+    /** Bans the player from chunk loaders: their loaders are deleted, loader items taken (if online). */
+    public String webBan(String admin, OfflinePlayer target, long duration, String reason) {
+        String cleanReason = reason == null || reason.isBlank() ? messages().plain("ban-no-reason") : reason;
+        UUID uuid = target.getUniqueId();
+        int deleted = loaders().deleteAll(uuid);
+        loaders().ban(uuid, duration, cleanReason, admin);
+        Player online = target.getPlayer();
+        if (online != null) {
+            plugin.loaderItem().remove(online, Integer.MAX_VALUE);
+        }
+        String name = name(target);
+        String durationText = Texts.banDuration(plugin, loaders().ban(uuid));
+        notifyOwner(uuid, "ban-notify", tag("duration", durationText), tag("reason", cleanReason));
+        plugin.getLogger().info(admin + " (web) banned " + name + " from chunk loaders (" + durationText + ", "
+                + deleted + " loader(s) deleted).");
+        plugin.discord().log("admin-ban", "admin", admin, "player", name,
+                "time", durationText, "reason", cleanReason, "count", deleted);
+        return null;
+    }
+
+    public String webUnban(String admin, OfflinePlayer target) {
+        if (!loaders().unban(target.getUniqueId())) {
+            return "not-banned";
+        }
+        String name = name(target);
+        notifyOwner(target.getUniqueId(), "unban-notify");
+        plugin.getLogger().info(admin + " (web) lifted the chunk loader ban of " + name + ".");
+        plugin.discord().log("admin-unban", "admin", admin, "player", name);
+        return null;
+    }
+
+    /** Deletes all loaders of the player (without banning). */
+    public String webDeleteAll(String admin, OfflinePlayer target) {
+        List<Loader> owned = loaders().byOwner(target.getUniqueId());
+        if (owned.isEmpty()) {
+            return "no-loaders";
+        }
+        for (Loader loader : List.copyOf(owned)) {
+            webDelete(admin, loader);
+        }
+        return null;
     }
 
     /**
@@ -200,6 +314,73 @@ public final class AdminActions {
         target.setPitch(player.getLocation().getPitch());
         player.teleportAsync(target);
         messages().send(player, "teleported", Texts.loader(plugin, loader));
+    }
+
+    // ------------------------------------------------------- loader items
+
+    /** Permission for the link to the web map. */
+    public static final String PERM_MAP = "mrchunks.map";
+
+    /** Puts up to {@code wanted} loader items into the player's inventory, within their limit (minus placed and held). */
+    public void give(Player player, int wanted) {
+        if (!player.hasPermission(PERM_USE)) {
+            messages().send(player, "no-permission");
+            return;
+        }
+        if (isExempt(player)) {
+            messages().send(player, "exempt");
+            return;
+        }
+        LoaderManager loaders = loaders();
+        LoaderManager.Ban ban = loaders.ban(player.getUniqueId());
+        if (ban != null) {
+            messages().send(player, "banned", tag("duration", Texts.banDuration(plugin, ban)), tag("reason", ban.reason()));
+            return;
+        }
+        LoaderManager.Limit limit = loaders.limit(player);
+        int placed = loaders.count(player.getUniqueId());
+        int held = plugin.loaderItem().count(player);
+        long free = (long) limit.value() - placed - held;
+        if (free <= 0) {
+            messages().send(player, "give-none-left", tag("placed", placed), tag("held", held), tag("limit", Texts.limit(limit)));
+            return;
+        }
+        // At most one stack at a time (unlimited players would otherwise get a huge amount).
+        int amount = (int) Math.min(Math.min(Math.max(1, wanted), 64), free);
+        Map<Integer, org.bukkit.inventory.ItemStack> leftover = player.getInventory().addItem(plugin.loaderItem().create(amount));
+        int notGiven = leftover.values().stream().mapToInt(org.bukkit.inventory.ItemStack::getAmount).sum();
+        int given = amount - notGiven;
+        if (given == 0) {
+            messages().send(player, "give-inventory-full");
+            return;
+        }
+        if (notGiven > 0) {
+            messages().send(player, "give-inventory-full");
+        }
+        messages().send(player, "give-ok", tag("count", given), tag("used", placed + held + given),
+                tag("limit", Texts.limit(limit)));
+    }
+
+    /** Takes up to {@code max} loader items out of the player's inventory (they count towards the limit). */
+    public void remove(Player player, int max) {
+        int removed = plugin.loaderItem().remove(player, max);
+        messages().send(player, removed == 0 ? "remove-none" : "remove-ok", tag("count", removed));
+    }
+
+    /** Clickable link to the squaremap web map (only if squaremap is installed and its address is known). */
+    public void sendMapLink(Player player) {
+        if (!player.hasPermission(PERM_MAP)) {
+            messages().send(player, "no-permission");
+            return;
+        }
+        String url = plugin.maps().mapUrl();
+        if (url.isEmpty()) {
+            messages().send(player, "map-unavailable");
+            return;
+        }
+        var link = messages().get("map-link-label", tag("url", url))
+                .clickEvent(net.kyori.adventure.text.event.ClickEvent.openUrl(url));
+        messages().send(player, "map-link", tag("link", link));
     }
 
     // ------------------------------------------------------------- invites
