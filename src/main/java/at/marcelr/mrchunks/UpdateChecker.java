@@ -21,8 +21,11 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 import static at.marcelr.mrchunks.Messages.tag;
@@ -34,6 +37,8 @@ import static at.marcelr.mrchunks.Messages.tag;
 public final class UpdateChecker {
 
     public static final String PERM_NOTIFY = "mrchunks.admin.update";
+
+    private static final long NOTICE_INTERVAL_MILLIS = 60_000;
 
     public enum State { DISABLED, CHECKING, UP_TO_DATE, OUTDATED, FAILED }
 
@@ -54,6 +59,8 @@ public final class UpdateChecker {
     private final String minecraft;
     private String announcedVersion;
     private BukkitTask task;
+    /** When each player last got the update notice. */
+    private final Map<UUID, Long> noticed = new ConcurrentHashMap<>();
 
     public UpdateChecker(MRChunks plugin) {
         this.plugin = plugin;
@@ -122,10 +129,21 @@ public final class UpdateChecker {
 
     /** Join notice for admins. */
     public void notifyIfOutdated(Player player) {
-        if (state == State.OUTDATED && plugin.settings().update().notifyOnJoin() && player.hasPermission(PERM_NOTIFY)) {
+        if (state == State.OUTDATED && plugin.settings().update().notifyOnJoin() && player.hasPermission(PERM_NOTIFY)
+                && firstNoticeFor(player)) {
             plugin.messages().send(player, "update-join-notify",
                     tag("latest", latestVersion()), tag("current", currentVersion()), tag("download", downloadLink()));
         }
+    }
+
+    /**
+     * Whether the player did not get the notice within the last minute. Joining and the first check right after a
+     * restart both send it - without this, players who join quickly see it twice.
+     */
+    private boolean firstNoticeFor(Player player) {
+        long now = System.currentTimeMillis();
+        Long last = noticed.put(player.getUniqueId(), now);
+        return last == null || now - last > NOTICE_INTERVAL_MILLIS;
     }
 
     /** The last error in the configured language. */
