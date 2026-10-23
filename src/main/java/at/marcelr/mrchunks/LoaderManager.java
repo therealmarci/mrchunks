@@ -1,5 +1,6 @@
 package at.marcelr.mrchunks;
 
+import at.marcelr.mrchunks.api.MRpvpArenaWorld;
 import at.marcelr.mrchunks.lag.LagLock;
 import at.marcelr.mrchunks.lag.Metric;
 import org.bukkit.Bukkit;
@@ -37,6 +38,7 @@ public final class LoaderManager {
 
     private final MRChunks plugin;
     private final File dataFile;
+    private final MRpvpArenaWorld pvpArenaWorld;
 
     private final Map<Integer, Loader> loaders = new LinkedHashMap<>();
     /** "world-uuid:x:y:z" -> loader, so block lookups (explosions, clicks) don't scan all loaders */
@@ -80,6 +82,7 @@ public final class LoaderManager {
     public LoaderManager(MRChunks plugin) {
         this.plugin = plugin;
         this.dataFile = new File(plugin.getDataFolder(), "data.yml");
+        this.pvpArenaWorld = new MRpvpArenaWorld(plugin.getLogger());
     }
 
     // ------------------------------------------------------------- lookups
@@ -220,7 +223,9 @@ public final class LoaderManager {
     }
 
     public boolean isWorldAllowed(World world) {
-        return !plugin.settings().loaders().disabledWorlds().contains(world.getName().toLowerCase(Locale.ROOT));
+        return !plugin.settings().loaders().disabledWorlds().contains(world.getName().toLowerCase(Locale.ROOT))
+                // MRpvp pastes and clears arenas there on its own - no loaders.
+                && !pvpArenaWorld.is(world);
     }
 
     // --------------------------------------------------------- create/delete

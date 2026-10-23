@@ -43,6 +43,7 @@ loaders:
 
   # Welten, in denen keine Chunkloader gesetzt werden können (Name, Groß-/Kleinschreibung egal).
   # Chunkloader funktionieren in allen Dimensionen (Oberwelt, Nether, End).
+  # Die Arena-Welt von MRpvp ist immer gesperrt (MRpvp baut die Arenen dort selbst auf und ab).
   disabled-worlds: []
 
   # Wie die Chunks geladen gehalten werden:
