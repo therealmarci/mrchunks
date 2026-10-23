@@ -9,6 +9,10 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+### Neu
+- **MRpvp:** In der Arena-Welt von MRpvp lassen sich keine Chunkloader setzen (wie in `loaders.disabled-worlds`) -
+  MRpvp baut die Arenen dort selbst auf und ab.
+
 ## [0.5.2] - 2026-10-21
 
 ### Behoben
