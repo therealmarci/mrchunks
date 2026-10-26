@@ -7,7 +7,6 @@ import at.marcelr.mrchunks.MRChunks;
 import at.marcelr.mrchunks.Messages;
 import at.marcelr.mrchunks.Settings;
 import at.marcelr.mrchunks.Texts;
-import at.marcelr.mrchunks.api.LoaderLockEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import org.bukkit.Bukkit;
@@ -364,26 +363,8 @@ public final class LagMonitor implements Listener {
                 "metric", messages.plain("lag-metric-" + metric.key()),
                 "value", format(lock.value()), "limit", format(lock.limit())));
 
-        // Other plugins (MRadmin opens a ticket for the owner) - after our own messages, so its notice comes last.
-        Map<String, Object> data = eventData(plugin, loader, "lock");
-        data.put("details", details(loader, lock, a));
-        Bukkit.getPluginManager().callEvent(new LoaderLockEvent(data));
-    }
-
-    /** The common values of a {@link LoaderLockEvent} (see there). */
-    public static Map<String, Object> eventData(MRChunks plugin, Loader loader, String type) {
-        Map<String, Object> data = new HashMap<>();
-        data.put("type", type);
-        data.put("loader", String.valueOf(loader.id()));
-        data.put("number", loader.number());
-        data.put("owner", loader.owner());
-        data.put("owner-name", LoaderManager.name(loader.owner()));
-        data.put("name", Texts.name(plugin, loader));
-        data.put("world", loader.worldName());
-        data.put("x", loader.x());
-        data.put("y", loader.y());
-        data.put("z", loader.z());
-        return data;
+        // MRadmin (if installed) opens a ticket for the owner - after our own messages, so its notice comes last.
+        plugin.mradmin().lagLocked(loader, details(loader, lock, a));
     }
 
     /** The lock as readable plain text (several lines): loader, time, reason, all measured values, server state. */
@@ -448,7 +429,7 @@ public final class LagMonitor implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        for (Loader loader : loaders().byOwner(player.getUniqueId())) {
+        for (Loader loader : loaders().byOwner(loaders().main(player.getUniqueId()))) {
             LagLock lock = loaders().lagLock(loader);
             if (lock != null && !lock.notified()) {
                 plugin.messages().send(player, "lag-locked-join", tags(loader, lock));

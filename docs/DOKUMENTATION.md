@@ -30,8 +30,11 @@ src/main/java/at/marcelr/mrchunks/
 ├─ AdminActions.java      alle Aktionen (Befehle und Menüs nutzen dieselben)
 ├─ Texts.java             gemeinsame Platzhalter (<name>, <number>, <world>, <x> …)
 ├─ command/               /chunkloader, /mrchunks
-├─ gui/                   Menu, MenuListener, Items, Pages, LoaderIcons, PlayerIcons,
-│                         LoaderMenu, MyLoadersMenu, AdminMenu, PlayerLoadersMenu
+├─ dummy/                 Dummies (Dummy-Spieler: Lebenszyklus, Events, Skins), DummyBackend (Schnittstelle)
+│  └─ nms/                NmsDummyBackend, FakeConnection - einzige Stelle mit Server-Interna
+├─ link/                  LinkRequests (Anfrage + Zustimmungs-Dialog für verknüpfte Accounts)
+├─ gui/                   Menu, MenuListener, Items, Heads, Pages, LoaderIcons, PlayerIcons,
+│                         LoaderMenu, MyLoadersMenu, AdminMenu, PlayerLoadersMenu, LinkMenu, LinkPickerMenu
 ├─ map/                   MapHooks (ohne squaremap-Typen), SquaremapHook (Ebene, Marker, Icon,
 │                         Raster, Spieler ausblenden), SquaremapSetup (squaremap-Config einrichten)
 └─ util/                  DurationUtil, Versions (mit Tests)
@@ -51,7 +54,7 @@ src/main/resources/
 `coverage: Welt → Chunk-Schlüssel → Anzahl aktiver Loader`. Ein Ticket entsteht beim Wechsel von 0 auf 1 und verschwindet beim Wechsel von 1 auf 0. Radius und Lademethode, mit denen die Tickets erstellt wurden (`appliedRadius`, `appliedMethod`), werden gespeichert. Deshalb löst `reload()` zuerst alle Tickets mit den **alten** Werten (`releaseAll`) und legt sie danach mit den **neuen** an (`applyAll`).
 
 ### Was läuft
-Laut dekompiliertem `ServerChunkCache` ticken alle Entity-Ticking-Chunks, auch mit Zufalls-Ticks. Mob-Spawning läuft dagegen nur in `spawningChunks`, also in der Nähe von Spielern. Das steht so auch in der README.
+Laut dekompiliertem `ServerChunkCache` ticken alle Entity-Ticking-Chunks, auch mit Zufalls-Ticks. Mob-Spawning läuft dagegen nur in `spawningChunks`, also in der Nähe von Spielern. Dazu kommt Papers *Entity Activation Range*: Mobs ohne Spieler in der Nähe bekommen nur seltene, reduzierte Ticks (keine KI, kaum Bewegung, keine Portale, siehe Issue #12). Beides lösen die Dummy-Spieler (Abschnitt 10).
 
 ### Welten
 Loader in einer Welt, die noch nicht geladen ist, bekommen ihre Tickets per `WorldLoadEvent → applyWorld`.
@@ -84,9 +87,16 @@ Material, Name, Lore und Glanz kommen aus der Config. Markiert wird das Item im 
 ```yaml
 next-id: 3
 loaders:
-  '1': { owner: <uuid>, world: <uuid oder Weltname>, world-name: world, x: 100, y: 80, z: 100, created: <ms>, number: 1, name: "Farm", active: true }
+  '1': { owner: <uuid>, world: <uuid oder Weltname>, world-name: world, x: 100, y: 80, z: 100, created: <ms>, number: 1, name: "Farm", active: true, dummy: true }
 limits:
   <spieler-uuid>: 10
+active-limits: { <spieler-uuid>: 3 }
+dummy-limits: { <spieler-uuid>: 2 }
+# Limits aus Permissions vom letzten Mal online (place | active | dummy)
+known-limits: { place: { <spieler-uuid>: 15 } }
+# Verknüpfte Accounts: Zweit-Account -> Haupt-Account
+links:
+  <zweit-uuid>: <haupt-uuid>
 bans:
   <spieler-uuid>: { until: <ms | Long.MAX = dauerhaft>, reason: "...", by: "Admin" }
 ```
@@ -148,3 +158,15 @@ Der Release-Ablauf entspricht MRsleep, siehe **[RELEASES.md](RELEASES.md)**: Ver
 - **Rechte (`AdminActions`):** `canToggle` = `canManage` (Owner\/Admin) oder `isMember`. Umbenennen, Löschen und `canManageInvites` bleiben Owner (`mrchunks.invite`) und Admins (`mrchunks.admin.manage`) vorbehalten. Beim Aktivieren durch Eingeladene gilt das Aktiv-Limit des Owners, der Owner wird benachrichtigt. Eingeladene dürfen das Menü öffnen (`canView`).
 - **Menüs:** `InvitePickerMenu` (Köpfe der Online-Spieler, Dauer per Uhr wählbar, „Namen eingeben“ öffnet `InviteDialog`), `MembersMenu` (Liste, Klick = entfernen, bei einem Loader werden die Einladungen für alle Loader grau mit angezeigt), `InviteDialog` (Paper-Dialog mit Namensfeld und Dauer-Auswahl aus `invites.durations`), `SharedLoadersMenu` („Mit mir geteilt“). Einstieg: Button **Mitglieder** im `LoaderMenu`, **Mitglieder für alle Loader** und **Mit mir geteilt** in `MyLoadersMenu`.
 - **`mrchunks.exempt` (streng):** blockiert `give`, Setzen, Einladen des Spielers und seine Rechte als Eingeladener. `enforceExempt` löscht beim Join und bei `/mrchunks reload` seine Loader und Items. Permissions sind nur online bekannt, Offline-Spieler werden beim nächsten Join bereinigt.
+
+## 10. Dummy-Spieler (`dummy/*`)
+- **Warum Server-Interna:** Paper hat keine API für künstliche Spieler. `NmsDummyBackend` (Paket `dummy.nms`, gebaut mit paperweight-userdev gegen das Dev-Bundle aus `paperApi`) erzeugt einen echten `ServerPlayer` und loggt ihn über `PlayerList.placeNewPlayer` mit einer `FakeConnection` ein (offener `EmbeddedChannel`, verwirft jedes Paket). Abmelden wie bei einem Disconnect: `ServerPlayer#disconnect` + `PlayerList#remove`. `Dummies` lädt das Backend per `Class.forName` - passt es nicht zur Server-Version (`LinkageError` o.ä.), sind Dummies aus und nur das wird gemeldet. **Nach jedem MC-Update hier zuerst prüfen.**
+- **Lebenszyklus:** `Loader#dummy` (in `data.yml`) ist der Wunsch des Owners; `Dummies#sync(loader)` sorgt dafür, dass der Dummy genau dann da ist, wenn der Loader aktiv, nicht gesperrt oder pausiert, seine Welt geladen und `dummies.enabled` an ist. `LoaderManager` ruft `sync` bei an/aus, Löschen, Pause, Welt laden und `applyAll`. Gespawnt wird einen Tick später (nicht mitten in fremden Events), ein Wächter alle 5 s holt verschwundene, getötete oder abgesetzte Dummies zurück.
+- **Eigenschaften:** Kreativmodus (unverwundbar, Mobs ignorieren ihn, keine Phantome), nie mit `doTick` getickt (bewegt sich nicht, isst nicht, sammelt nichts, keine Statistiken), `setPersistent(false)` (Paper speichert keine Spielerdaten), `setSleepingIgnored(true)`, Sicht-/Simulationsdistanz = Loader-Radius, Sende-Distanz 2. Sitzt auf einem unsichtbaren `ItemDisplay` (`dummies.sit`). UUID = Namens-UUID aus der Loader-ID, Name `[D<nr>]<owner>` (Klammern gibt es in echten Namen nicht, also nie eine Namensgleichheit).
+- **Für den Rest unsichtbar:** Join/Quit/Advancement/Tod ohne Meldung, Tab-Liste per `Player#unlistPlayer`, Serverliste (`PaperServerListPingEvent`) und „Server voll“ (`PlayerServerFullCheckEvent`) ohne Dummies. Kick, Teleport, Absetzen, Spielmodus-Wechsel und Schaden durch andere werden abgebrochen. Markierung für andere Plugins: Metadata `NPC` (Citizens-Konvention) und PDC-Schlüssel `mrchunks:dummy`; MRsleep, MRadmin und MRpvp prüfen beides (jeweils Klasse `Npcs`).
+- **Skin:** Eigenschaft `textures` des Owners - beim Join des Owners aktualisiert, sonst einmal per `PlayerProfile#update` geholt, gespeichert in `skins.yml`.
+
+## 11. Verknüpfte Accounts
+- **Daten:** `LoaderManager.links` (Zweit → Haupt, keine Ketten). `main(uuid)` liefert den Haupt-Account, `group(uuid)` alle Accounts. Loader gehören immer dem Haupt-Account: `AdminActions.accountOf(player)` ist überall maßgeblich, wo früher die UUID des Spielers stand (Owner-Prüfung, Setzen, Zählen, Einladungen, Menüs). Limits werden immer für den Haupt-Account berechnet, `groupBan` prüft die ganze Gruppe, `notifyOwner` erreicht alle Online-Accounts der Gruppe.
+- **Ablauf:** `LinkRequests#request` (Haupt-Account fragt) → Dialog und Chat-Buttons beim anderen (läuft nach `linked-accounts.request-seconds` ab) → `AdminActions#link` prüft alles erneut (`linkProblem`) → `LoaderManager#link` übernimmt Loader (mit neuen Nummern) und Einladungen für alle Loader und entfernt Einladungen innerhalb der Gruppe.
+- **Limit offline:** Weil der Zweit-Account das Budget des (vielleicht offline) Haupt-Accounts nutzt, merkt sich `limit()` Permission-Limits in `known-limits` und verwendet sie, solange der Account offline ist.

@@ -9,6 +9,7 @@ import at.marcelr.mrchunks.Messages;
 import at.marcelr.mrchunks.Settings;
 import at.marcelr.mrchunks.Texts;
 import at.marcelr.mrchunks.UpdateChecker;
+import at.marcelr.mrchunks.dummy.Dummies;
 import at.marcelr.mrchunks.gui.AdminMenu;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -83,6 +84,14 @@ public final class MRChunksCommand implements TabExecutor {
             case "toggle" -> withLoader(sender, args, loader -> actions().toggle(sender, loader));
             case "delete", "remove" -> withLoader(sender, args, loader -> actions().delete(sender, loader));
             case "unlock", "entsperren" -> withLoader(sender, args, loader -> actions().unlock(sender, loader));
+            case "dummy" -> withLoader(sender, args, loader -> actions().toggleDummy(sender, loader));
+            case "link" -> {
+                if (check(sender, AdminActions.PERM_MANAGE)) {
+                    withPlayer(sender, args, 1, main -> withPlayer(sender, args, 2,
+                            second -> actions().adminLink(sender, main, second)));
+                }
+            }
+            case "unlink" -> withPlayer(sender, args, 1, target -> actions().unlink(sender, target.getUniqueId()));
             case "lag" -> {
                 if (check(sender, AdminActions.PERM_MANAGE)) {
                     lag(sender);
@@ -130,6 +139,7 @@ public final class MRChunksCommand implements TabExecutor {
         LoaderManager.LimitKind kind = switch (args[2].toLowerCase(Locale.ROOT)) {
             case "place", "setzen", "set" -> LoaderManager.LimitKind.PLACE;
             case "active", "aktiv" -> LoaderManager.LimitKind.ACTIVE;
+            case "dummy", "dummies" -> LoaderManager.LimitKind.DUMMY;
             default -> null;
         };
         if (kind == null) {
@@ -357,7 +367,7 @@ public final class MRChunksCommand implements TabExecutor {
             options.add("version");
             addIf(sender, PERM_GUI, options, "gui");
             addIf(sender, AdminActions.PERM_TELEPORT, options, "tp");
-            addIf(sender, AdminActions.PERM_MANAGE, options, "toggle", "delete", "unlock", "lag");
+            addIf(sender, AdminActions.PERM_MANAGE, options, "toggle", "delete", "unlock", "lag", "dummy", "link", "unlink");
             addIf(sender, AdminActions.PERM_LIMIT, options, "limit");
             addIf(sender, AdminActions.PERM_BAN, options, "ban", "unban", "bans");
             addIf(sender, PERM_MAP, options, "map");
@@ -366,7 +376,7 @@ public final class MRChunksCommand implements TabExecutor {
         } else {
             String sub = args[0].toLowerCase(Locale.ROOT);
             switch (sub) {
-                case "tp", "teleport", "toggle", "delete", "remove", "unlock", "entsperren" -> {
+                case "tp", "teleport", "toggle", "delete", "remove", "unlock", "entsperren", "dummy" -> {
                     if (args.length == 2) {
                         plugin.loaders().all().forEach(l -> options.add(LoaderManager.name(l.owner())));
                     } else if (args.length == 3) {
@@ -382,7 +392,7 @@ public final class MRChunksCommand implements TabExecutor {
                         Bukkit.getOnlinePlayers().forEach(p -> options.add(p.getName()));
                         plugin.loaders().knownPlayers().forEach(u -> options.add(LoaderManager.name(u)));
                     } else if (args.length == 3 && sub.equals("limit")) {
-                        options.addAll(List.of("place", "active"));
+                        options.addAll(List.of("place", "active", "dummy"));
                     } else if (args.length == 4 && sub.equals("limit")) {
                         options.addAll(List.of("3", "5", "10", "reset"));
                     } else if (args.length == 3 && sub.equals("ban")) {
@@ -392,6 +402,20 @@ public final class MRChunksCommand implements TabExecutor {
                 case "unban" -> {
                     if (args.length == 2) {
                         plugin.loaders().activeBans().keySet().forEach(u -> options.add(LoaderManager.name(u)));
+                    }
+                }
+                case "link" -> {
+                    if (args.length == 2 || args.length == 3) {
+                        Bukkit.getOnlinePlayers().stream().filter(p -> !Dummies.isDummy(p))
+                                .forEach(p -> options.add(p.getName()));
+                    }
+                }
+                case "unlink" -> {
+                    if (args.length == 2) {
+                        plugin.loaders().links().forEach((second, main) -> {
+                            options.add(LoaderManager.name(second));
+                            options.add(LoaderManager.name(main));
+                        });
                     }
                 }
                 case "discord" -> {

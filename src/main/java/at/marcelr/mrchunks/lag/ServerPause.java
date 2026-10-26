@@ -143,7 +143,7 @@ public final class ServerPause {
             }
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (owners.contains(player.getUniqueId()) || player.hasPermission(AdminActions.PERM_MANAGE)) {
+            if (owners.contains(plugin.loaders().main(player.getUniqueId())) || player.hasPermission(AdminActions.PERM_MANAGE)) {
                 plugin.messages().send(player, key, tags);
             }
         }

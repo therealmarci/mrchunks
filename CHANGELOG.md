@@ -9,6 +9,40 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+### Geändert
+- **MRadmin über die Modul-API:** MRchunks meldet sich als Modul bei MRadmin an (statt der alten `MRadminHook`-Klasse
+  und des `LoaderLockEvent`). Braucht MRadmin mit Modul-API; ohne MRadmin ändert sich nichts. Betreff und Notiz der
+  Tickets bei Lag-Sperren stehen jetzt in MRchunks' Sprachdatei (`report-lock-subject`, `report-lock-lifted`).
+- **Verbindung zu anderen MR-Plugins nur noch über MRadmin:** Dass in der Arena-Welt von MRpvp keine Chunkloader
+  gesetzt werden können, funktioniert jetzt nur mit MRadmin (vorher eigene Schnittstelle zu MRpvp). Die Hinweise
+  auf der Startseite von MRadmins Weboberfläche (pausiert, gesperrt, auffällig) liefert MRchunks selbst
+  (`web-alert-*` in der Sprachdatei). Die README hat einen Abschnitt „Zusammenarbeit mit anderen Plugins“.
+
+### Neu
+- **Dummy-Spieler** (#13): Im Menü eines Chunkloaders lässt sich ein Dummy einschalten - ein künstlicher Spieler, der
+  (mit dem Skin des Owners) auf dem Block sitzt, solange der Loader aktiv ist. Er zählt als Spieler in der Nähe: Mobs
+  bleiben aktiv und laufen z.B. wieder durch Portale (#12), Spawning und Zufalls-Ticks laufen wie mit einem Spieler.
+  Der Dummy ist unverwundbar, wird von Mobs ignoriert, steht nicht in der Tab-Liste, zählt nicht zur Spielerzahl und
+  belegt keinen Platz. Andere Plugins erkennen ihn an der Metadata `NPC` bzw. am Schlüssel `mrchunks:dummy`.
+  Standardmäßig aus (`dummies.enabled`); Limit `dummies.default-limit`, `mrchunks.dummies.<n>`,
+  `mrchunks.dummies.unlimited`, `/mrchunks limit <spieler> dummy <n>`. Admins: `/mrchunks dummy <spieler> <nr>`.
+  Nutzt Server-Interna von Paper - passt die Version nicht, bleiben Dummies aus, der Rest läuft normal.
+- **Verknüpfte Accounts** (#11): Unter `/chunkloader` → Verknüpfte Accounts verknüpft ein Spieler einen anderen
+  Account mit dem eigenen, der andere stimmt in einem Dialog zu. Beide teilen sich danach Chunkloader, das Limit des
+  Haupt-Accounts, Einladungen und Dummies; eine Sperre gilt für beide. Lösen jederzeit im Menü oder per
+  `/mrchunks unlink <spieler>`, Admins verknüpfen direkt mit `/mrchunks link <haupt> <zweit>`. Einstellungen unter
+  `linked-accounts`, Permission `mrchunks.link` (in `mrchunks.player`).
+- **Limits offline:** Limits aus Permissions merkt sich MRchunks jetzt vom letzten Mal online, statt für Offline-Spieler
+  auf den Standard zurückzufallen.
+- **MRadmin:** Schnittstelle Version 5 - Dummy an/aus, Dummy-Limit, verknüpfte Accounts und „Verknüpfung lösen“ in der
+  Weboberfläche.
+- Config-Version 9 (`linked-accounts`, `dummies`, drei Discord-Events) und lang-version 11, beides wird automatisch
+  ergänzt.
+
+### Behoben
+- Menüs mit Spielerköpfen fragten jede Sekunde erneut bei Mojang nach dem Skin (HTTP 429 im Log, besonders im
+  Offline-Mode). Köpfe werden jetzt einmal nachgeschlagen und 10 Minuten zwischengespeichert.
+
 ## [0.5.3] - 2026-10-23
 
 ### Neu

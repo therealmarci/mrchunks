@@ -1,6 +1,5 @@
 package at.marcelr.mrchunks;
 
-import at.marcelr.mrchunks.api.MRpvpArenaWorld;
 import at.marcelr.mrchunks.lag.LagLock;
 import at.marcelr.mrchunks.lag.Metric;
 import org.bukkit.Bukkit;
@@ -38,7 +37,6 @@ public final class LoaderManager {
 
     private final MRChunks plugin;
     private final File dataFile;
-    private final MRpvpArenaWorld pvpArenaWorld;
 
     private final Map<Integer, Loader> loaders = new LinkedHashMap<>();
     /** "world-uuid:x:y:z" -> loader, so block lookups (explosions, clicks) don't scan all loaders */
@@ -59,6 +57,14 @@ public final class LoaderManager {
 
     private final Map<UUID, Integer> limitOverrides = new HashMap<>();
     private final Map<UUID, Integer> activeOverrides = new HashMap<>();
+    private final Map<UUID, Integer> dummyOverrides = new HashMap<>();
+    /**
+     * Limits from permissions, remembered from the last time the player was online: permissions are unknown while
+     * they are offline, but a linked second account may place loaders on their budget meanwhile.
+     */
+    private final Map<LimitKind, Map<UUID, Integer>> knownLimits = new java.util.EnumMap<>(LimitKind.class);
+    /** Linked accounts: second account -> main account. Loaders, limits and invites belong to the main account. */
+    private final Map<UUID, UUID> links = new LinkedHashMap<>();
     private final Map<UUID, Ban> bans = new HashMap<>();
     /** loader id -> invited player -> valid until (ms, Long.MAX_VALUE = permanent) */
     private final Map<Integer, Map<UUID, Long>> loaderMembers = new HashMap<>();
@@ -82,7 +88,6 @@ public final class LoaderManager {
     public LoaderManager(MRChunks plugin) {
         this.plugin = plugin;
         this.dataFile = new File(plugin.getDataFolder(), "data.yml");
-        this.pvpArenaWorld = new MRpvpArenaWorld(plugin.getLogger());
     }
 
     // ------------------------------------------------------------- lookups
@@ -203,13 +208,16 @@ public final class LoaderManager {
         return byOwner(owner).size();
     }
 
-    /** All players that own at least one loader or have a ban or custom limit. */
+    /** All players that own at least one loader, have a ban or custom limit, or are linked to another account. */
     public Set<UUID> knownPlayers() {
         Set<UUID> players = new HashSet<>();
         loaders.values().forEach(l -> players.add(l.owner()));
         players.addAll(limitOverrides.keySet());
         players.addAll(activeOverrides.keySet());
+        players.addAll(dummyOverrides.keySet());
         players.addAll(activeBans().keySet());
+        players.addAll(links.keySet());
+        players.addAll(links.values());
         return players;
     }
 
@@ -224,8 +232,8 @@ public final class LoaderManager {
 
     public boolean isWorldAllowed(World world) {
         return !plugin.settings().loaders().disabledWorlds().contains(world.getName().toLowerCase(Locale.ROOT))
-                // MRpvp pastes and clears arenas there on its own - no loaders.
-                && !pvpArenaWorld.is(world);
+                // A world of another plugin (MRpvp pastes and clears arenas there, through MRadmin) - no loaders.
+                && (plugin.mradmin() == null || !plugin.mradmin().reservedWorld(world));
     }
 
     // --------------------------------------------------------- create/delete
@@ -250,6 +258,7 @@ public final class LoaderManager {
             uncover(loader);
         }
         loaders.remove(loader.id());
+        syncDummy(loader);
         unindex(loader);
         loaderMembers.remove(loader.id());
         lagLocks.remove(loader.id());
@@ -283,8 +292,55 @@ public final class LoaderManager {
             uncover(loader);
         }
         save();
+        syncDummy(loader);
         plugin.maps().refreshSoon();
         plugin.border().loaderChanged(loader);
+    }
+
+    // ------------------------------------------------------------- dummies
+
+    /** Switches the dummy player of a loader on or off (it sits there while the loader is active). */
+    public void setDummy(Loader loader, boolean dummy) {
+        if (loader.dummy() == dummy) {
+            return;
+        }
+        loader.setDummy(dummy);
+        save();
+        syncDummy(loader);
+    }
+
+    /** How many of the owner's loaders have their dummy switched on. */
+    public int dummyCount(UUID owner) {
+        int count = 0;
+        for (Loader loader : loaders.values()) {
+            if (loader.dummy() && loader.owner().equals(owner)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /** True if the player (or the main account they are linked to) may switch on one more dummy. */
+    public boolean canAddDummy(OfflinePlayer player) {
+        return dummyCount(main(player.getUniqueId())) < limit(player, LimitKind.DUMMY).value();
+    }
+
+    /** Spawns or removes the loader's dummy so it matches the loader (active, not paused, world loaded ...). */
+    private void syncDummy(Loader loader) {
+        if (plugin.dummies() != null) {
+            plugin.dummies().sync(loader);
+        }
+    }
+
+    private void syncDummies() {
+        if (plugin.dummies() != null) {
+            plugin.dummies().syncAll();
+        }
+    }
+
+    /** Whether the loader exists (was not deleted meanwhile). */
+    public boolean exists(Loader loader) {
+        return loaders.get(loader.id()) == loader;
     }
 
     // ----------------------------------------------------------- lag locks
@@ -354,6 +410,7 @@ public final class LoaderManager {
         if (paused) {
             releaseAll();
             this.paused = true;
+            syncDummies();
         } else {
             this.paused = false;
             applyAll();
@@ -368,13 +425,16 @@ public final class LoaderManager {
         for (World world : Bukkit.getWorlds()) {
             applyWorld(world);
         }
+        // Also removes dummies that should no longer be there (e.g. dummies switched off in the config).
+        syncDummies();
     }
 
-    /** Adds tickets for the active loaders of one world (also used when a world loads later). */
+    /** Adds tickets (and dummies) for the active loaders of one world (also used when a world loads later). */
     public void applyWorld(World world) {
-        for (Loader loader : loaders.values()) {
+        for (Loader loader : List.copyOf(loaders.values())) {
             if (loader.active() && loader.worldId().equals(world.getUID())) {
                 cover(loader);
+                syncDummy(loader);
             }
         }
     }
@@ -494,10 +554,14 @@ public final class LoaderManager {
 
     // -------------------------------------------------------------- limits
 
-    /** The two caps per player: how many loaders may be placed, and how many of them may be active at once. */
+    /**
+     * The caps per player: how many loaders may be placed, how many of them may be active at once, and on how many a
+     * dummy player may sit. Linked accounts share the caps of their main account.
+     */
     public enum LimitKind {
         PLACE("mrchunks.limit.", "mrchunks.limit.unlimited"),
-        ACTIVE("mrchunks.active.", "mrchunks.active.unlimited");
+        ACTIVE("mrchunks.active.", "mrchunks.active.unlimited"),
+        DUMMY("mrchunks.dummies.", "mrchunks.dummies.unlimited");
 
         final String permPrefix;
         final String permUnlimited;
@@ -523,7 +587,19 @@ public final class LoaderManager {
     }
 
     private Map<UUID, Integer> overrides(LimitKind kind) {
-        return kind == LimitKind.PLACE ? limitOverrides : activeOverrides;
+        return switch (kind) {
+            case PLACE -> limitOverrides;
+            case ACTIVE -> activeOverrides;
+            case DUMMY -> dummyOverrides;
+        };
+    }
+
+    private int defaultLimit(LimitKind kind) {
+        return switch (kind) {
+            case PLACE -> plugin.settings().loaders().defaultLimit();
+            case ACTIVE -> plugin.settings().loaders().defaultActiveLimit();
+            case DUMMY -> plugin.settings().dummies().defaultLimit();
+        };
     }
 
     /** Where the effective limit comes from (for display). */
@@ -543,20 +619,41 @@ public final class LoaderManager {
     }
 
     /**
-     * Effective limit: an admin override wins; otherwise the highest {@code <prefix><n>} permission
-     * (only known while the player is online), but never less than the config default.
+     * Effective limit of the player's main account (the player themself if not linked): an admin override wins;
+     * otherwise the highest {@code <prefix><n>} permission, but never less than the config default. Permissions are
+     * only known while the account is online - offline, the value from its last time online is used.
      */
     public Limit limit(OfflinePlayer player, LimitKind kind) {
-        Integer override = overrides(kind).get(player.getUniqueId());
+        UUID main = main(player.getUniqueId());
+        Integer override = overrides(kind).get(main);
         if (override != null) {
             return new Limit(override, LimitSource.CUSTOM);
         }
-        Settings.LoaderSettings settings = plugin.settings().loaders();
-        int base = kind == LimitKind.PLACE ? settings.defaultLimit() : settings.defaultActiveLimit();
-        Player online = player.getPlayer();
+        int base = defaultLimit(kind);
+        Player online = main.equals(player.getUniqueId()) ? player.getPlayer() : Bukkit.getPlayer(main);
+        Map<UUID, Integer> known = knownLimits.computeIfAbsent(kind, k -> new HashMap<>());
         if (online == null) {
-            return new Limit(base, LimitSource.DEFAULT);
+            Integer remembered = known.get(main);
+            if (remembered != null && remembered == Integer.MAX_VALUE) {
+                return new Limit(Integer.MAX_VALUE, LimitSource.UNLIMITED);
+            }
+            return remembered != null && remembered > base ? new Limit(remembered, LimitSource.PERMISSION)
+                    : new Limit(base, LimitSource.DEFAULT);
         }
+        Limit limit = permissionLimit(online, kind, base);
+        Integer remember = limit.source() == LimitSource.DEFAULT ? null : limit.value();
+        if (!java.util.Objects.equals(known.get(main), remember)) {
+            if (remember == null) {
+                known.remove(main);
+            } else {
+                known.put(main, remember);
+            }
+            save();
+        }
+        return limit;
+    }
+
+    private static Limit permissionLimit(Player online, LimitKind kind, int base) {
         if (online.hasPermission(kind.permUnlimited)) {
             return new Limit(Integer.MAX_VALUE, LimitSource.UNLIMITED);
         }
@@ -584,9 +681,9 @@ public final class LoaderManager {
         return count;
     }
 
-    /** True if one more of the player's loaders may be activated. */
+    /** True if one more of the player's loaders (of their main account, if linked) may be activated. */
     public boolean canActivate(OfflinePlayer player) {
-        return activeCount(player.getUniqueId()) < activeLimit(player).value();
+        return activeCount(main(player.getUniqueId())) < activeLimit(player).value();
     }
 
     /**
@@ -596,7 +693,7 @@ public final class LoaderManager {
     public List<Loader> enforceActiveLimit(OfflinePlayer player) {
         int limit = activeLimit(player).value();
         List<Loader> active = new ArrayList<>();
-        for (Loader loader : byOwner(player.getUniqueId())) {
+        for (Loader loader : byOwner(main(player.getUniqueId()))) {
             if (loader.active()) {
                 active.add(loader);
             }
@@ -608,6 +705,119 @@ public final class LoaderManager {
             deactivated.add(active.get(i));
         }
         return deactivated;
+    }
+
+    /**
+     * Switches off the newest dummies until the player is within their dummy limit.
+     * @return the loaders whose dummy was switched off
+     */
+    public List<Loader> enforceDummyLimit(OfflinePlayer player) {
+        int limit = limit(player, LimitKind.DUMMY).value();
+        List<Loader> withDummy = new ArrayList<>();
+        for (Loader loader : byOwner(main(player.getUniqueId()))) {
+            if (loader.dummy()) {
+                withDummy.add(loader);
+            }
+        }
+        List<Loader> removed = new ArrayList<>();
+        for (int i = withDummy.size() - 1; i >= 0 && withDummy.size() - removed.size() > limit; i--) {
+            setDummy(withDummy.get(i), false);
+            removed.add(withDummy.get(i));
+        }
+        return removed;
+    }
+
+    // ---------------------------------------------------------- linked accounts
+
+    /** The main account a second account is linked to; for everyone else the player themself. */
+    public UUID main(UUID player) {
+        return links.getOrDefault(player, player);
+    }
+
+    /** Whether the player is a main or second account of a link. */
+    public boolean isLinked(UUID player) {
+        return links.containsKey(player) || links.containsValue(player);
+    }
+
+    /** Second accounts linked to this main account, in the order they were linked. */
+    public List<UUID> secondaries(UUID main) {
+        List<UUID> result = new ArrayList<>();
+        links.forEach((secondary, owner) -> {
+            if (owner.equals(main)) {
+                result.add(secondary);
+            }
+        });
+        return result;
+    }
+
+    /** The main account and all its second accounts (just the player if not linked). */
+    public List<UUID> group(UUID player) {
+        UUID main = main(player);
+        List<UUID> group = new ArrayList<>();
+        group.add(main);
+        group.addAll(secondaries(main));
+        return group;
+    }
+
+    public boolean sameGroup(UUID a, UUID b) {
+        return main(a).equals(main(b));
+    }
+
+    /** Link pairs, second account -> main account. */
+    public Map<UUID, UUID> links() {
+        return Map.copyOf(links);
+    }
+
+    /**
+     * Links {@code secondary} to {@code main}: both share the loaders, limits and invites of the main account from
+     * now on. Loaders of the second account go over to the main account (with new numbers), so do its invites for all
+     * loaders; invites between the two accounts are dropped.
+     * @return number of loaders taken over
+     */
+    public int link(UUID main, UUID secondary) {
+        links.put(secondary, main);
+        int moved = 0;
+        for (Loader loader : List.copyOf(loaders.values())) {
+            if (loader.owner().equals(secondary)) {
+                Loader taken = loader.withOwner(main, nextNumber(main));
+                unindex(loader);
+                loaders.put(taken.id(), taken);
+                index(taken);
+                moved++;
+            }
+        }
+        Map<UUID, Long> invites = ownerMembers.remove(secondary);
+        if (invites != null) {
+            Map<UUID, Long> target = ownerMembers.computeIfAbsent(main, k -> new HashMap<>());
+            invites.forEach((member, until) -> target.merge(member, until, Math::max));
+        }
+        Set<UUID> group = Set.copyOf(group(main));
+        Map<UUID, Long> ownerInvites = ownerMembers.get(main);
+        if (ownerInvites != null) {
+            ownerInvites.keySet().removeIf(group::contains);
+        }
+        for (Loader loader : loaders.values()) {
+            Map<UUID, Long> members = loaderMembers.get(loader.id());
+            if (members != null && loader.owner().equals(main)) {
+                members.keySet().removeIf(group::contains);
+            }
+        }
+        save();
+        if (moved > 0) {
+            // The dummies of the taken loaders now belong to (and look like) the main account.
+            syncDummies();
+            plugin.maps().refreshSoon();
+        }
+        return moved;
+    }
+
+    /** Removes the link of a second account; the loaders stay with the main account. @return whether it was linked */
+    public boolean unlink(UUID secondary) {
+        boolean had = links.remove(secondary) != null;
+        if (had) {
+            save();
+        }
+        return had;
     }
 
     // ---------------------------------------------------------------- bans
@@ -634,6 +844,17 @@ public final class LoaderManager {
             return null;
         }
         return ban;
+    }
+
+    /** The ban of the player or of an account linked with them (a ban applies to the whole group), or null. */
+    public Ban groupBan(UUID player) {
+        for (UUID account : group(player)) {
+            Ban ban = ban(account);
+            if (ban != null) {
+                return ban;
+            }
+        }
+        return null;
     }
 
     public Map<UUID, Ban> activeBans() {
@@ -696,11 +917,12 @@ public final class LoaderManager {
         return (direct != null && direct.getOrDefault(player, 0L) > now) || (owner != null && owner.getOrDefault(player, 0L) > now);
     }
 
-    /** Loaders of other players that {@code player} may switch on and off. */
+    /** Loaders of other players that {@code player} may switch on and off (not those of their own linked accounts). */
     public List<Loader> sharedWith(UUID player) {
         List<Loader> result = new ArrayList<>();
+        UUID main = main(player);
         for (Loader loader : loaders.values()) {
-            if (!loader.owner().equals(player) && isMember(player, loader)) {
+            if (!loader.owner().equals(main) && isMember(player, loader)) {
                 result.add(loader);
             }
         }
@@ -715,6 +937,9 @@ public final class LoaderManager {
         byChunk.clear();
         limitOverrides.clear();
         activeOverrides.clear();
+        dummyOverrides.clear();
+        knownLimits.clear();
+        links.clear();
         bans.clear();
         loaderMembers.clear();
         ownerMembers.clear();
@@ -743,30 +968,34 @@ public final class LoaderManager {
                 }
                 int id = Integer.parseInt(key);
                 String name = s.getString("name");
-                loaders.put(id, new Loader(id, owner, world, s.getString("world-name", "?"),
+                Loader loader = new Loader(id, owner, world, s.getString("world-name", "?"),
                         s.getInt("x"), s.getInt("y"), s.getInt("z"), s.getLong("created"),
                         s.getInt("number", 0), name == null || name.isBlank() ? null : name,
-                        s.getBoolean("active", true)));
+                        s.getBoolean("active", true));
+                loader.setDummy(s.getBoolean("dummy", false));
+                loaders.put(id, loader);
                 nextId = Math.max(nextId, id + 1);
             }
         }
-        ConfigurationSection limitSection = data.getConfigurationSection("limits");
-        if (limitSection != null) {
-            for (String key : limitSection.getKeys(false)) {
-                UUID uuid = parseUuid(key);
-                if (uuid != null) {
-                    limitOverrides.put(uuid, limitSection.getInt(key));
-                }
-            }
+        readLimits(data.getConfigurationSection("limits"), limitOverrides);
+        readLimits(data.getConfigurationSection("active-limits"), activeOverrides);
+        readLimits(data.getConfigurationSection("dummy-limits"), dummyOverrides);
+        for (LimitKind kind : LimitKind.values()) {
+            Map<UUID, Integer> known = new HashMap<>();
+            readLimits(data.getConfigurationSection("known-limits." + kind.name().toLowerCase(Locale.ROOT)), known);
+            knownLimits.put(kind, known);
         }
-        ConfigurationSection activeSection = data.getConfigurationSection("active-limits");
-        if (activeSection != null) {
-            for (String key : activeSection.getKeys(false)) {
-                UUID uuid = parseUuid(key);
-                if (uuid != null) {
-                    activeOverrides.put(uuid, activeSection.getInt(key));
+        ConfigurationSection linkSection = data.getConfigurationSection("links");
+        if (linkSection != null) {
+            for (String key : linkSection.getKeys(false)) {
+                UUID secondary = parseUuid(key);
+                UUID main = parseUuid(linkSection.getString(key));
+                // No chains: a main account is never a second account itself.
+                if (secondary != null && main != null && !secondary.equals(main)) {
+                    links.put(secondary, main);
                 }
             }
+            links.keySet().removeIf(links::containsValue);
         }
         lagLocks.clear();
         ConfigurationSection lockSection = data.getConfigurationSection("lag-locks");
@@ -799,6 +1028,18 @@ public final class LoaderManager {
         // Only now (limits and bans are read), because it may save.
         assignMissingNumbers();
         loaders.values().forEach(this::index);
+    }
+
+    private static void readLimits(ConfigurationSection section, Map<UUID, Integer> into) {
+        if (section == null) {
+            return;
+        }
+        for (String key : section.getKeys(false)) {
+            UUID uuid = parseUuid(key);
+            if (uuid != null) {
+                into.put(uuid, section.getInt(key));
+            }
+        }
     }
 
     private void readMembers(ConfigurationSection section, boolean perLoader) {
@@ -856,8 +1097,7 @@ public final class LoaderManager {
                 number++;
             }
             taken.add(number);
-            loaders.put(old.id(), new Loader(old.id(), old.owner(), old.worldId(), old.worldName(), old.x(), old.y(),
-                    old.z(), old.created(), number, old.name(), old.active()));
+            loaders.put(old.id(), old.withOwner(old.owner(), number));
         }
         save();
     }
@@ -878,9 +1118,16 @@ public final class LoaderManager {
             data.set(p + "number", loader.number());
             data.set(p + "name", loader.name());
             data.set(p + "active", loader.active());
+            if (loader.dummy()) {
+                data.set(p + "dummy", true);
+            }
         }
         limitOverrides.forEach((uuid, limit) -> data.set("limits." + uuid, limit));
         activeOverrides.forEach((uuid, limit) -> data.set("active-limits." + uuid, limit));
+        dummyOverrides.forEach((uuid, limit) -> data.set("dummy-limits." + uuid, limit));
+        knownLimits.forEach((kind, known) -> known.forEach((uuid, limit) ->
+                data.set("known-limits." + kind.name().toLowerCase(Locale.ROOT) + "." + uuid, limit)));
+        links.forEach((secondary, main) -> data.set("links." + secondary, main.toString()));
         lagLocks.keySet().removeIf(id -> !loaders.containsKey(id));
         lagLocks.forEach((id, lock) -> {
             String p = "lag-locks." + id + ".";

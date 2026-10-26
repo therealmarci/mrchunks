@@ -26,6 +26,8 @@ public final class AdminActions {
     public static final String PERM_LIMIT = "mrchunks.admin.limit";
     public static final String PERM_BAN = "mrchunks.admin.ban";
     public static final String PERM_INVITE = "mrchunks.invite";
+    /** Linking another account with the own one (both share loaders and limits). */
+    public static final String PERM_LINK = "mrchunks.link";
     /** Excludes a player from chunk loaders completely (e.g. second accounts). Strict: also for admins. */
     public static final String PERM_EXEMPT = "mrchunks.exempt";
 
@@ -48,8 +50,14 @@ public final class AdminActions {
         return name == null ? player.getUniqueId().toString().substring(0, 8) : name;
     }
 
+    /** The account whose loaders the player manages: their main account if linked, otherwise themself. */
+    public static UUID accountOf(Player player) {
+        return org.bukkit.plugin.java.JavaPlugin.getPlugin(MRChunks.class).loaders().main(player.getUniqueId());
+    }
+
+    /** The owner of the loader, or an account linked with the owner. */
     public static boolean isOwner(CommandSender sender, Loader loader) {
-        return sender instanceof Player player && player.getUniqueId().equals(loader.owner());
+        return sender instanceof Player player && accountOf(player).equals(loader.owner());
     }
 
     /** Owner (with mrchunks.use) or admin with mrchunks.admin.manage. */
@@ -85,7 +93,7 @@ public final class AdminActions {
 
     /** Managing the invites of a loader / of all loaders of {@code owner}: the owner (mrchunks.invite) or admins. */
     public static boolean canManageInvites(CommandSender sender, UUID owner) {
-        boolean isOwner = sender instanceof Player player && player.getUniqueId().equals(owner);
+        boolean isOwner = sender instanceof Player player && accountOf(player).equals(owner);
         return (isOwner && sender.hasPermission(PERM_INVITE) && !isExempt(sender)) || sender.hasPermission(PERM_MANAGE);
     }
 
@@ -141,9 +149,7 @@ public final class AdminActions {
         notifyOwner(loader.owner(), "lag-unlocked-owner", Texts.loader(plugin, loader), tag("admin", sender.getName()));
         plugin.getLogger().info(sender.getName() + " lifted the lag lock of " + Texts.consoleName(plugin, loader) + ".");
         plugin.discord().log("loader-lag-unlocked", discordTags(loader, "admin", sender.getName()));
-        var data = at.marcelr.mrchunks.lag.LagMonitor.eventData(plugin, loader, "unlock");
-        data.put("by", sender.getName());
-        org.bukkit.Bukkit.getPluginManager().callEvent(new at.marcelr.mrchunks.api.LoaderLockEvent(data));
+        plugin.mradmin().lagUnlocked(loader, sender.getName());
     }
 
     public void delete(CommandSender sender, Loader loader) {
@@ -161,6 +167,152 @@ public final class AdminActions {
             notifyOwner(loader.owner(), "owner-notify-deleted", tags, tag("admin", sender.getName()));
             plugin.discord().log("admin-delete", discordTags(loader, "admin", sender.getName()));
         }
+    }
+
+    // ------------------------------------------------------------- dummies
+
+    /** Switches the loader's dummy player on or off: owner (within their dummy limit) or admins. */
+    public void toggleDummy(CommandSender sender, Loader loader) {
+        if (!canManage(sender, loader)) {
+            messages().send(sender, isOwner(sender, loader) ? "no-permission" : "not-owner");
+            return;
+        }
+        if (!plugin.dummies().enabled()) {
+            messages().send(sender, "dummy-disabled");
+            return;
+        }
+        boolean on = !loader.dummy();
+        OfflinePlayer owner = org.bukkit.Bukkit.getOfflinePlayer(loader.owner());
+        // Owners stay within their dummy limit; admins may go beyond it.
+        if (on && !sender.hasPermission(PERM_MANAGE) && !loaders().canAddDummy(owner)) {
+            messages().send(sender, "dummy-limit-reached", dummyTags(owner));
+            return;
+        }
+        loaders().setDummy(loader, on);
+        String state = Texts.state(plugin, on);
+        messages().send(sender, !on ? "dummy-off" : loader.active() ? "dummy-on" : "dummy-on-inactive",
+                Texts.loader(plugin, loader), dummyTags(owner));
+        if (!isOwner(sender, loader)) {
+            notifyOwner(loader.owner(), "owner-notify-dummy", Texts.loader(plugin, loader),
+                    tag("state", state), tag("admin", sender.getName()));
+        }
+        plugin.discord().log("dummy-toggled", discordTags(loader, "admin", sender.getName(), "state", state));
+    }
+
+    /** Placeholders {@code <dummies>} (switched on) and {@code <dummy-limit>} of the owner's account. */
+    public TagResolver dummyTags(OfflinePlayer owner) {
+        return TagResolver.resolver(tag("dummies", loaders().dummyCount(loaders().main(owner.getUniqueId()))),
+                tag("dummy-limit", Texts.limit(loaders().limit(owner, LoaderManager.LimitKind.DUMMY))));
+    }
+
+    // ----------------------------------------------------- linked accounts
+
+    /**
+     * Links {@code secondary} to {@code main} after both agreed (see {@link at.marcelr.mrchunks.link.LinkRequests}) or
+     * by an admin. Checks everything again, because the situation may have changed since the request.
+     * @param by who did it (for the logs): the accepting player or the admin
+     * @return an error message key, or null if linked
+     */
+    public String link(OfflinePlayer main, OfflinePlayer secondary, String by) {
+        String problem = linkProblem(main, secondary);
+        if (problem != null) {
+            return problem;
+        }
+        int moved = loaders().link(main.getUniqueId(), secondary.getUniqueId());
+        String mainName = name(main);
+        String secondName = name(secondary);
+        notifyOwner(main.getUniqueId(), "link-done", tag("main", mainName), tag("second", secondName), tag("count", moved));
+        plugin.getLogger().info(secondName + " is now linked to " + mainName + " (" + moved + " loader(s) taken over, by "
+                + by + ").");
+        plugin.discord().log("accounts-linked", "player", secondName, "owner", mainName, "count", moved, "admin", by);
+        return null;
+    }
+
+    /** /mrchunks link: an admin links two accounts directly, without asking them. */
+    public void adminLink(CommandSender sender, OfflinePlayer main, OfflinePlayer secondary) {
+        if (!sender.hasPermission(PERM_MANAGE)) {
+            messages().send(sender, "no-permission");
+            return;
+        }
+        String problem = link(main, secondary, sender.getName());
+        if (problem != null) {
+            messages().send(sender, problem, tag("player", name(secondary)),
+                    tag("max", plugin.settings().links().maxAccounts()));
+        } else {
+            messages().send(sender, "link-admin-done", tag("main", name(main)), tag("second", name(secondary)));
+        }
+    }
+
+    /** Why the two accounts cannot be linked (message key), or null. */
+    public String linkProblem(OfflinePlayer main, OfflinePlayer secondary) {
+        LoaderManager loaders = loaders();
+        UUID mainId = main.getUniqueId();
+        UUID secondId = secondary.getUniqueId();
+        if (mainId.equals(secondId)) {
+            return "link-self";
+        }
+        if (!loaders.main(mainId).equals(mainId)) {
+            return "link-main-is-second";
+        }
+        if (loaders.isLinked(secondId)) {
+            return "link-already-linked";
+        }
+        if (loaders.secondaries(mainId).size() >= plugin.settings().links().maxAccounts()) {
+            return "link-full";
+        }
+        Player mainOnline = main.getPlayer();
+        Player secondOnline = secondary.getPlayer();
+        if ((mainOnline != null && isExempt(mainOnline)) || (secondOnline != null && isExempt(secondOnline))) {
+            return "link-exempt";
+        }
+        if (loaders.groupBan(mainId) != null || loaders.ban(secondId) != null) {
+            return "link-banned";
+        }
+        return null;
+    }
+
+    /**
+     * Dissolves a link: a second account leaves its main account, or with a main account all its second accounts go.
+     * The player themself (either side) or an admin may do this; the loaders stay with the main account.
+     */
+    public void unlink(CommandSender sender, UUID account) {
+        boolean self = sender instanceof Player player && loaders().sameGroup(player.getUniqueId(), account);
+        if (!self && !sender.hasPermission(PERM_MANAGE)) {
+            messages().send(sender, "no-permission");
+            return;
+        }
+        if (removeLinks(account, sender.getName(), sender) == 0) {
+            messages().send(sender, "link-not-linked", tag("player", LoaderManager.name(account)));
+        }
+    }
+
+    /**
+     * Removes the links of {@code account} (see {@link #unlink}); both accounts hear about it.
+     * @param sender gets the confirmation, or null (web)
+     * @return number of removed links
+     */
+    private int removeLinks(UUID account, String by, CommandSender sender) {
+        LoaderManager loaders = loaders();
+        UUID main = loaders.main(account);
+        List<UUID> seconds = main.equals(account) ? loaders.secondaries(main) : List.of(account);
+        for (UUID second : seconds) {
+            loaders.unlink(second);
+            String secondName = LoaderManager.name(second);
+            String mainName = LoaderManager.name(main);
+            if (sender != null) {
+                messages().send(sender, "link-removed", tag("main", mainName), tag("second", secondName));
+            }
+            for (UUID notify : List.of(main, second)) {
+                Player online = org.bukkit.Bukkit.getPlayer(notify);
+                if (online != null && online != sender) {
+                    messages().send(online, "link-removed-notify", tag("main", mainName), tag("second", secondName),
+                            tag("admin", by));
+                }
+            }
+            plugin.getLogger().info(by + " removed the link of " + secondName + " to " + mainName + ".");
+            plugin.discord().log("accounts-unlinked", "player", secondName, "owner", mainName, "admin", by);
+        }
+        return seconds.size();
     }
 
     // ----------------------------------------------------- web (MRadmin)
@@ -191,9 +343,20 @@ public final class AdminActions {
         notifyOwner(loader.owner(), "lag-unlocked-owner", Texts.loader(plugin, loader), tag("admin", admin));
         plugin.getLogger().info(admin + " (web) lifted the lag lock of " + Texts.consoleName(plugin, loader) + ".");
         plugin.discord().log("loader-lag-unlocked", discordTags(loader, "admin", admin));
-        var data = at.marcelr.mrchunks.lag.LagMonitor.eventData(plugin, loader, "unlock");
-        data.put("by", admin);
-        org.bukkit.Bukkit.getPluginManager().callEvent(new at.marcelr.mrchunks.api.LoaderLockEvent(data));
+        plugin.mradmin().lagUnlocked(loader, admin);
+        return null;
+    }
+
+    public String webToggleDummy(String admin, Loader loader) {
+        if (!plugin.dummies().enabled()) {
+            return "dummies-disabled";
+        }
+        boolean on = !loader.dummy();
+        loaders().setDummy(loader, on);
+        String state = Texts.state(plugin, on);
+        notifyOwner(loader.owner(), "owner-notify-dummy", Texts.loader(plugin, loader), tag("state", state), tag("admin", admin));
+        plugin.getLogger().info(admin + " (web) switched the dummy of " + Texts.consoleName(plugin, loader) + (on ? " on." : " off."));
+        plugin.discord().log("dummy-toggled", discordTags(loader, "admin", admin, "state", state));
         return null;
     }
 
@@ -213,17 +376,12 @@ public final class AdminActions {
         loaders().setLimitOverride(target.getUniqueId(), kind, limit);
         String name = name(target);
         String effective = Texts.limit(loaders().limit(target, kind));
-        String type = messages().plain(kind == LoaderManager.LimitKind.PLACE ? "limit-type-place" : "limit-type-active");
+        String type = limitType(kind);
         notifyOwner(target.getUniqueId(), "limit-notify", tag("limit", effective), tag("type", type));
         plugin.getLogger().info(admin + " (web) set the " + kind.name().toLowerCase(java.util.Locale.ROOT) + " limit of "
                 + name + " to " + (limit == null ? "default" : limit) + ".");
         plugin.discord().log("admin-limit", "admin", admin, "player", name, "limit", effective, "type", type);
-        if (kind == LoaderManager.LimitKind.ACTIVE) {
-            int switchedOff = loaders().enforceActiveLimit(target).size();
-            if (switchedOff > 0) {
-                notifyOwner(target.getUniqueId(), "active-limit-enforced-notify", tag("count", switchedOff));
-            }
-        }
+        enforceLimit(target, kind);
         return null;
     }
 
@@ -231,7 +389,7 @@ public final class AdminActions {
     public String webBan(String admin, OfflinePlayer target, long duration, String reason) {
         String cleanReason = reason == null || reason.isBlank() ? messages().plain("ban-no-reason") : reason;
         UUID uuid = target.getUniqueId();
-        int deleted = loaders().deleteAll(uuid);
+        int deleted = loaders().deleteAll(loaders().main(uuid));
         loaders().ban(uuid, duration, cleanReason, admin);
         Player online = target.getPlayer();
         if (online != null) {
@@ -258,9 +416,14 @@ public final class AdminActions {
         return null;
     }
 
+    /** Removes the link of the player (a main account: of all its second accounts); the loaders stay. */
+    public String webUnlink(String admin, OfflinePlayer target) {
+        return removeLinks(target.getUniqueId(), admin, null) == 0 ? "not-linked" : null;
+    }
+
     /** Deletes all loaders of the player (without banning). */
     public String webDeleteAll(String admin, OfflinePlayer target) {
-        List<Loader> owned = loaders().byOwner(target.getUniqueId());
+        List<Loader> owned = loaders().byOwner(loaders().main(target.getUniqueId()));
         if (owned.isEmpty()) {
             return "no-loaders";
         }
@@ -332,13 +495,13 @@ public final class AdminActions {
             return;
         }
         LoaderManager loaders = loaders();
-        LoaderManager.Ban ban = loaders.ban(player.getUniqueId());
+        LoaderManager.Ban ban = loaders.groupBan(player.getUniqueId());
         if (ban != null) {
             messages().send(player, "banned", tag("duration", Texts.banDuration(plugin, ban)), tag("reason", ban.reason()));
             return;
         }
         LoaderManager.Limit limit = loaders.limit(player);
-        int placed = loaders.count(player.getUniqueId());
+        int placed = loaders.count(accountOf(player));
         int held = plugin.loaderItem().count(player);
         long free = (long) limit.value() - placed - held;
         if (free <= 0) {
@@ -406,11 +569,11 @@ public final class AdminActions {
         if (target == null && !name.isEmpty()) {
             target = org.bukkit.Bukkit.getOfflinePlayerIfCached(name);
         }
-        if (target == null) {
+        if (target == null || (target.getPlayer() != null && at.marcelr.mrchunks.dummy.Dummies.isDummy(target.getPlayer()))) {
             messages().send(sender, "player-not-found", tag("player", name));
             return;
         }
-        if (target.getUniqueId().equals(owner)) {
+        if (loaders().sameGroup(target.getUniqueId(), owner)) {
             messages().send(sender, "invite-self");
             return;
         }
@@ -470,6 +633,10 @@ public final class AdminActions {
         if (!isExempt(player)) {
             return;
         }
+        // An excluded account cannot be linked with another one.
+        if (loaders().isLinked(player.getUniqueId())) {
+            unlink(org.bukkit.Bukkit.getConsoleSender(), player.getUniqueId());
+        }
         int items = plugin.loaderItem().remove(player, Integer.MAX_VALUE);
         int deleted = loaders().deleteAll(player.getUniqueId());
         if (deleted == 0 && items == 0) {
@@ -495,19 +662,41 @@ public final class AdminActions {
         loaders().setLimitOverride(target.getUniqueId(), kind, limit);
         String name = name(target);
         String effective = Texts.limit(loaders().limit(target, kind));
-        String type = messages().plain(kind == LoaderManager.LimitKind.PLACE ? "limit-type-place" : "limit-type-active");
+        String type = limitType(kind);
         messages().send(sender, limit == null ? "limit-reset" : "limit-set",
                 tag("player", name), tag("limit", effective), tag("type", type));
         notifyOwner(target.getUniqueId(), "limit-notify", tag("limit", effective), tag("type", type));
         plugin.discord().log("admin-limit", "admin", sender.getName(), "player", name, "limit", effective, "type", type);
-
-        if (kind == LoaderManager.LimitKind.ACTIVE) {
-            int switchedOff = loaders().enforceActiveLimit(target).size();
-            if (switchedOff > 0) {
-                messages().send(sender, "active-limit-enforced", tag("player", name), tag("count", switchedOff));
-                notifyOwner(target.getUniqueId(), "active-limit-enforced-notify", tag("count", switchedOff));
-            }
+        int switchedOff = enforceLimit(target, kind);
+        if (switchedOff > 0) {
+            messages().send(sender, kind == LoaderManager.LimitKind.DUMMY ? "dummy-limit-enforced" : "active-limit-enforced",
+                    tag("player", name), tag("count", switchedOff));
         }
+    }
+
+    private String limitType(LoaderManager.LimitKind kind) {
+        return messages().plain(switch (kind) {
+            case PLACE -> "limit-type-place";
+            case ACTIVE -> "limit-type-active";
+            case DUMMY -> "limit-type-dummy";
+        });
+    }
+
+    /**
+     * After a lower limit: switches off the newest active loaders (active limit) or dummies (dummy limit) and tells the
+     * owner. @return how many were switched off
+     */
+    private int enforceLimit(OfflinePlayer target, LoaderManager.LimitKind kind) {
+        int switchedOff = switch (kind) {
+            case ACTIVE -> loaders().enforceActiveLimit(target).size();
+            case DUMMY -> loaders().enforceDummyLimit(target).size();
+            case PLACE -> 0;
+        };
+        if (switchedOff > 0) {
+            notifyOwner(target.getUniqueId(), kind == LoaderManager.LimitKind.DUMMY ? "dummy-limit-enforced-notify"
+                    : "active-limit-enforced-notify", tag("count", switchedOff));
+        }
+        return switchedOff;
     }
 
     /** Bans the player: all their loaders are deleted and their loader items taken away. */
@@ -518,7 +707,7 @@ public final class AdminActions {
         }
         String cleanReason = reason == null || reason.isBlank() ? messages().plain("ban-no-reason") : reason;
         UUID uuid = target.getUniqueId();
-        int deleted = loaders().deleteAll(uuid);
+        int deleted = loaders().deleteAll(loaders().main(uuid));
         loaders().ban(uuid, duration, cleanReason, sender.getName());
         Player online = target.getPlayer();
         if (online != null) {
@@ -554,7 +743,7 @@ public final class AdminActions {
             messages().send(sender, "no-permission");
             return;
         }
-        for (Loader loader : loaders().byOwner(target.getUniqueId())) {
+        for (Loader loader : loaders().byOwner(loaders().main(target.getUniqueId()))) {
             delete(sender, loader);
         }
     }
@@ -567,10 +756,13 @@ public final class AdminActions {
 
     // ------------------------------------------------------------- helpers
 
+    /** Tells the owner - every online account of their link group - about something. */
     private void notifyOwner(UUID owner, String key, TagResolver... resolvers) {
-        Player online = org.bukkit.Bukkit.getPlayer(owner);
-        if (online != null) {
-            messages().send(online, key, resolvers);
+        for (UUID account : loaders().group(owner)) {
+            Player online = org.bukkit.Bukkit.getPlayer(account);
+            if (online != null) {
+                messages().send(online, key, resolvers);
+            }
         }
     }
 

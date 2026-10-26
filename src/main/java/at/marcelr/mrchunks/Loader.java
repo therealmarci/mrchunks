@@ -26,6 +26,8 @@ public final class Loader {
     private final int number;
     private boolean active;
     private String name;
+    /** The owner wants a dummy player on this loader (it only sits there while the loader is active). */
+    private boolean dummy;
 
     public Loader(int id, UUID owner, UUID worldId, String worldName, int x, int y, int z, long created,
                   int number, String name, boolean active) {
@@ -109,6 +111,22 @@ public final class Loader {
 
     void setActive(boolean active) {
         this.active = active;
+    }
+
+    /** Whether a dummy player is switched on for this loader (see {@link at.marcelr.mrchunks.dummy.Dummies}). */
+    public boolean dummy() {
+        return dummy;
+    }
+
+    void setDummy(boolean dummy) {
+        this.dummy = dummy;
+    }
+
+    /** The same loader with another owner and number (accounts being linked, see {@link LoaderManager#link}). */
+    Loader withOwner(UUID newOwner, int newNumber) {
+        Loader copy = new Loader(id, newOwner, worldId, worldName, x, y, z, created, newNumber, name, active);
+        copy.dummy = dummy;
+        return copy;
     }
 
     /** @return the block location, or null if the world is not loaded */

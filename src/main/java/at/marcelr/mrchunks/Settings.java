@@ -25,8 +25,22 @@ public record Settings(
         GuiSettings gui,
         InviteSettings invites,
         LagSettings lag,
-        PauseSettings pause
+        PauseSettings pause,
+        DummySettings dummies,
+        LinkSettings links
 ) {
+
+    /**
+     * Dummy players: a fake player sits on a loader and counts as a player nearby (mob AI, spawning, random ticks).
+     * {@code defaultLimit} = dummies per player, {@code seat} = sitting on the block instead of standing,
+     * {@code ownerSkin} = the owner's skin instead of the default one.
+     */
+    public record DummySettings(boolean enabled, int defaultLimit, boolean seat, boolean ownerSkin) {
+    }
+
+    /** Linked accounts: second accounts per main account and how long a link request stays open (seconds). */
+    public record LinkSettings(boolean enabled, int maxAccounts, int requestSeconds) {
+    }
 
     /**
      * Server pause: all loaders release their chunks once the server's TPS (1-minute average) has been below
@@ -234,7 +248,18 @@ public record Settings(
                 Math.clamp(c.getInt("server-pause.resume-after-seconds", 60), 0, 3600),
                 c.getBoolean("server-pause.notify-owners", true));
 
-        return new Settings(loaders, item, border, squaremap, update, gui, invites, lag, pause);
+        DummySettings dummies = new DummySettings(
+                c.getBoolean("dummies.enabled", false),
+                Math.clamp(c.getInt("dummies.default-limit", 1), 0, 1000),
+                c.getBoolean("dummies.sit", true),
+                c.getBoolean("dummies.owner-skin", true));
+
+        LinkSettings links = new LinkSettings(
+                c.getBoolean("linked-accounts.enabled", true),
+                Math.clamp(c.getInt("linked-accounts.max-accounts", 1), 1, 10),
+                Math.clamp(c.getInt("linked-accounts.request-seconds", 120), 10, 3600));
+
+        return new Settings(loaders, item, border, squaremap, update, gui, invites, lag, pause, dummies, links);
     }
 
     /** "#RRGGBB" as written to the web page; anything else becomes the fallback (no script injection). */

@@ -23,17 +23,19 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Plain data for MRadmin's web interface (see {@link MRadminHook#web}): only strings, numbers, booleans, lists and
+ * Plain data for MRadmin's web interface (see {@link MRadminModule}): only strings, numbers, booleans, lists and
  * maps, texts already in MRchunks' language. Server thread only (MRadmin calls it there).
  * <pre>
  *  overview                         counts, server pause, lag protection on/off
  *  chunks                           number of chunks the loaders keep loaded (cheap, MRadmin asks every second)
  *  loaders                          all loaders with status
  *  loader  {id}                     one loader with every measured value, lock, members
- *  action  {id, action, admin}      toggle | unlock | delete  -> null or an error key
- *  player  {uuid}                   one player: loaders, limits (with source), ban, invites, loaders shared with them
+ *  action  {id, action, admin}      toggle | unlock | delete | dummy  -> null or an error key
+ *  player  {uuid}                   one player: loaders, limits (with source), ban, invites, loaders shared with them,
+ *                                   linked accounts (main, secondAccounts), dummies
  *  flags                            uuid -> marks for MRadmin's player list (chunks-locked, chunks-warn, chunks-banned)
- *  playerAction {uuid, action, admin, kind?, value?, reason?}   limit | ban | unban | deleteAll  -> null or an error key
+ *  playerAction {uuid, action, admin, kind?, value?, reason?}   limit (kind place|active|dummy) | ban | unban
+ *                                   | deleteAll | unlink  -> null or an error key
  * </pre>
  */
 final class WebData {
@@ -69,11 +71,25 @@ final class WebData {
         UUID id = target.getUniqueId();
         Map<String, Object> m = new LinkedHashMap<>();
         List<Map<String, Object>> own = new ArrayList<>();
-        for (Loader loader : loaders.byOwner(id)) {
+        // A linked second account shares the loaders of its main account.
+        UUID main = loaders.main(id);
+        for (Loader loader : loaders.byOwner(main)) {
             own.add(summary(plugin, loader));
         }
         m.put("loaders", own);
-        m.put("active", loaders.activeCount(id));
+        if (!main.equals(id)) {
+            m.put("main", Map.of("uuid", main.toString(), "name", LoaderManager.name(main)));
+        }
+        List<Map<String, Object>> seconds = new ArrayList<>();
+        for (UUID second : loaders.secondaries(main)) {
+            seconds.add(Map.of("uuid", second.toString(), "name", LoaderManager.name(second)));
+        }
+        m.put("secondAccounts", seconds);
+        m.put("dummiesEnabled", plugin.dummies().enabled());
+        m.put("dummies", loaders.dummyCount(main));
+        m.put("dummyLimit", limit(loaders, target, LoaderManager.LimitKind.DUMMY));
+        m.put("defaultDummyLimit", plugin.settings().dummies().defaultLimit());
+        m.put("active", loaders.activeCount(main));
         m.put("limit", limit(loaders, target, LoaderManager.LimitKind.PLACE));
         m.put("activeLimit", limit(loaders, target, LoaderManager.LimitKind.ACTIVE));
         m.put("defaultLimit", plugin.settings().loaders().defaultLimit());
@@ -82,7 +98,7 @@ final class WebData {
         Player online = target.getPlayer();
         m.put("online", online != null);
         m.put("exempt", online != null && online.hasPermission(at.marcelr.mrchunks.AdminActions.PERM_EXEMPT));
-        LoaderManager.Ban ban = loaders.ban(id);
+        LoaderManager.Ban ban = loaders.groupBan(id);
         if (ban != null) {
             Map<String, Object> b = new LinkedHashMap<>();
             b.put("permanent", ban.until() == Long.MAX_VALUE);
@@ -149,6 +165,7 @@ final class WebData {
                 LoaderManager.LimitKind kind = switch (String.valueOf(args.get("kind"))) {
                     case "place" -> LoaderManager.LimitKind.PLACE;
                     case "active" -> LoaderManager.LimitKind.ACTIVE;
+                    case "dummy" -> LoaderManager.LimitKind.DUMMY;
                     default -> null;
                 };
                 if (kind == null) {
@@ -180,6 +197,7 @@ final class WebData {
             }
             case "unban" -> actions.webUnban(admin, target);
             case "deleteAll" -> actions.webDeleteAll(admin, target);
+            case "unlink" -> actions.webUnlink(admin, target);
             default -> "unknown-action";
         };
     }
@@ -215,6 +233,9 @@ final class WebData {
         result.put("size", plugin.settings().loaders().size());
         result.put("lagProtection", plugin.settings().lag().enabled());
         result.put("paused", loaders.paused());
+        result.put("dummiesEnabled", plugin.dummies().enabled());
+        result.put("dummies", plugin.dummies().count());
+        result.put("links", loaders.links().size());
         if (loaders.paused()) {
             result.put("pausedSince", plugin.pause().pausedSince());
             result.put("tps", Math.round(ServerPause.tps() * 10) / 10.0);
@@ -244,6 +265,8 @@ final class WebData {
         m.put("y", loader.y());
         m.put("z", loader.z());
         m.put("active", loader.active());
+        m.put("dummy", loader.dummy());
+        m.put("dummyPresent", plugin.dummies().dummyOf(loader) != null);
         m.put("status", LoaderStatus.of(plugin, loader).name().toLowerCase(Locale.ROOT));
         m.put("created", loader.created());
         LagLock lock = plugin.loaders().lagLock(loader);
@@ -262,6 +285,7 @@ final class WebData {
 
     private static Map<String, Object> detail(MRChunks plugin, Loader loader) {
         Map<String, Object> m = summary(plugin, loader);
+        m.put("dummiesEnabled", plugin.dummies().enabled());
         Messages messages = plugin.messages();
         Activity a = plugin.settings().lag().enabled() ? plugin.lag().activity(loader) : null;
         if (a != null) {
@@ -301,6 +325,7 @@ final class WebData {
             case "toggle" -> plugin.adminActions().webToggle(admin, loader);
             case "unlock" -> plugin.adminActions().webUnlock(admin, loader);
             case "delete" -> plugin.adminActions().webDelete(admin, loader);
+            case "dummy" -> plugin.adminActions().webToggleDummy(admin, loader);
             default -> "unknown-action";
         };
     }

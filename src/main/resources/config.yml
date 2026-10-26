@@ -15,7 +15,7 @@
 # ==============================================================================
 
 # Nicht ändern - wird für automatische Config-Updates verwendet.
-config-version: 8
+config-version: 9
 
 # Sprache aller Texte: de = Deutsch, en = English. Die Texte stehen in plugins/MRchunks/lang/<sprache>.yml
 # und können dort angepasst werden. Eigene Sprache: Datei kopieren (z.B. fr.yml), übersetzen, language: fr.
@@ -43,7 +43,8 @@ loaders:
 
   # Welten, in denen keine Chunkloader gesetzt werden können (Name, Groß-/Kleinschreibung egal).
   # Chunkloader funktionieren in allen Dimensionen (Oberwelt, Nether, End).
-  # Die Arena-Welt von MRpvp ist immer gesperrt (MRpvp baut die Arenen dort selbst auf und ab).
+  # Die Arena-Welt von MRpvp ist immer gesperrt (MRpvp baut die Arenen dort selbst auf und ab) - das erkennt MRchunks
+  # nur, wenn auch MRadmin installiert ist (die Plugins sprechen über MRadmins Modul-Schnittstelle miteinander).
   disabled-worlds: []
 
   # Wie die Chunks geladen gehalten werden:
@@ -81,8 +82,52 @@ invites:
   # Höchstens so viele Eingeladene pro Loader bzw. für "alle Loader".
   max-members: 10
 
+# Verknüpfte Accounts (z.B. ein Zweit-Account zum AFK-Farmen): Ein Spieler verknüpft unter /chunkloader ->
+# Verknüpfte Accounts einen anderen Account mit dem eigenen, der andere muss zustimmen (beide müssen online sein).
+# Danach teilen sich beide alles wie ein einziger Spieler: dieselben Chunkloader, das Limit (das des Haupt-Accounts,
+# also des Spielers, der verknüpft hat), Einladungen und Dummies. Chunkloader, die der Zweit-Account schon hatte,
+# gehen dabei an den Haupt-Account über. Eine Sperre gilt für alle verknüpften Accounts.
+# Lösen kann die Verknüpfung jeder der beiden jederzeit (die Chunkloader bleiben beim Haupt-Account) sowie Admins
+# (/mrchunks unlink <spieler>). Admins können auch direkt verknüpfen: /mrchunks link <haupt-account> <zweit-account>
+# Spieler brauchen dafür die Permission mrchunks.link (in mrchunks.player enthalten).
+linked-accounts:
+  enabled: true
+  # Wie viele Zweit-Accounts ein Haupt-Account haben darf.
+  max-accounts: 1
+  # So lange (Sekunden) kann der andere Account die Anfrage annehmen.
+  request-seconds: 120
+
+
 # ------------------------------------------------------------------------------
-#   2) LAG-SCHUTZ
+#   2) DUMMY-SPIELER
+# ------------------------------------------------------------------------------
+# Ein Dummy ist ein künstlicher Spieler, der auf einem Chunkloader sitzt. Der Chunkloader allein hält Chunks nur
+# geladen - für den Server ist aber trotzdem kein Spieler in der Nähe. Deshalb sind Mobs dort fast inaktiv (z.B.
+# laufen sie nicht durch Portale), es spawnen keine Mobs und manches wächst nicht. Ein Dummy zählt als Spieler in
+# der Nähe, damit laufen solche Farmen wie mit einem echten Spieler daneben.
+#
+# Der Owner schaltet den Dummy im Menü des Chunkloaders ein. Er sitzt (sichtbar, mit dem Skin des Owners) auf dem
+# Block, solange der Loader aktiv ist. Er ist unverwundbar, wird von Mobs ignoriert, steht nicht in der Tab-Liste
+# und zählt nicht zur Spielerzahl. Für MRsleep, MRadmin und MRpvp ist er kein Spieler.
+#
+# ACHTUNG: Dummies kosten deutlich mehr Leistung als ein Chunkloader allein (Mob-Spawning und Mob-KI wie bei einem
+# echten Spieler). Lag-Schutz und Server-Pause gelten auch hier - wird ein Loader gesperrt oder pausiert, ist auch
+# sein Dummy weg. Dummies nutzen Server-Interna: Passt die MRchunks-Version nicht zur Server-Version, sind sie aus
+# (Hinweis in der Konsole), der Rest von MRchunks funktioniert normal.
+dummies:
+  enabled: false
+  # Wie viele Dummies jeder Spieler gleichzeitig einschalten darf (einer pro Chunkloader).
+  # Mehr per Permission "mrchunks.dummies.<anzahl>" (z.B. mrchunks.dummies.3), "mrchunks.dummies.unlimited"
+  # oder per /mrchunks limit <spieler> dummy <anzahl>.
+  default-limit: 1
+  # true = der Dummy sitzt auf dem Block, false = er steht darauf.
+  sit: true
+  # true = Skin des Owners, false = Standard-Skin.
+  owner-skin: true
+
+
+# ------------------------------------------------------------------------------
+#   3) LAG-SCHUTZ
 # ------------------------------------------------------------------------------
 # MRchunks misst regelmäßig, was im Bereich jedes aktiven Chunkloaders passiert (alle Chunks zusammen).
 # Ist ein Wert über "warn", gilt der Loader als auffällig: Admins sehen ihn in /mrchunks lag (und im
@@ -141,7 +186,7 @@ server-pause:
 
 
 # ------------------------------------------------------------------------------
-#   3) ITEM & BLOCK
+#   4) ITEM & BLOCK
 # ------------------------------------------------------------------------------
 item:
   # Aussehen des Chunkloaders als Block und als Item.
@@ -153,7 +198,7 @@ item:
 
 
 # ------------------------------------------------------------------------------
-#   4) GRENZANZEIGE
+#   5) GRENZANZEIGE
 # ------------------------------------------------------------------------------
 border:
   # Die Grenze besteht aus leuchtenden Linien (ein "Zaun" an jedem Chunk der Außenkante), die durch Blöcke
@@ -177,7 +222,7 @@ border:
 
 
 # ------------------------------------------------------------------------------
-#   5) WEBKARTE (squaremap)
+#   6) WEBKARTE (squaremap)
 # ------------------------------------------------------------------------------
 # Ist das Plugin squaremap installiert (https://modrinth.com/plugin/squaremap), zeichnet MRchunks
 # die geladenen Bereiche als eigene Ebene "Chunkloader" auf die echte Minecraft-Karte ein.
@@ -237,7 +282,7 @@ squaremap:
 
 
 # ------------------------------------------------------------------------------
-#   6) DISCORD-LOGS
+#   7) DISCORD-LOGS
 # ------------------------------------------------------------------------------
 # Webhook anlegen: Discord-Kanal -> Kanal bearbeiten -> Integrationen -> Webhooks
 #                  -> Neuer Webhook -> Webhook-URL kopieren.
@@ -310,10 +355,19 @@ discord:
     server-resumed:
       enabled: true
       color: "#27AE60"
+    dummy-toggled:
+      enabled: true
+      color: "#9B59B6"
+    accounts-linked:
+      enabled: true
+      color: "#1ABC9C"
+    accounts-unlinked:
+      enabled: true
+      color: "#95A5A6"
 
 
 # ------------------------------------------------------------------------------
-#   7) UPDATE-CHECK
+#   8) UPDATE-CHECK
 # ------------------------------------------------------------------------------
 update-checker:
   enabled: true
@@ -327,7 +381,7 @@ update-checker:
 
 
 # ------------------------------------------------------------------------------
-#   8) MENÜS
+#   9) MENÜS
 # ------------------------------------------------------------------------------
 gui:
   # Wie oft offene Menüs aktualisiert werden (in Ticks, 20 = 1 Sekunde).

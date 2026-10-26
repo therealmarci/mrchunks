@@ -2,7 +2,7 @@ name: MRchunks
 version: '${version}'
 main: at.marcelr.mrchunks.MRChunks
 api-version: '${mcVersion}'
-softdepend: [squaremap]
+softdepend: [squaremap, MRadmin]
 author: _therealmarci
 website: https://github.com/${githubRepository}
 description: Chunkloader-Blöcke mit Limits, Menüs, Admin-GUI, squaremap-Anbindung und Discord-Logs.
@@ -14,17 +14,18 @@ commands:
     aliases: [cl, chunkloaders]
   mrchunks:
     description: Verwaltung von MRchunks.
-    usage: /mrchunks <gui|tp|toggle|delete|limit|ban|unban|bans|map|discord|reload|version>
+    usage: /mrchunks <gui|tp|toggle|delete|unlock|lag|limit|ban|unban|bans|link|unlink|map|discord|reload|version>
 
 permissions:
   mrchunks.player:
-    description: Alle Spieler-Rechte auf einmal (use, map, view, invite) - z.B. für die Default-Gruppe in LuckPerms.
+    description: Alle Spieler-Rechte auf einmal (use, map, view, invite, link) - z.B. für die Default-Gruppe in LuckPerms.
     default: op
     children:
       mrchunks.use: true
       mrchunks.map: true
       mrchunks.view: true
       mrchunks.invite: true
+      mrchunks.link: true
   mrchunks.use:
     description: Chunkloader holen (/chunkloader), setzen und die eigenen verwalten.
     default: op
@@ -37,6 +38,9 @@ permissions:
   mrchunks.invite:
     description: Andere Spieler einladen, die eigenen Chunkloader an- und auszuschalten.
     default: op
+  mrchunks.link:
+    description: Einen anderen Account (z.B. Zweit-Account) mit dem eigenen verknüpfen - beide teilen sich Chunkloader und Limit.
+    default: op
   mrchunks.exempt:
     description: Schließt vom Chunkloading komplett aus (z.B. Zweit-Accounts) - keine Loader, keine Einladungen. Vorhandene Loader werden gelöscht. Achtung, "*" in LuckPerms enthält das auch!
     default: false
@@ -45,6 +49,9 @@ permissions:
     default: false
   mrchunks.active.unlimited:
     description: Beliebig viele gleichzeitig aktive Chunkloader. Feste Grenzen per mrchunks.active.<anzahl>, z.B. mrchunks.active.3.
+    default: false
+  mrchunks.dummies.unlimited:
+    description: Beliebig viele Dummy-Spieler. Feste Grenzen per mrchunks.dummies.<anzahl>, z.B. mrchunks.dummies.2.
     default: false
   mrchunks.admin:
     description: Alle Admin-Rechte von MRchunks.
@@ -63,13 +70,13 @@ permissions:
     description: /mrchunks gui - Admin-Menü öffnen (Aktionen darin brauchen ihre eigene Permission).
     default: op
   mrchunks.admin.manage:
-    description: Fremde Chunkloader aktivieren/deaktivieren und löschen.
+    description: Fremde Chunkloader aktivieren/deaktivieren und löschen, Dummies schalten, Accounts verknüpfen und lösen.
     default: op
   mrchunks.admin.teleport:
     description: Zu Chunkloadern teleportieren.
     default: op
   mrchunks.admin.limit:
-    description: Individuelle Limits vergeben (/mrchunks limit <spieler> <place|active> <anzahl>).
+    description: Individuelle Limits vergeben (/mrchunks limit <spieler> <place|active|dummy> <anzahl>).
     default: op
   mrchunks.admin.ban:
     description: Spieler für Chunkloader sperren und entsperren.

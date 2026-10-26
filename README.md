@@ -8,6 +8,8 @@ Chunkloader-Plugin für **Paper 26.3** (Java 25).
 - **Chunkloader-Blöcke** (Aussehen: Emeraldblock): Einmal platziert, bleibt ein **7×7-Chunk-Bereich** dauerhaft geladen, auch wenn der Spieler offline ist. Das funktioniert in **allen Dimensionen**.
 - **Zwei Limits pro Spieler** (setzbar / gleichzeitig aktiv) aus der Config, mehr per Permission oder Admin-Befehl.
 - **Mitspieler einladen**, die Loader an- und auszuschalten, für einen oder alle Loader, befristet oder dauerhaft.
+- **Dummy-Spieler** (optional): ein künstlicher Spieler sitzt auf dem Loader, damit Mobs aktiv bleiben und Farmen wie mit einem Spieler daneben laufen.
+- **Verknüpfte Accounts:** Zweit-Accounts teilen sich Chunkloader und Limit mit dem Haupt-Account.
 - **Unzerstörbar:** kein Abbauen, keine Explosionen, Kolben, Wither oder Endermen.
 - **Menü per Rechtsklick:** Infos, umbenennen, Mitglieder, Grenze anzeigen, an/aus, löschen.
 - **Admin-Menü:** alle Spieler und ihre Chunkloader, mit Teleport, an/aus, löschen, Limit und Sperre.
@@ -72,6 +74,28 @@ Wer `mrchunks.exempt` hat, ist **komplett vom Chunkloading ausgeschlossen**, z.B
 
 > ⚠️ **Streng:** Auch Admins sind betroffen. LuckPerms-Gruppen mit `*` oder `mrchunks.*` bekommen `mrchunks.exempt` mit, dort also ausdrücklich `/lp group admin permission set mrchunks.exempt false` setzen, sonst werden die Loader dieser Admins gelöscht.
 
+### Verknüpfte Accounts
+Wer einen Zweit-Account hat (z.B. zum AFK-Farmen), kann ihn mit dem eigenen Account **verknüpfen**. Danach verhalten sich beide wie ein einziger Spieler:
+- **Gleiche Chunkloader:** Beide sehen und verwalten dieselben Loader unter `/chunkloader`, auch Einladungen und Dummies. Setzt der Zweit-Account einen Loader, gehört er dem Haupt-Account.
+- **Ein Limit:** Es gilt das Limit des **Haupt-Accounts** (des Spielers, der verknüpft hat), für beide zusammen. Der Zweit-Account bringt kein eigenes Budget mit.
+- **Verknüpfen:** `/chunkloader` → **Verknüpfte Accounts** → **Account verknüpfen** → Spieler wählen. Der andere Account muss **online** sein und im Dialog (oder per Klick im Chat) **zustimmen**. Chunkloader, die er schon hatte, gehen an den Haupt-Account über.
+- **Lösen:** Jeder der beiden jederzeit im selben Menü (die Chunkloader bleiben beim Haupt-Account), Admins mit `/mrchunks unlink <spieler>`, im Admin-Menü oder in MRadmin.
+- Wie viele Zweit-Accounts erlaubt sind, steht in `linked-accounts.max-accounts` (Standard 1). Eine **Sperre** gilt für alle verknüpften Accounts. Accounts mit `mrchunks.exempt` können nicht verknüpft werden.
+- Permission zum Verknüpfen: `mrchunks.link` (in `mrchunks.player` enthalten). Admins verknüpfen direkt mit `/mrchunks link <haupt-account> <zweit-account>`.
+
+### Dummy-Spieler
+Ein Chunkloader hält Chunks geladen, für den Server ist dort aber trotzdem **kein Spieler**. Deshalb sind Mobs im Bereich fast inaktiv (sie laufen z.B. nicht durch Portale), es spawnt nichts und manches wächst nicht. Ein **Dummy** löst das: ein künstlicher Spieler, der auf dem Chunkloader sitzt und als Spieler in der Nähe zählt. Farmen laufen dann wie mit einem echten Spieler daneben.
+
+- **Einschalten:** Menü des Chunkloaders → **Dummy einschalten** (Owner, verknüpfte Accounts und Admins). Er sitzt auf dem Block, **solange der Loader aktiv ist**; ist der Loader aus, gesperrt oder pausiert, ist auch der Dummy weg.
+- **Aussehen:** sichtbar mit dem Skin des Owners (`dummies.owner-skin`), Name `[D<nr>]<owner>`, sitzend (`dummies.sit`).
+- **Kein Spieler für den Rest:** Er ist unverwundbar, wird von Mobs ignoriert, steht nicht in der Tab-Liste, zählt nicht zur Spielerzahl in der Serverliste und blockiert keine Plätze. MRsleep (Schlafquote), MRadmin (Spielerlisten, Wartung) und MRpvp (Duelle) ignorieren ihn. Andere Plugins erkennen ihn an der Metadata `NPC` (wie bei Citizens) oder am Schlüssel `mrchunks:dummy`.
+- **Limit:** `dummies.default-limit` (Standard 1) pro Spieler, mehr per `mrchunks.dummies.<anzahl>`, `mrchunks.dummies.unlimited` oder `/mrchunks limit <spieler> dummy <anzahl>`.
+- Dummies sind **standardmäßig aus** (`dummies.enabled: false`).
+
+> ⚠️ **Leistung:** Ein Dummy kostet so viel wie ein echter Spieler an dieser Stelle (Mob-Spawning, Mob-KI). Lag-Schutz und Server-Pause gelten auch hier.
+>
+> Dummies nutzen **Server-Interna** von Paper. Passt die MRchunks-Version nicht zur Server-Version, bleiben sie aus (Hinweis in der Konsole), alles andere funktioniert normal.
+
 ### Grenze anzeigen
 Die Grenze ist ein leuchtender „Zaun“ an jedem Chunk der Außenkante, sichtbar auch durch Blöcke. Nur du siehst sie, sie folgt deiner Höhe und verschwindet nach `border.duration-seconds`, über **Grenze ausblenden** im Menü oder sobald der Loader gelöscht wird. Farbe, Block, Dicke und Höhe stellst du unter `border` ein.
 
@@ -86,7 +110,7 @@ Jeder Chunk wird nur **einmal** geladen gehalten, auch wenn mehrere Loader ihn a
 | `deny-all` | verbieten, wenn er sich mit irgendeinem Loader überschneidet |
 
 **Was in geladenen Chunks läuft:** Redstone, Hopper, Öfen, Tiere und Entities, Pflanzenwachstum, also alle Zufalls-Ticks.
-**Was trotzdem einen Spieler in der Nähe braucht:** natürliches Mob-Spawning und Mob-Spawner. Das ist eine Minecraft-Regel, die kein Chunkloader-Plugin ändert.
+**Was trotzdem einen Spieler in der Nähe braucht:** natürliches Mob-Spawning, Mob-Spawner und volle Mob-KI (ohne Spieler in der Nähe bewegen sich Mobs kaum und laufen z.B. nicht durch Portale). Dafür gibt es [Dummy-Spieler](#dummy-spieler).
 
 Nur Items aus `/chunkloader` (**Chunkloader holen**) sind Chunkloader. Normale Emeraldblöcke bleiben normale Blöcke, und Chunkloader-Items lassen sich nicht zu Smaragden craften.
 
@@ -105,6 +129,7 @@ Die Leiste von links nach rechts:
 | **Mitglieder für alle Loader** | Spieler für alle eigenen Loader einladen | `mrchunks.invite` |
 | **Mit mir geteilt** | Loader anderer Spieler, zu denen du eingeladen bist | – |
 | **Webkarte** | Link zur Webkarte im Chat (nur mit squaremap) | `mrchunks.map` |
+| **Verknüpfte Accounts** | Zweit-Account verknüpfen oder Verknüpfung lösen (siehe [Verknüpfte Accounts](#verknüpfte-accounts)) | `mrchunks.link` |
 | **Schließen** | | |
 | **Chunkloader holen** | Linksklick 1, Shift-Klick bis zu 64 (bis zum Limit) | `mrchunks.use` |
 | **Chunkloader zurückgeben** | Linksklick 1 Item, Shift-Klick alle Items aus dem Inventar | `mrchunks.use` |
@@ -121,7 +146,10 @@ Die Version zeigt `/mrchunks version` (Admins).
 | `/mrchunks delete <spieler> <nr>` | Chunkloader löschen | `mrchunks.admin.manage` |
 | `/mrchunks unlock <spieler> <nr>` | Lag-Sperre aufheben (siehe [Lag-Schutz](#lag-schutz)) | `mrchunks.admin.manage` |
 | `/mrchunks lag` | Auffällige und gesperrte Chunkloader | `mrchunks.admin.manage` |
-| `/mrchunks limit <spieler> <place\|active> <anzahl\|reset>` | `place` = wie viele Loader der Spieler setzen darf, `active` = wie viele davon gleichzeitig aktiv sein dürfen | `mrchunks.admin.limit` |
+| `/mrchunks dummy <spieler> <nr>` | Dummy-Spieler eines Loaders an/aus (auch über das Dummy-Limit hinaus) | `mrchunks.admin.manage` |
+| `/mrchunks link <haupt-account> <zweit-account>` | Accounts direkt verknüpfen, ohne Zustimmung | `mrchunks.admin.manage` |
+| `/mrchunks unlink <spieler>` | Verknüpfung lösen (beim Haupt-Account: alle Zweit-Accounts) | `mrchunks.admin.manage` |
+| `/mrchunks limit <spieler> <place\|active\|dummy> <anzahl\|reset>` | `place` = wie viele Loader der Spieler setzen darf, `active` = wie viele davon gleichzeitig aktiv sein dürfen, `dummy` = wie viele Dummies | `mrchunks.admin.limit` |
 | `/mrchunks ban <spieler> [dauer\|permanent] [grund]` | Sperren: löscht alle Loader des Spielers und verhindert neue | `mrchunks.admin.ban` |
 | `/mrchunks unban <spieler>` / `bans` | Sperre aufheben / alle Sperren anzeigen | `mrchunks.admin.ban` |
 | `/mrchunks map [setup]` | Status der Webkarte / squaremap neu einrichten | `mrchunks.admin.map` |
@@ -135,16 +163,19 @@ Owner können ihre eigenen Loader auch mit `toggle` und `delete` steuern.
 
 ## Permissions
 Alle Permissions mit ihrem Standard. „OP“ = nur Operatoren haben sie automatisch, „niemand“ = muss vergeben werden.
-**Spieler haben ohne Zuweisung keine Rechte**, nur `/chunkloader version` funktioniert. Am einfachsten bekommt die Default-Gruppe in LuckPerms `mrchunks.player` (enthält use, map, view und invite).
+**Spieler haben ohne Zuweisung keine Rechte**, nur `/chunkloader version` funktioniert. Am einfachsten bekommt die Default-Gruppe in LuckPerms `mrchunks.player` (enthält use, map, view, invite und link).
 
 ### Spieler
 | Permission | Standard | Erlaubt |
 |---|---|---|
-| `mrchunks.player` | OP | **Alle Spieler-Rechte** auf einmal: `use`, `map`, `view`, `invite` |
+| `mrchunks.player` | OP | **Alle Spieler-Rechte** auf einmal: `use`, `map`, `view`, `invite`, `link` |
 | `mrchunks.use` | OP | `/chunkloader give\|remove\|list`, Chunkloader setzen, eigene an/aus schalten, umbenennen, löschen |
 | `mrchunks.map` | OP | `/chunkloader map` (Link zur Webkarte) |
 | `mrchunks.view` | OP | Menü **fremder** Chunkloader öffnen: nur ansehen und Grenze anzeigen |
 | `mrchunks.invite` | OP | Andere Spieler zu den eigenen Loadern einladen (Eingeladene dürfen nur an/aus schalten) |
+| `mrchunks.link` | OP | Einen anderen Account mit dem eigenen verknüpfen (der andere muss zustimmen) |
+| `mrchunks.dummies.<anzahl>` | – | So viele Dummy-Spieler, z.B. `mrchunks.dummies.2` (mindestens `dummies.default-limit`) |
+| `mrchunks.dummies.unlimited` | niemand | Beliebig viele Dummy-Spieler |
 | `mrchunks.limit.<anzahl>` | – | So viele Loader darf der Spieler **setzen**, z.B. `mrchunks.limit.15` (höchste Zahl zählt, mindestens `loaders.default-limit`) |
 | `mrchunks.active.<anzahl>` | – | So viele dürfen **gleichzeitig aktiv** sein, z.B. `mrchunks.active.3` (mindestens `loaders.default-active-limit`) |
 | `mrchunks.limit.unlimited` | niemand | Beliebig viele Loader setzen |
@@ -211,7 +242,9 @@ Jeder Spieler hat **zwei Limits**:
 - **Setzen:** Ist noch ein Aktiv-Platz frei, startet der neue Loader aktiv. Sonst wird er gesetzt, bleibt aber **deaktiviert**, mit Hinweis.
 - **Aktivieren** (Menü oder `/mrchunks toggle`): Ist das Aktiv-Limit erreicht, wird abgelehnt, man muss zuerst einen anderen ausschalten. Admins mit `mrchunks.admin.manage` dürfen darüber hinaus aktivieren.
 - **Admin senkt das Aktiv-Limit:** Überzählige Loader werden sofort deaktiviert, die zuletzt gesetzten zuerst, und der Owner wird benachrichtigt.
-- **Reihenfolge:** Ein Admin-Limit hat Vorrang. Danach zählt die höchste Permission-Zahl, mindestens aber der Standard aus der Config. Permissions kennt der Server nur bei Online-Spielern, für Offline-Spieler gelten Admin-Limit oder Standard.
+- **Reihenfolge:** Ein Admin-Limit hat Vorrang. Danach zählt die höchste Permission-Zahl, mindestens aber der Standard aus der Config. Permissions kennt der Server nur bei Online-Spielern. Für Offline-Spieler merkt sich MRchunks das Limit vom letzten Mal online, sonst gilt der Standard.
+- **Dummies** haben ein drittes Limit nach demselben Muster: `dummies.default-limit`, `mrchunks.dummies.<n>`, `mrchunks.dummies.unlimited`, `/mrchunks limit <spieler> dummy <n|reset>`.
+- **Verknüpfte Accounts** teilen sich alle Limits des Haupt-Accounts.
 
 > ⚠️ In LuckPerms enthalten `*` und `mrchunks.*` auch `mrchunks.limit.unlimited` und `mrchunks.active.unlimited`. Wer das nicht will, setzt beide bei der Gruppe ausdrücklich auf `false`.
 
@@ -361,6 +394,21 @@ Webhook in Discord anlegen (*Kanal bearbeiten → Integrationen → Webhooks*), 
 `/mrchunks discord test` prüft die Einrichtung.
 
 Diese Events gibt es: Loader gesetzt, gelöscht, an/aus geschaltet, umbenannt, Einladung erteilt und zurückgenommen, Spieler per exempt bereinigt, Block wiederhergestellt oder fehlend, dazu die Admin-Aktionen Löschen, Sperren, Entsperren, Limit und Reload. An/aus und Farben stellst du unter `discord.events` in der Config ein, die Texte unter `discord` in der Sprachdatei.
+
+---
+
+## Zusammenarbeit mit anderen Plugins
+MRchunks läuft **allein** – kein anderes Plugin ist Pflicht. Die MR-Plugins sprechen **über MRadmin** miteinander
+(Modul-Schnittstelle): Ohne MRadmin bekommen sie voneinander nichts mit. Was welche Plugins braucht:
+
+| Funktion | Braucht |
+|---|---|
+| MRchunks im Dashboard, Spieler-Menü und Serverzustand (auffällige und gesperrte Loader, Server-Pause) | MRadmin |
+| Seite **Chunkloader** im Web, Chunkloader-Teil auf der Spielerseite, Hinweise auf der Startseite (pausiert, gesperrt, auffällig) | MRadmin |
+| Ticket für den Owner bei einer Lag-Sperre | MRadmin |
+| In der Arena-Welt von MRpvp lassen sich keine Chunkloader setzen | MRadmin + MRpvp |
+| Webkarte | [squaremap](https://modrinth.com/plugin/squaremap) |
+| Dummy-Spieler werden von MRsleep, MRadmin und MRpvp nicht als Spieler gezählt | – (die Plugins erkennen sie selbst) |
 
 ---
 
