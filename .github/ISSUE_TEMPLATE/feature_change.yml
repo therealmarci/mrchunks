@@ -1,0 +1,22 @@
+name: 🔧 Änderung an einer Funktion
+description: Eine bestehende Funktion soll sich anders verhalten.
+labels: ["Feature - Change"]
+body:
+  - type: textarea
+    id: current
+    attributes:
+      label: Wie ist es jetzt?
+      description: Welche Funktion ist gemeint und wie verhält sie sich aktuell?
+    validations:
+      required: true
+  - type: textarea
+    id: wanted
+    attributes:
+      label: Wie soll es sein?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Warum?
+      description: Was stört dich am aktuellen Verhalten?

@@ -18,5 +18,5 @@ jobs:
       - run: chmod +x gradlew && ./gradlew build
       - uses: actions/upload-artifact@v4
         with:
-          name: MRsleep
+          name: MRchunks
           path: build/libs/*.jar

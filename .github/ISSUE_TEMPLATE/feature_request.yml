@@ -1,6 +1,6 @@
-name: 💡 Idee / Wunsch
-description: Vorschlag für eine neue Funktion oder Verbesserung.
-labels: [enhancement]
+name: 💡 Neue Funktion
+description: Vorschlag für eine Funktion, die es noch nicht gibt.
+labels: ["Feature - New Request"]
 body:
   - type: textarea
     id: idea
