@@ -1,82 +1,107 @@
-MRchunks Lizenz (Version 1.0)
+MRtechnology Lizenz (Version 1.0)
 Copyright (c) 2026 Marcel Reiter (_therealmarci). Alle Rechte vorbehalten.
 
-Diese Lizenz gilt für das Plugin "MRchunks" einschließlich Quellcode, kompilierter
-Dateien (JAR), Konfigurationsdateien und Dokumentation (zusammen "die Software").
+Diese Lizenz gilt für jedes Projekt von MRtechnology, dem diese Datei beiliegt -
+Plugins, Mods, Websites und sonstige Software einschließlich Quellcode, kompilierter
+Dateien (z.B. JAR), Konfigurationsdateien und Dokumentation (zusammen "die Software").
+
+Offizielle Quellen der Software sind die Website https://mrtechnology.marcelr.at und
+die Repositories unter https://github.com/therealmarci samt deren Releases.
 
 1. ERLAUBT
-   a) Nutzung: Du darfst die Software kostenlos auf beliebig vielen Minecraft-Servern
-      installieren und betreiben, die du selbst betreibst oder für die du verantwortlich
-      bist - auch auf Servern mit Spenden, Rängen oder sonstigen Einnahmen.
-   b) Veränderung: Du darfst die Software für deinen eigenen Gebrauch verändern,
-      erweitern und neu kompilieren.
-   c) Interne Weitergabe: Du darfst die Software (auch verändert) an Mitglieder deines
-      eigenen Server-Teams oder an deinen Hosting-Anbieter weitergeben, soweit dies
-      ausschließlich dem Betrieb deines Servers dient.
-   d) Beiträge: Du darfst Änderungen als Pull Request an das offizielle Repository
-      (https://github.com/therealmarci/mrchunks) senden. Mit dem Einreichen räumst du
-      dem Rechteinhaber das Recht ein, deinen Beitrag unter dieser Lizenz zu nutzen
-      und zu veröffentlichen.
-   e) Forks auf GitHub sind erlaubt, soweit sie durch die Nutzungsbedingungen von
-      GitHub vorgesehen sind und ausschließlich der Entwicklung von Beiträgen nach d)
-      dienen.
+   a) Nutzung - privat und gewerblich: Du darfst die Software kostenlos auf beliebig
+      vielen Servern und Geräten nutzen. Das gilt ausdrücklich auch für gewerblich
+      betriebene Server und Netzwerke, Server mit Spenden, Rängen oder Shops sowie für
+      Dienstleister, die einen Server im Auftrag ihrer Kunden betreiben.
+   b) Veränderung: Du darfst die Software verändern, erweitern und neu kompilieren und
+      die veränderte Fassung wie unter a) nutzen.
+   c) Interne Weitergabe: Du darfst die Software (auch verändert) an dein eigenes Team,
+      deinen Hosting-Anbieter oder einen Dienstleister weitergeben, der deinen Server
+      betreut - ausschließlich für den Betrieb dieses Servers und nicht öffentlich.
+   d) Client-Mods: Spieler dürfen Client-Mods auf ihren eigenen Geräten nutzen, wenn sie
+      sie aus einer offiziellen Quelle beziehen. Server-Betreiber dürfen ihre Spieler
+      dafür auf die offizielle Quelle verweisen und verlinken.
+   e) Beiträge: Du darfst Änderungen als Pull Request an das offizielle Repository
+      senden. Mit dem Einreichen räumst du dem Rechteinhaber das Recht ein, deinen
+      Beitrag unter dieser Lizenz zu nutzen und zu veröffentlichen.
+   f) Forks auf GitHub sind erlaubt, soweit die Nutzungsbedingungen von GitHub sie
+      vorsehen und sie ausschließlich der Vorbereitung von Beiträgen nach e) dienen.
 
 2. NICHT ERLAUBT
-   a) Die Software - unverändert oder verändert, als Quellcode oder kompiliert, ganz
-      oder in wesentlichen Teilen - öffentlich oder an Dritte zu veröffentlichen,
-      zu verbreiten oder zum Download anzubieten, insbesondere auf Plattformen wie
-      Modrinth, SpigotMC, Hangar, CurseForge, BuiltByBit, GitHub-Releases oder
-      eigenen Websites.
-   b) Die Software oder veränderte Versionen davon zu verkaufen, zu vermieten oder
-      gegen Entgelt anzubieten.
+   a) Weiterveröffentlichung: Die Software - unverändert oder verändert, als Quellcode
+      oder kompiliert, ganz oder in wesentlichen Teilen - zu veröffentlichen, öffentlich
+      zu verbreiten oder zum Download anzubieten. Das gilt insbesondere für Plattformen
+      wie Modrinth, CurseForge, SpigotMC, Hangar, BuiltByBit, Discord, eigene oder fremde
+      Websites, GitHub-Releases sowie für Modpacks und Server-Pakete.
+   b) Verkauf: Die Software oder veränderte Fassungen zu verkaufen, zu vermieten,
+      gegen Entgelt anzubieten oder als Teil eines kostenpflichtigen Produkts oder
+      Pakets zu vertreiben (z.B. vorkonfigurierte Server-Setups zum Verkauf).
    c) Die Software als eigenes Werk auszugeben oder diesen Lizenz- und Copyright-
       Hinweis zu entfernen oder zu verändern.
 
 3. HINWEISE
    Dieser Lizenztext und der Copyright-Hinweis müssen in allen Kopien und veränderten
-   Versionen der Software erhalten bleiben.
+   Fassungen der Software erhalten bleiben.
 
-4. GEWÄHRLEISTUNG UND HAFTUNG
-   Die Software wird "wie besehen" ohne jede Gewährleistung bereitgestellt. Soweit
-   gesetzlich zulässig, haftet der Rechteinhaber nicht für Schäden, die aus der
-   Nutzung der Software entstehen; dies gilt nicht bei Vorsatz oder grober
+4. NUTZUNG AUF EIGENES RISIKO
+   Die Nutzung der Software erfolgt auf eigenes Risiko. Die Software wird "wie
+   besehen" ohne jede Gewährleistung bereitgestellt, insbesondere ohne Gewähr für
+   Fehlerfreiheit, Eignung für einen bestimmten Zweck oder den Erhalt von Daten
+   (z.B. Welten, Inventare, Datenbanken) - lege vor der Installation und vor Updates
+   eine Sicherung an. Soweit gesetzlich zulässig, haftet der Rechteinhaber nicht für
+   Schäden, die aus der Nutzung entstehen; dies gilt nicht bei Vorsatz oder grober
    Fahrlässigkeit sowie bei Verletzung von Leben, Körper oder Gesundheit.
 
 5. SONSTIGES
    Rechte, die in dieser Lizenz nicht ausdrücklich eingeräumt werden, bleiben
    vorbehalten. Andere Nutzungen (z.B. eine Weiterveröffentlichung) sind nur mit
    vorheriger schriftlicher Erlaubnis des Rechteinhabers zulässig. Bei Verstößen
-   erlöschen die eingeräumten Rechte automatisch. Es gilt österreichisches Recht.
-   Sollte eine Bestimmung unwirksam sein, bleibt der Rest dieser Lizenz wirksam.
+   erlöschen die eingeräumten Rechte automatisch. Für eine Fassung der Software gilt
+   die Lizenzversion, die ihr beiliegt. Es gilt österreichisches Recht. Sollte eine
+   Bestimmung unwirksam sein, bleibt der Rest dieser Lizenz wirksam.
 
 --------------------------------------------------------------------------------
 
-MRchunks License (Version 1.0) - English translation
+MRtechnology License (Version 1.0) - English translation
 In case of doubt, the German version above prevails.
 
 Copyright (c) 2026 Marcel Reiter (_therealmarci). All rights reserved.
 
+This license applies to every MRtechnology project this file is included with -
+plugins, mods, websites and other software including source code, compiled files
+(e.g. JAR), configuration files and documentation (together "the software").
+
+The official sources of the software are the website https://mrtechnology.marcelr.at
+and the repositories under https://github.com/therealmarci including their releases.
+
 1. PERMITTED
-   a) Use: You may install and run the software free of charge on any number of
-      Minecraft servers you operate or are responsible for, including servers with
-      donations, ranks or other income.
-   b) Modification: You may modify, extend and recompile the software for your own use.
+   a) Use - private and commercial: You may use the software free of charge on any
+      number of servers and devices. This expressly includes commercially operated
+      servers and networks, servers with donations, ranks or shops, and service
+      providers running a server on behalf of their customers.
+   b) Modification: You may modify, extend and recompile the software and use the
+      modified version as under a).
    c) Internal sharing: You may share the software (including modified versions) with
-      members of your own server team or your hosting provider, solely for operating
-      your server.
-   d) Contributions: You may submit changes as a pull request to the official
-      repository (https://github.com/therealmarci/mrchunks). By submitting, you grant
-      the copyright holder the right to use and publish your contribution under this
-      license.
-   e) Forks on GitHub are allowed as far as provided for by GitHub's Terms of Service
-      and solely for preparing contributions under d).
+      your own team, your hosting provider or a service provider maintaining your
+      server - solely for operating that server and not publicly.
+   d) Client mods: Players may use client mods on their own devices if they obtain them
+      from an official source. Server operators may refer and link their players to
+      the official source for this purpose.
+   e) Contributions: You may submit changes as a pull request to the official
+      repository. By submitting, you grant the copyright holder the right to use and
+      publish your contribution under this license.
+   f) Forks on GitHub are allowed as far as provided for by GitHub's Terms of Service
+      and solely for preparing contributions under e).
 
 2. NOT PERMITTED
-   a) Publishing, distributing or offering the software for download - modified or
-      unmodified, as source code or compiled, in whole or in substantial parts - to
-      the public or to third parties, in particular on platforms such as Modrinth,
-      SpigotMC, Hangar, CurseForge, BuiltByBit, GitHub Releases or your own websites.
-   b) Selling, renting or offering the software or modified versions for a fee.
+   a) Republishing: Publishing, distributing to the public or offering the software
+      for download - modified or unmodified, as source code or compiled, in whole or in
+      substantial parts. This applies in particular to platforms such as Modrinth,
+      CurseForge, SpigotMC, Hangar, BuiltByBit, Discord, your own or third-party
+      websites, GitHub Releases, as well as modpacks and server bundles.
+   b) Selling: Selling, renting or offering the software or modified versions for a
+      fee, or distributing it as part of a paid product or bundle (e.g. preconfigured
+      server setups for sale).
    c) Passing the software off as your own work or removing or altering this license
       and copyright notice.
 
@@ -84,14 +109,18 @@ Copyright (c) 2026 Marcel Reiter (_therealmarci). All rights reserved.
    This license text and the copyright notice must be retained in all copies and
    modified versions of the software.
 
-4. WARRANTY AND LIABILITY
-   The software is provided "as is" without warranty of any kind. To the extent
-   permitted by law, the copyright holder is not liable for damages arising from the
-   use of the software; this does not apply in cases of intent or gross negligence or
-   injury to life, body or health.
+4. USE AT YOUR OWN RISK
+   You use the software at your own risk. The software is provided "as is" without
+   warranty of any kind, in particular without warranty of being error-free, fit for a
+   particular purpose or preserving data (e.g. worlds, inventories, databases) - make
+   a backup before installing and before updates. To the extent permitted by law, the
+   copyright holder is not liable for damages arising from the use of the software;
+   this does not apply in cases of intent or gross negligence or injury to life, body
+   or health.
 
 5. MISCELLANEOUS
    All rights not expressly granted are reserved. Any other use (e.g. republishing)
    requires prior written permission from the copyright holder. Rights granted under
-   this license terminate automatically upon violation. Austrian law applies. If any
+   this license terminate automatically upon violation. Each version of the software
+   is governed by the license version included with it. Austrian law applies. If any
    provision is invalid, the remainder of this license remains in effect.
