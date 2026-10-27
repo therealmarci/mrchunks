@@ -104,7 +104,7 @@ bans:
 `world` darf in einer von Hand bearbeiteten Datei auch ein Weltname sein. Beim nächsten Speichern wird daraus die UUID.
 
 ## 7. Menüs (`gui/*`)
-- **`LoaderMenu`**: Reihe 2 = An/Aus, Mitglieder, Dummy, Grenze anzeigen/ausblenden, Block ändern (nur mit `item.block-choices`), Umbenennen, Löschen; Teleport nur mit `mrchunks.admin.teleport` unten rechts (Schließen rückt dann nach links). Löschen mit zweitem Klick innerhalb von `gui.confirm-seconds`. Wird der Loader inzwischen gelöscht, springt das Menü zurück.
+- **`LoaderMenu`**: Reihe 2 = links An/Aus, Mitglieder, Dummy, Mitte Grenze anzeigen/ausblenden, rechts Block ändern (nur mit `item.block-choices`), Umbenennen, Löschen; Teleport nur mit `mrchunks.admin.teleport` unten rechts (Schließen rückt dann nach links). Löschen mit zweitem Klick innerhalb von `gui.confirm-seconds`. Wird der Loader inzwischen gelöscht, springt das Menü zurück.
 - **`BlockMenu`**: Auswahl des Blocks in der Welt (`item.material` + `item.block-choices`, Namen per `Component.translatable` = Sprache des Clients). `LoaderManager#setBlock` speichert ihn am Loader (`null` = `item.material`) und tauscht den Block sofort; `validate` tauscht andere Loader-Blöcke still zum gewählten, statt den Loader als fehlend zu behandeln. `Settings` lässt nur feste, ganze Blöcke ohne Schwerkraft und ohne Block-Entity zu.
 - **`MyLoadersMenu`**: die eigenen Loader.
 - **`AdminMenu`**: Statistik, Info, Filter, Spielerköpfe (auch offline; das Limit offline kennt nur Admin-Limit und Standard, weil Permissions nur bei Online-Spielern abfragbar sind).
