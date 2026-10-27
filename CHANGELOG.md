@@ -9,6 +9,8 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+## [0.7.0] - 2026-10-27
+
 ### Neu
 - **Accounts in MRadmin verknüpfen:** Auf der Spielerseite der MRadmin-Weboberfläche lassen sich Accounts jetzt auch verknüpfen (bisher nur lösen) - per Spielername als Zweit- oder Haupt-Account, ohne Zustimmung der Spieler wie `/mrchunks link`. Permission `mrchunks.admin.manage`.
 - **Eigener Block pro Chunkloader:** Im Loader-Menü wählt der Besitzer über **Block ändern**, als welcher Block der Loader in der Welt steht (z.B. Diamant-, Gold-, Netherit- oder Amethystblock). Menüs und das Item bleiben beim Smaragdblock. Die Auswahl steht in `item.block-choices` (leere Liste = keine Auswahl; nur feste, ganze Blöcke ohne Schwerkraft und ohne Inventar), Permission `mrchunks.block` (in `mrchunks.player` enthalten). Admins mit `mrchunks.admin.manage` dürfen den Block fremder Loader ändern.
