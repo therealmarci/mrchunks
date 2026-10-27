@@ -9,6 +9,10 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+### Behoben & geändert
+- **Config und plugin.yml auf Englisch:** Alle Kommentare in der `config.yml` und die Beschreibungen der Befehle und Permissions in der `plugin.yml` sind jetzt englisch. Bestehende Configs bekommen die neuen Kommentare beim nächsten Start automatisch (config-version 10, Sicherung als `config.v<alt>.backup.yml`), alle Einstellungen bleiben erhalten.
+- **Config-Kommentare korrigiert:** Sie nennen jetzt die richtigen Befehle `/mrchunks limit <spieler> place|active <anzahl>` (statt des nicht mehr vorhandenen `/mrchunks activelimit`).
+
 ## [0.6.0] - 2026-10-27
 
 ### Geändert – Lizenz, Doku, Website
