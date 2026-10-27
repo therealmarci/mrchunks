@@ -1,213 +1,191 @@
 # MRchunks
 
-Chunkloader-Plugin für **Paper 26.3** (Java 25).
+**Chunkloader für Survival-Server:** Ein Block, und deine Farm läuft weiter - auch wenn du offline bist. Mit fairen Limits, Einladungen für Mitspieler, Lag-Schutz und einer Webkarte.
 
-> 🧪 **Pre-Release (0.x):** MRchunks befindet sich in der Testphase. Bis zum Release 1.0.0 können sich Config,
-> Befehle und Permissions noch ändern. Fehler bitte als [Issue](https://github.com/therealmarci/mrchunks/issues) melden.
+**[⬇ Download](https://mrtechnology.marcelr.at/download/mrchunks/)** · **[📖 Anleitung online](https://mrtechnology.marcelr.at/docs/mrchunks/)** · **[🐞 Fehler melden](https://mrtechnology.marcelr.at/report/mrchunks/)**
 
-- **Chunkloader-Blöcke** (Aussehen: Emeraldblock): Einmal platziert, bleibt ein **7×7-Chunk-Bereich** dauerhaft geladen, auch wenn der Spieler offline ist. Das funktioniert in **allen Dimensionen**.
-- **Zwei Limits pro Spieler** (setzbar / gleichzeitig aktiv) aus der Config, mehr per Permission oder Admin-Befehl.
-- **Mitspieler einladen**, die Loader an- und auszuschalten, für einen oder alle Loader, befristet oder dauerhaft.
-- **Dummy-Spieler** (optional): ein künstlicher Spieler sitzt auf dem Loader, damit Mobs aktiv bleiben und Farmen wie mit einem Spieler daneben laufen.
-- **Verknüpfte Accounts:** Zweit-Accounts teilen sich Chunkloader und Limit mit dem Haupt-Account.
+| Auf einen Blick | |
+|---|---|
+| Server | Paper 26.3 (oder ein Fork wie Purpur), Java 25 |
+| Benötigt | nichts - LuckPerms ist empfohlen, [squaremap](https://modrinth.com/plugin/squaremap) für die Webkarte, MRadmin optional |
+| Sprachen | Deutsch, Englisch (eigene Übersetzungen möglich) |
+| Status | Vorabversion (0.x) - Config, Befehle und Permissions können sich bis 1.0.0 noch ändern |
+
+## Was kann MRchunks?
+- **Chunkloader-Blöcke:** Einmal platziert, bleibt ein **7×7-Chunk-Bereich** dauerhaft geladen - in allen Dimensionen, auch wenn der Spieler offline ist.
+- **Faire Limits:** wie viele Loader ein Spieler **setzen** darf und wie viele davon **gleichzeitig aktiv** sind - aus der Config, per Permission oder per Admin-Befehl.
+- **Mitspieler einladen:** Farm-Partner dürfen deine Loader an- und ausschalten.
+- **Dummy-Spieler** (optional): ein künstlicher Spieler auf dem Loader, damit Mobs aktiv bleiben und Farmen wie mit einem echten Spieler daneben laufen.
+- **Zweit-Accounts verknüpfen:** Haupt- und AFK-Account teilen sich Loader und Limit.
 - **Unzerstörbar:** kein Abbauen, keine Explosionen, Kolben, Wither oder Endermen.
-- **Menü per Rechtsklick:** Infos, umbenennen, Mitglieder, Grenze anzeigen, an/aus, löschen.
-- **Admin-Menü:** alle Spieler und ihre Chunkloader, mit Teleport, an/aus, löschen, Limit und Sperre.
-- **Webkarte mit echtem Gelände** über [squaremap](https://modrinth.com/plugin/squaremap): alle Bereiche, Chunkraster, Overworld/Nether/End. squaremap wird automatisch erkannt und eingerichtet.
-- **Discord-Logs**, **Update-Prüfung**, alles einstellbar in einer `config.yml`, eine Permission für jede Funktion.
-- **Sprachdateien** für alle Texte: Deutsch und Englisch mitgeliefert, eigene Sprachen möglich.
+- **Lag-Schutz:** Loader, die den Server ausbremsen, werden erkannt und gesperrt. Laggt der ganze Server, pausieren alle Loader automatisch.
+- **Webkarte** mit echtem Gelände über squaremap, automatisch eingerichtet.
+- **Menüs statt Befehle** für Spieler, ein Admin-Menü für das Team, **Discord-Logs** und **Update-Prüfung**.
+
+## Schnellstart
+1. **[MRchunks herunterladen](https://mrtechnology.marcelr.at/download/mrchunks/)** und die JAR in den Ordner `plugins/` legen.
+2. Den Server starten. Dabei entstehen `plugins/MRchunks/config.yml` und die Sprachdateien in `plugins/MRchunks/lang/`.
+3. **Spielern die Rechte geben** - ohne sie dürfen nur OPs Chunkloader nutzen:
+   ```text
+   /lp group default permission set mrchunks.player true
+   ```
+4. Fertig. Jeder Spieler darf standardmäßig 3 Loader setzen und alle 3 gleichzeitig nutzen. Anpassen in der Config, dann `/mrchunks reload`.
+
+> [!WARNING]
+> Gruppen mit `*` oder `mrchunks.*` bekommen in LuckPerms auch `mrchunks.exempt` - und deren Loader werden **gelöscht**. Setz dort ausdrücklich `/lp group admin permission set mrchunks.exempt false`. Mehr unter [Permissions](#permissions).
+
+**Update:** Die alte JAR durch die neue ersetzen und den Server neu starten. Die Config wird automatisch angepasst: Deine Werte bleiben, neue Optionen kommen dazu, und die alte Datei wird als `config.v<N>.backup.yml` gesichert.
 
 ---
 
-## Installation
-1. Die JAR für deine Minecraft-Version in den Ordner `plugins/` legen, z.B. `MRchunks-mc26.3-v0.5.1.jar` für Minecraft 26.3, und den Server starten.
-2. `plugins/MRchunks/config.yml` anpassen und `/mrchunks reload` ausführen.
+## So funktioniert's (für Spieler)
+1. **`/chunkloader`** (oder `/cl`) öffnet dein Menü. Unten rechts holt **Chunkloader holen** einen Loader ins Inventar (Linksklick 1, Shift bis zu 64 - so viele, wie dein Limit erlaubt). **Chunkloader zurückgeben** daneben nimmt Items wieder zurück.
+2. **Block platzieren** - ab sofort bleiben die `7×7` Chunks rundherum geladen.
+3. **Rechtsklick** auf den Block öffnet sein Menü: Infos, umbenennen, Mitglieder, **Grenze anzeigen**, an/aus, Dummy, löschen. **Sneak + Rechtsklick** verhält sich normal, du kannst also weiter Blöcke daran bauen.
+4. **Löschen** geht nur über das Menü (zweimal klicken). Danach ist dein Limit wieder frei.
 
-Bei Updates wird die Config automatisch migriert: Deine Werte bleiben erhalten, und eine Sicherung `config.v<N>.backup.yml` wird angelegt.
+Die Menüleiste in `/chunkloader` von links nach rechts:
 
-### Sprache & Texte
-In der `config.yml` steht nur die Sprache: **`language: de`** (Deutsch) oder **`language: en`** (English).
-Alle Texte stehen in `plugins/MRchunks/lang/<sprache>.yml`: Chat, Menüs, Item-Name und -Beschreibung,
-Texte auf der Webkarte (Ebenen-Namen, Tooltips, Dimensionsnamen), Discord-Logs und das Datumsformat.
-
-- Texte in der Sprachdatei ändern und `/mrchunks reload` ausführen. Ein leerer Text (`""`) schaltet die Nachricht ab.
-- **Eigene Sprache:** `lang/en.yml` kopieren, z.B. als `lang/fr.yml`, übersetzen und `language: fr` setzen.
-- Neue Texte aus Updates werden automatisch in deiner Sprachdatei ergänzt, deine Änderungen bleiben erhalten.
-
----
-
-## So funktioniert's
-1. **`/chunkloader`** öffnet dein Menü. Unten rechts legt **Chunkloader holen** einen Loader ins Inventar, solange dein Limit nicht erreicht ist (Linksklick 1, Shift bis zu 64), **Chunkloader zurückgeben** daneben nimmt Items wieder zurück. Es gibt zwei Limits: wie viele du **setzen** darfst und wie viele davon **gleichzeitig aktiv** sein dürfen (siehe [Limits](#limits-setzen-und-gleichzeitig-aktiv)).
-2. **Platzieren:** Ab sofort bleiben `7×7` Chunks um den Block geladen. Den Radius stellst du über `loaders.radius` ein.
-3. **Rechtsklick** auf den Block öffnet das Menü. Dort zeigt **Grenze anzeigen** den Bereich als leuchtende Linien (automatisch beim Öffnen mit `border.show-on-open: true`).
-   **Sneak + Rechtsklick** verhält sich normal, du kannst also weiter Blöcke daran bauen.
-4. **Löschen** geht nur über das Menü (zweimal klicken). Danach ist der Loader weg und dein Limit wieder frei. Ein Item gibt es nicht zurück, ein neues holst du dir in `/chunkloader`.
-
-### Status in den Menüs
-In allen Menüs (`/chunkloader`, `/mrchunks gui` und in MRadmin) zeigt der Block eines Loaders seinen Status, der
-Grund steht jeweils in der Beschreibung:
-
-| Block | Status |
-|---|---|
-| Smaragdblock (bzw. `item.material`) | Alles OK |
-| Grauer Beton | Von einem Spieler oder Admin ausgeschaltet |
-| Magmablock | Über einer Warnschwelle des [Lag-Schutzes](#lag-schutz) |
-| Redstone-Block | Wegen Lag gesperrt |
-| Spinnennetz | Pausiert, weil der ganze Server laggt ([Server-Pause](#server-pause)) |
-
-### Namen & Nummern
-- Jeder Chunkloader bekommt pro Spieler die **kleinste freie Nummer**: Wer 8 gesetzt hat, bekommt als Nächstes „Chunkloader 9“. Wird Nr. 9 gelöscht, heißt der nächste wieder „Chunkloader 9“.
-- Im Menü kannst du ihn über **Umbenennen** frei benennen (höchstens `gui.max-name-length` Zeichen, leer = wieder Standardname). Der Name erscheint im Chat, in Menüs, auf der Webkarte und in den Discord-Logs.
-- Admin-Befehle sprechen einen Loader über Spieler und Nummer an: `/mrchunks tp Steve 3`.
-
-### Mitspieler einladen
-Owner können andere Spieler einladen, ihre Chunkloader **an- und auszuschalten**, z.B. Farm-Partner, damit die Farm auch läuft, wenn der Owner offline ist.
-- **Ein Loader:** Menü des Loaders → **Mitglieder** → **Spieler einladen**.
-- **Alle Loader** (auch künftige): `/chunkloader` → **Mitglieder für alle Loader**.
-- **Spieler einladen** zeigt die Köpfe der Online-Spieler: Dauer mit der Uhr wählen (`invites.durations`, Standard 1d / 7d / 30d / dauerhaft), dann auf einen Kopf klicken. Für Offline-Spieler gibt es **Namen eingeben** (Dialog). Ein Klick auf einen Kopf in der Mitgliederliste nimmt die Einladung zurück, befristete laufen von selbst ab.
-- **Eingeladene** finden die Loader unter `/chunkloader` → **Mit mir geteilt** und dürfen sie **nur an- und ausschalten**. Umbenennen, Löschen und Einladen bleibt dem Owner (und Admins).
-- Einladungen zählen bei **niemandem** zum Limit. Schaltet ein Eingeladener einen Loader an, gilt das **Aktiv-Limit des Owners**, und der Owner bekommt eine Nachricht.
-- Höchstens `invites.max-members` Eingeladene pro Liste. Abschalten: `invites.enabled: false`. Permission zum Einladen: `mrchunks.invite` (alle).
-
-### Spieler ausschließen (`mrchunks.exempt`)
-Wer `mrchunks.exempt` hat, ist **komplett vom Chunkloading ausgeschlossen**, z.B. Zweit-Accounts in einer eigenen LuckPerms-Rolle: keine Chunkloader holen, kein Setzen, keine Einladungen, auch nicht als Eingeladener. Vorhandene Loader und Chunkloader-Items werden beim Betreten des Servers (und bei `/mrchunks reload`) **gelöscht**.
-
-> ⚠️ **Streng:** Auch Admins sind betroffen. LuckPerms-Gruppen mit `*` oder `mrchunks.*` bekommen `mrchunks.exempt` mit, dort also ausdrücklich `/lp group admin permission set mrchunks.exempt false` setzen, sonst werden die Loader dieser Admins gelöscht.
-
-### Verknüpfte Accounts
-Wer einen Zweit-Account hat (z.B. zum AFK-Farmen), kann ihn mit dem eigenen Account **verknüpfen**. Danach verhalten sich beide wie ein einziger Spieler:
-- **Gleiche Chunkloader:** Beide sehen und verwalten dieselben Loader unter `/chunkloader`, auch Einladungen und Dummies. Setzt der Zweit-Account einen Loader, gehört er dem Haupt-Account.
-- **Ein Limit:** Es gilt das Limit des **Haupt-Accounts** (des Spielers, der verknüpft hat), für beide zusammen. Der Zweit-Account bringt kein eigenes Budget mit.
-- **Verknüpfen:** `/chunkloader` → **Verknüpfte Accounts** → **Account verknüpfen** → Spieler wählen. Der andere Account muss **online** sein und im Dialog (oder per Klick im Chat) **zustimmen**. Chunkloader, die er schon hatte, gehen an den Haupt-Account über.
-- **Lösen:** Jeder der beiden jederzeit im selben Menü (die Chunkloader bleiben beim Haupt-Account), Admins mit `/mrchunks unlink <spieler>`, im Admin-Menü oder in MRadmin.
-- Wie viele Zweit-Accounts erlaubt sind, steht in `linked-accounts.max-accounts` (Standard 1). Eine **Sperre** gilt für alle verknüpften Accounts. Accounts mit `mrchunks.exempt` können nicht verknüpft werden.
-- Permission zum Verknüpfen: `mrchunks.link` (in `mrchunks.player` enthalten). Admins verknüpfen direkt mit `/mrchunks link <haupt-account> <zweit-account>`.
-
-### Dummy-Spieler
-Ein Chunkloader hält Chunks geladen, für den Server ist dort aber trotzdem **kein Spieler**. Deshalb sind Mobs im Bereich fast inaktiv (sie laufen z.B. nicht durch Portale), es spawnt nichts und manches wächst nicht. Ein **Dummy** löst das: ein künstlicher Spieler, der auf dem Chunkloader sitzt und als Spieler in der Nähe zählt. Farmen laufen dann wie mit einem echten Spieler daneben.
-
-- **Einschalten:** Menü des Chunkloaders → **Dummy einschalten** (Owner, verknüpfte Accounts und Admins). Er sitzt auf dem Block, **solange der Loader aktiv ist**; ist der Loader aus, gesperrt oder pausiert, ist auch der Dummy weg.
-- **Aussehen:** sichtbar mit dem Skin des Owners (`dummies.owner-skin`), Name `[D<nr>]<owner>`, sitzend (`dummies.sit`).
-- **Kein Spieler für den Rest:** Er ist unverwundbar, wird von Mobs ignoriert, steht nicht in der Tab-Liste, zählt nicht zur Spielerzahl in der Serverliste und blockiert keine Plätze. MRsleep (Schlafquote), MRadmin (Spielerlisten, Wartung) und MRpvp (Duelle) ignorieren ihn. Andere Plugins erkennen ihn an der Metadata `NPC` (wie bei Citizens) oder am Schlüssel `mrchunks:dummy`.
-- **Limit:** `dummies.default-limit` (Standard 1) pro Spieler, mehr per `mrchunks.dummies.<anzahl>`, `mrchunks.dummies.unlimited` oder `/mrchunks limit <spieler> dummy <anzahl>`.
-- Dummies sind **standardmäßig aus** (`dummies.enabled: false`).
-
-> ⚠️ **Leistung:** Ein Dummy kostet so viel wie ein echter Spieler an dieser Stelle (Mob-Spawning, Mob-KI). Lag-Schutz und Server-Pause gelten auch hier.
->
-> Dummies nutzen **Server-Interna** von Paper. Passt die MRchunks-Version nicht zur Server-Version, bleiben sie aus (Hinweis in der Konsole), alles andere funktioniert normal.
-
-### Grenze anzeigen
-Die Grenze ist ein leuchtender „Zaun“ an jedem Chunk der Außenkante, sichtbar auch durch Blöcke. Nur du siehst sie, sie folgt deiner Höhe und verschwindet nach `border.duration-seconds`, über **Grenze ausblenden** im Menü oder sobald der Loader gelöscht wird. Farbe, Block, Dicke und Höhe stellst du unter `border` ein.
-
-### Überschneidende Chunkloader
-Jeder Chunk wird nur **einmal** geladen gehalten, auch wenn mehrere Loader ihn abdecken. Wird ein Loader deaktiviert oder gelöscht, bleiben die Chunks geladen, die ein anderer **aktiver** Loader abdeckt, egal wem er gehört. Was beim Setzen in einen bestehenden Bereich passiert, legt `loaders.overlap` fest:
-
-| Wert | Verhalten |
-|---|---|
-| `allow` | einfach erlauben |
-| `warn` (Standard) | erlauben, aber Hinweis mit den betroffenen Loadern und der Zahl doppelt abgedeckter Chunks, dazu wird die Grenze angezeigt |
-| `deny-own` | verbieten, wenn er sich mit eigenen Loadern überschneidet |
-| `deny-all` | verbieten, wenn er sich mit irgendeinem Loader überschneidet |
-
-**Was in geladenen Chunks läuft:** Redstone, Hopper, Öfen, Tiere und Entities, Pflanzenwachstum, also alle Zufalls-Ticks.
-**Was trotzdem einen Spieler in der Nähe braucht:** natürliches Mob-Spawning, Mob-Spawner und volle Mob-KI (ohne Spieler in der Nähe bewegen sich Mobs kaum und laufen z.B. nicht durch Portale). Dafür gibt es [Dummy-Spieler](#dummy-spieler).
-
-Nur Items aus `/chunkloader` (**Chunkloader holen**) sind Chunkloader. Normale Emeraldblöcke bleiben normale Blöcke, und Chunkloader-Items lassen sich nicht zu Smaragden craften.
-
----
-
-## Befehle
-
-### Spieler: `/chunkloader` (Aliase `/cl`, `/chunkloaders`)
-Spieler haben nur diesen einen Befehl. Er öffnet das Menü mit den eigenen Chunkloadern (Klick öffnet das Menü des
-Loaders), unten in der Leiste ist alles Weitere:
-
-Die Leiste von links nach rechts:
-
-| Knopf | Funktion | Permission |
+| Knopf | Wofür | Permission |
 |---|---|---|
-| **Mitglieder für alle Loader** | Spieler für alle eigenen Loader einladen | `mrchunks.invite` |
+| **Mitglieder für alle Loader** | Spieler für alle deine Loader einladen | `mrchunks.invite` |
 | **Mit mir geteilt** | Loader anderer Spieler, zu denen du eingeladen bist | – |
 | **Webkarte** | Link zur Webkarte im Chat (nur mit squaremap) | `mrchunks.map` |
-| **Verknüpfte Accounts** | Zweit-Account verknüpfen oder Verknüpfung lösen (siehe [Verknüpfte Accounts](#verknüpfte-accounts)) | `mrchunks.link` |
-| **Schließen** | | |
-| **Chunkloader holen** | Linksklick 1, Shift-Klick bis zu 64 (bis zum Limit) | `mrchunks.use` |
-| **Chunkloader zurückgeben** | Linksklick 1 Item, Shift-Klick alle Items aus dem Inventar | `mrchunks.use` |
+| **Verknüpfte Accounts** | Zweit-Account verknüpfen oder lösen | `mrchunks.link` |
+| **Chunkloader holen** / **zurückgeben** | Loader-Items holen oder zurückgeben | `mrchunks.use` |
 
-Hast du mehr als 45 Loader, erscheinen links neben der Webkarte und rechts neben „Schließen“ Pfeile zum Blättern.
-Die Version zeigt `/mrchunks version` (Admins).
+Hast du mehr als 45 Loader, erscheinen Pfeile zum Blättern.
 
-### Admin: `/mrchunks`
-| Befehl | Beschreibung | Permission |
+### Was der Block im Menü bedeutet
+| Block | Status |
+|---|---|
+| Smaragdblock | Alles OK |
+| Grauer Beton | Ausgeschaltet |
+| Magmablock | Über einer Warnschwelle des [Lag-Schutzes](#lag-schutz) |
+| Redstone-Block | Wegen Lag gesperrt |
+| Spinnennetz | Pausiert, weil der ganze Server laggt |
+
+### Was läuft in geladenen Chunks?
+- **Läuft:** Redstone, Trichter, Öfen, Tiere und andere Entities, Pflanzenwachstum - alles, was Zufalls-Ticks braucht.
+- **Braucht trotzdem einen Spieler in der Nähe:** natürliches Mob-Spawning, Spawner und volle Mob-KI (Mobs bewegen sich ohne Spieler kaum und laufen z.B. nicht durch Portale). Dafür gibt es [Dummy-Spieler](#dummy-spieler).
+
+### Namen, Nummern und Grenze
+- Jeder Loader bekommt die **kleinste freie Nummer** („Chunkloader 4“). Über **Umbenennen** gibst du ihm einen eigenen Namen - er erscheint im Chat, in Menüs, auf der Webkarte und in Discord.
+- **Grenze anzeigen** zeichnet einen leuchtenden Zaun an die Außenkante des Bereichs, sichtbar auch durch Blöcke und nur für dich. Er verschwindet nach einer Weile von selbst.
+
+### Mitspieler einladen
+Lade Farm-Partner ein, damit sie deine Loader **an- und ausschalten** können, auch wenn du offline bist:
+- **Ein Loader:** Menü des Loaders → **Mitglieder** → **Spieler einladen**.
+- **Alle Loader** (auch künftige): `/chunkloader` → **Mitglieder für alle Loader**.
+- Dauer mit der Uhr wählen (1 Tag, 7 Tage, 30 Tage oder dauerhaft), dann auf einen Kopf klicken. Für Offline-Spieler gibt es **Namen eingeben**.
+- Eingeladene finden die Loader unter **Mit mir geteilt**. Umbenennen, löschen und einladen darfst nur du.
+- Einladungen zählen bei niemandem zum Limit. Schaltet ein Eingeladener einen Loader an, gilt **dein** Aktiv-Limit.
+
+### Zweit-Accounts verknüpfen
+Hast du einen Zweit-Account (z.B. zum AFK-Farmen), verknüpf ihn mit deinem Haupt-Account. Danach verhalten sich beide wie ein Spieler:
+- Beide sehen und verwalten **dieselben Loader**. Was der Zweit-Account setzt, gehört dem Haupt-Account.
+- Es gilt **ein gemeinsames Limit** - das des Haupt-Accounts.
+- **Verknüpfen:** `/chunkloader` → **Verknüpfte Accounts** → **Account verknüpfen**. Der andere Account muss online sein und zustimmen.
+- **Lösen** kann jeder der beiden jederzeit im selben Menü. Die Loader bleiben beim Haupt-Account.
+- Erlaubt ist standardmäßig ein Zweit-Account (`linked-accounts.max-accounts`). Eine Sperre gilt für alle verknüpften Accounts.
+
+### Dummy-Spieler
+Ein Chunkloader hält Chunks geladen - für den Server steht dort aber **kein Spieler**. Mobs sind deshalb fast inaktiv, und es spawnt nichts. Ein **Dummy** ist ein künstlicher Spieler, der auf dem Loader sitzt und als Spieler in der Nähe zählt.
+
+- **Einschalten:** Menü des Loaders → **Dummy einschalten**. Er sitzt dort, solange der Loader aktiv ist.
+- **Aussehen:** dein Skin, Name `[D<nr>]<dein Name>`, sitzend.
+- **Sonst kein Spieler:** unverwundbar, von Mobs ignoriert, nicht in der Tab-Liste und nicht in der Spielerzahl. MRsleep, MRadmin und MRpvp ignorieren ihn.
+- **Limit:** standardmäßig 1 pro Spieler, mehr per Permission oder Admin-Befehl.
+
+> [!NOTE]
+> Dummies sind **standardmäßig ausgeschaltet** (`dummies.enabled: false`). Ein Dummy kostet so viel Leistung wie ein echter Spieler an dieser Stelle. Er nutzt Server-Interna von Paper: Passt die MRchunks-Version nicht genau zur Server-Version, bleiben Dummies aus (Hinweis in der Konsole) - alles andere funktioniert normal.
+
+---
+
+## Befehle (Admin)
+Spieler brauchen keine Befehle außer `/chunkloader` - alles läuft über Menüs. Für das Team gibt es `/mrchunks`:
+
+| Befehl | Was er tut | Permission |
 |---|---|---|
-| `/mrchunks gui` | Admin-Menü | `mrchunks.admin.gui` |
+| `/mrchunks gui` | Admin-Menü: alle Spieler und ihre Loader | `mrchunks.admin.gui` |
 | `/mrchunks tp <spieler> <nr>` | Zu einem Chunkloader teleportieren | `mrchunks.admin.teleport` |
 | `/mrchunks toggle <spieler> <nr>` | Chunkloader an/aus | `mrchunks.admin.manage` |
 | `/mrchunks delete <spieler> <nr>` | Chunkloader löschen | `mrchunks.admin.manage` |
-| `/mrchunks unlock <spieler> <nr>` | Lag-Sperre aufheben (siehe [Lag-Schutz](#lag-schutz)) | `mrchunks.admin.manage` |
-| `/mrchunks lag` | Auffällige und gesperrte Chunkloader | `mrchunks.admin.manage` |
-| `/mrchunks dummy <spieler> <nr>` | Dummy-Spieler eines Loaders an/aus (auch über das Dummy-Limit hinaus) | `mrchunks.admin.manage` |
-| `/mrchunks link <haupt-account> <zweit-account>` | Accounts direkt verknüpfen, ohne Zustimmung | `mrchunks.admin.manage` |
-| `/mrchunks unlink <spieler>` | Verknüpfung lösen (beim Haupt-Account: alle Zweit-Accounts) | `mrchunks.admin.manage` |
-| `/mrchunks limit <spieler> <place\|active\|dummy> <anzahl\|reset>` | `place` = wie viele Loader der Spieler setzen darf, `active` = wie viele davon gleichzeitig aktiv sein dürfen, `dummy` = wie viele Dummies | `mrchunks.admin.limit` |
-| `/mrchunks ban <spieler> [dauer\|permanent] [grund]` | Sperren: löscht alle Loader des Spielers und verhindert neue | `mrchunks.admin.ban` |
-| `/mrchunks unban <spieler>` / `bans` | Sperre aufheben / alle Sperren anzeigen | `mrchunks.admin.ban` |
-| `/mrchunks map [setup]` | Status der Webkarte / squaremap neu einrichten | `mrchunks.admin.map` |
-| `/mrchunks discord [test]` | Discord-Status / Testnachricht | `mrchunks.admin.discord` |
-| `/mrchunks reload` | Config neu laden | `mrchunks.admin.reload` |
+| `/mrchunks unlock <spieler> <nr>` | Lag-Sperre aufheben | `mrchunks.admin.manage` |
+| `/mrchunks lag` | Auffällige und gesperrte Loader anzeigen | `mrchunks.admin.manage` |
+| `/mrchunks dummy <spieler> <nr>` | Dummy eines Loaders an/aus (auch über das Limit hinaus) | `mrchunks.admin.manage` |
+| `/mrchunks link <haupt> <zweit>` | Accounts ohne Zustimmung verknüpfen | `mrchunks.admin.manage` |
+| `/mrchunks unlink <spieler>` | Verknüpfung lösen | `mrchunks.admin.manage` |
+| `/mrchunks limit <spieler> <place\|active\|dummy> <anzahl\|reset>` | Limit eines Spielers setzen (siehe [Limits](#limits)) | `mrchunks.admin.limit` |
+| `/mrchunks ban <spieler> [dauer\|permanent] [grund]` | Sperren: löscht alle Loader und verhindert neue | `mrchunks.admin.ban` |
+| `/mrchunks unban <spieler>` · `bans` | Sperre aufheben · alle Sperren anzeigen | `mrchunks.admin.ban` |
+| `/mrchunks map [setup]` | Status der Webkarte · squaremap neu einrichten | `mrchunks.admin.map` |
+| `/mrchunks discord [test]` | Discord-Status · Testnachricht | `mrchunks.admin.discord` |
+| `/mrchunks reload` | Config und Sprachdatei neu laden | `mrchunks.admin.reload` |
 | `/mrchunks version` | Version und Update-Status | alle |
 
-Owner können ihre eigenen Loader auch mit `toggle` und `delete` steuern.
+Owner dürfen ihre eigenen Loader auch mit `toggle` und `delete` steuern.
 
----
+### Admin-Menü
+`/mrchunks gui` zeigt oben eine Übersicht (Loader, aktive Loader, geladene Chunks, Sperren) und darunter alle Spieler mit Loadern als Köpfe.
+- **Klick auf einen Kopf:** Limits mit Links-/Rechtsklick ändern (+1/−1, Shift = zurücksetzen), alle Loader löschen, sperren oder entsperren - und darunter alle Loader des Spielers.
+- **Klick auf einen Loader:** an/aus, umbenennen, Grenze anzeigen, hinteleportieren, löschen.
+
+Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Permission.
 
 ## Permissions
-Alle Permissions mit ihrem Standard. „OP“ = nur Operatoren haben sie automatisch, „niemand“ = muss vergeben werden.
-**Spieler haben ohne Zuweisung keine Rechte**, nur `/chunkloader version` funktioniert. Am einfachsten bekommt die Default-Gruppe in LuckPerms `mrchunks.player` (enthält use, map, view, invite und link).
+„OP“ heißt: nur Operatoren haben sie automatisch. „niemand“ heißt: muss ausdrücklich vergeben werden.
 
-### Spieler
-| Permission | Standard | Erlaubt |
+**Spieler**
+
+| Permission | Standard | Wofür |
 |---|---|---|
-| `mrchunks.player` | OP | **Alle Spieler-Rechte** auf einmal: `use`, `map`, `view`, `invite`, `link` |
-| `mrchunks.use` | OP | `/chunkloader give\|remove\|list`, Chunkloader setzen, eigene an/aus schalten, umbenennen, löschen |
-| `mrchunks.map` | OP | `/chunkloader map` (Link zur Webkarte) |
-| `mrchunks.view` | OP | Menü **fremder** Chunkloader öffnen: nur ansehen und Grenze anzeigen |
-| `mrchunks.invite` | OP | Andere Spieler zu den eigenen Loadern einladen (Eingeladene dürfen nur an/aus schalten) |
-| `mrchunks.link` | OP | Einen anderen Account mit dem eigenen verknüpfen (der andere muss zustimmen) |
-| `mrchunks.dummies.<anzahl>` | – | So viele Dummy-Spieler, z.B. `mrchunks.dummies.2` (mindestens `dummies.default-limit`) |
-| `mrchunks.dummies.unlimited` | niemand | Beliebig viele Dummy-Spieler |
-| `mrchunks.limit.<anzahl>` | – | So viele Loader darf der Spieler **setzen**, z.B. `mrchunks.limit.15` (höchste Zahl zählt, mindestens `loaders.default-limit`) |
-| `mrchunks.active.<anzahl>` | – | So viele dürfen **gleichzeitig aktiv** sein, z.B. `mrchunks.active.3` (mindestens `loaders.default-active-limit`) |
-| `mrchunks.limit.unlimited` | niemand | Beliebig viele Loader setzen |
-| `mrchunks.active.unlimited` | niemand | Beliebig viele gleichzeitig aktiv |
-| `mrchunks.exempt` | niemand | **Ausschluss:** keine Loader, keine Einladungen, vorhandene Loader und Items werden beim Join gelöscht |
+| `mrchunks.player` | OP | **Alle Spieler-Rechte** auf einmal (`use`, `map`, `view`, `invite`, `link`) - am besten der Default-Gruppe geben |
+| `mrchunks.use` | OP | Chunkloader holen, setzen und die eigenen verwalten |
+| `mrchunks.map` | OP | Knopf **Webkarte** |
+| `mrchunks.view` | OP | Menü **fremder** Loader ansehen (nur ansehen und Grenze anzeigen) |
+| `mrchunks.invite` | OP | Mitspieler zu eigenen Loadern einladen |
+| `mrchunks.link` | OP | Zweit-Account verknüpfen |
+| `mrchunks.limit.<anzahl>` | – | So viele Loader **setzen**, z.B. `mrchunks.limit.15` |
+| `mrchunks.active.<anzahl>` | – | So viele **gleichzeitig aktiv**, z.B. `mrchunks.active.3` |
+| `mrchunks.dummies.<anzahl>` | – | So viele Dummy-Spieler, z.B. `mrchunks.dummies.2` |
+| `mrchunks.limit.unlimited` · `active.unlimited` · `dummies.unlimited` | niemand | Ohne Begrenzung |
+| `mrchunks.exempt` | niemand | **Komplett ausgeschlossen:** keine Loader, keine Einladungen - vorhandene Loader werden beim Betreten **gelöscht** |
 
-`/chunkloader info`, `/chunkloader version` und `/mrchunks version` brauchen keine Permission.
+**Admin**
 
-### Admin
-| Permission | Standard | Erlaubt |
+| Permission | Standard | Wofür |
 |---|---|---|
-| `mrchunks.admin` | OP | **alle** folgenden `mrchunks.admin.*` auf einmal |
-| `mrchunks.admin.gui` | OP | `/mrchunks gui` öffnen (die Aktionen darin brauchen ihre eigene Permission) |
-| `mrchunks.admin.manage` | OP | **Fremde** Loader an/aus schalten, umbenennen, löschen, ihre Einladungen verwalten, über das Aktiv-Limit hinaus aktivieren (`toggle`, `delete`, „alle löschen“ im Menü) |
-| `mrchunks.admin.teleport` | OP | `/mrchunks tp` und Teleport-Button im Menü |
-| `mrchunks.admin.limit` | OP | `/mrchunks limit` und Limit-Buttons im Admin-Menü |
-| `mrchunks.admin.ban` | OP | `/mrchunks ban\|unban\|bans` und Sperr-Buttons |
-| `mrchunks.admin.map` | OP | `/mrchunks map [setup]` |
-| `mrchunks.admin.discord` | OP | `/mrchunks discord [test]` |
-| `mrchunks.admin.reload` | OP | `/mrchunks reload` und Reload-Button |
+| `mrchunks.admin` | OP | Alle folgenden Admin-Rechte |
+| `mrchunks.admin.gui` | OP | Admin-Menü öffnen (Aktionen darin brauchen ihre eigene Permission) |
+| `mrchunks.admin.manage` | OP | **Fremde** Loader schalten, umbenennen, löschen, entsperren, Dummies, Verknüpfungen |
+| `mrchunks.admin.teleport` | OP | Zu Loadern teleportieren |
+| `mrchunks.admin.limit` | OP | Limits vergeben |
+| `mrchunks.admin.ban` | OP | Spieler sperren und entsperren |
+| `mrchunks.admin.map` | OP | `/mrchunks map` |
+| `mrchunks.admin.discord` | OP | `/mrchunks discord` |
+| `mrchunks.admin.reload` | OP | `/mrchunks reload` |
 | `mrchunks.admin.update` | OP | Update-Hinweis beim Betreten des Servers |
 
-### Beispiel LuckPerms
+> [!WARNING]
+> **Wildcards:** `*` und `mrchunks.*` enthalten in LuckPerms **alles** - auch `mrchunks.exempt` (Loader werden gelöscht!) und die `unlimited`-Rechte. Für solche Gruppen:
+> ```text
+> /lp group admin permission set mrchunks.exempt false
+> ```
+> Sollen die Limits trotzdem gelten, auch `mrchunks.limit.unlimited` und `mrchunks.active.unlimited` auf `false` setzen.
+
+<details>
+<summary>LuckPerms-Beispiele</summary>
+
 ```text
-# Alle Spieler dürfen Chunkloader nutzen (use, map, view, invite)
+# Alle Spieler dürfen Chunkloader nutzen
 /lp group default permission set mrchunks.player true
 
-# Mehr Loader für VIPs: 15 setzen, davon 3 gleichzeitig aktiv
+# VIPs: 15 Loader setzen, davon 3 gleichzeitig aktiv
 /lp group vip permission set mrchunks.limit.15 true
 /lp group vip permission set mrchunks.active.3 true
 
-# Moderatoren: Menü, Liste, Teleport, Sperren - aber keine fremden Loader löschen
+# Moderatoren: Menü, Teleport, Sperren - aber keine fremden Loader löschen
 /lp group mod permission set mrchunks.admin.gui true
 /lp group mod permission set mrchunks.admin.teleport true
 /lp group mod permission set mrchunks.admin.ban true
@@ -218,222 +196,166 @@ Alle Permissions mit ihrem Standard. „OP“ = nur Operatoren haben sie automat
 # Zweit-Accounts komplett ausschließen
 /lp group alt permission set mrchunks.exempt true
 ```
+</details>
 
-> ⚠️ **Gruppen mit `*` oder `mrchunks.*`** bekommen in LuckPerms **alles**, auch `mrchunks.exempt` (Ausschluss, Loader werden gelöscht!) und `mrchunks.limit.unlimited`. Dort deshalb ausdrücklich setzen:
-> ```text
-> /lp group admin permission set mrchunks.exempt false
-> ```
-> und, falls die Limits trotzdem gelten sollen, `mrchunks.limit.unlimited false` und `mrchunks.active.unlimited false`.
+## Limits
+Jeder Spieler hat **zwei Limits** - wie viele Loader er **setzen** darf und wie viele davon **gleichzeitig aktiv** sein dürfen:
 
----
-
-## Limits: setzen und gleichzeitig aktiv
-Jeder Spieler hat **zwei Limits**:
-
-| | Setzbare Loader | Gleichzeitig aktive Loader |
+| | Setzen | Gleichzeitig aktiv |
 |---|---|---|
-| Standard (Config) | `loaders.default-limit` | `loaders.default-active-limit` |
+| Standard (Config) | `loaders.default-limit` (3) | `loaders.default-active-limit` (3) |
 | Per Permission | `mrchunks.limit.<n>` | `mrchunks.active.<n>` |
 | Unbegrenzt | `mrchunks.limit.unlimited` | `mrchunks.active.unlimited` |
 | Per Admin | `/mrchunks limit <spieler> place <n\|reset>` | `/mrchunks limit <spieler> active <n\|reset>` |
 
-**Beispiel:** 15 Loader setzen, davon 3 gleichzeitig nutzen: `/mrchunks limit Steve place 15` und `/mrchunks limit Steve active 3`, oder für eine Gruppe `mrchunks.limit.15` und `mrchunks.active.3`.
+**Beispiel:** 15 Loader setzen, davon 3 gleichzeitig nutzen → `/mrchunks limit Steve place 15` und `/mrchunks limit Steve active 3`.
 
-- **Setzen:** Ist noch ein Aktiv-Platz frei, startet der neue Loader aktiv. Sonst wird er gesetzt, bleibt aber **deaktiviert**, mit Hinweis.
-- **Aktivieren** (Menü oder `/mrchunks toggle`): Ist das Aktiv-Limit erreicht, wird abgelehnt, man muss zuerst einen anderen ausschalten. Admins mit `mrchunks.admin.manage` dürfen darüber hinaus aktivieren.
-- **Admin senkt das Aktiv-Limit:** Überzählige Loader werden sofort deaktiviert, die zuletzt gesetzten zuerst, und der Owner wird benachrichtigt.
-- **Reihenfolge:** Ein Admin-Limit hat Vorrang. Danach zählt die höchste Permission-Zahl, mindestens aber der Standard aus der Config. Permissions kennt der Server nur bei Online-Spielern. Für Offline-Spieler merkt sich MRchunks das Limit vom letzten Mal online, sonst gilt der Standard.
-- **Dummies** haben ein drittes Limit nach demselben Muster: `dummies.default-limit`, `mrchunks.dummies.<n>`, `mrchunks.dummies.unlimited`, `/mrchunks limit <spieler> dummy <n|reset>`.
-- **Verknüpfte Accounts** teilen sich alle Limits des Haupt-Accounts.
-
-> ⚠️ In LuckPerms enthalten `*` und `mrchunks.*` auch `mrchunks.limit.unlimited` und `mrchunks.active.unlimited`. Wer das nicht will, setzt beide bei der Gruppe ausdrücklich auf `false`.
-
-```text
-/lp group vip permission set mrchunks.limit.15 true
-/lp group vip permission set mrchunks.active.3 true
-/lp group mod permission set mrchunks.admin.gui true
-/lp group mod permission set mrchunks.admin.teleport true
-```
-
----
+- Ist beim Setzen kein Aktiv-Platz mehr frei, wird der Loader gesetzt, bleibt aber **aus**. Zum Einschalten muss zuerst ein anderer aus.
+- Senkt ein Admin das Aktiv-Limit, werden überzählige Loader sofort ausgeschaltet (die zuletzt gesetzten zuerst) und der Owner informiert.
+- **Reihenfolge:** Ein Admin-Limit hat Vorrang, danach zählt die höchste Permission-Zahl, mindestens aber der Standard aus der Config.
+- **Dummies** haben ein drittes Limit nach demselben Muster (`dummies.default-limit`, `mrchunks.dummies.<n>`, `/mrchunks limit <spieler> dummy <n>`).
 
 ## Lag-Schutz
-MRchunks misst alle 30 Sekunden, was im Bereich jedes **aktiven** Chunkloaders passiert, also in allen Chunks
-seines 7×7-Bereichs zusammen:
+MRchunks misst alle 30 Sekunden, was im Bereich jedes **aktiven** Loaders passiert:
 
-| Messwert | Bedeutung | Warnung | Sperre |
+| Messwert | Was gezählt wird | Warnung | Sperre |
 |---|---|---|---|
-| `entities` | Entities ohne Spieler (Mobs, Tiere, Loren …, inkl. Items) | 300 | 800 |
+| `entities` | Mobs, Tiere, Loren, Items … | 300 | 800 |
 | `items` | Items am Boden | 200 | 1000 |
-| `redstone` | Redstone-Signaländerungen pro Sekunde | 500 | 2000 |
-| `hoppers` | Item-Transfers von Trichtern, Droppern, Trichterloren pro Sekunde | 300 | 1200 |
+| `redstone` | Redstone-Änderungen pro Sekunde | 500 | 2000 |
+| `hoppers` | Trichter-Transfers pro Sekunde | 300 | 1200 |
 | `pistons` | Kolben-Bewegungen pro Sekunde | 40 | 150 |
 | `spawns` | neue Mobs und Items pro Sekunde | 20 | 80 |
 
-- **Auffällig** (über „Warnung“): Der Loader erscheint in `/mrchunks lag` und, falls MRadmin installiert ist, im
-  Serverzustand von MRadmin. Dazu kommt ein Discord-Log, höchstens einmal pro Stunde. Sonst passiert nichts.
-- **Gesperrt** (über „Sperre“): Das passiert nur, wenn ein Wert `lock-after-samples` Messungen hintereinander darüber
-  liegt (Standard 3, also 1,5 min) **und der Server dabei laggt** (durchschnittliche Tick-Zeit ab `server-lag-mspt`,
-  Standard 40 ms). Eine große Farm, mit der der Server gut zurechtkommt, wird nicht gesperrt. Mit
-  `only-when-server-lags: false` wird auch ohne Server-Lag gesperrt.
-- **Bedingungslose Sperre:** Liegt ein Wert beim `force-lock-multiplier`-Fachen der Sperrgrenze oder darüber
-  (Standard 2, also z. B. 1600 Entities), wird auch ohne Server-Lag gesperrt, ebenfalls nach `lock-after-samples`
-  Messungen hintereinander. `1` = schon ab der Sperrgrenze, `1.5` = ab 150 %, `0` = aus.
-- **Gesperrt heißt:**
-  - Der Loader ist aus, und weder Owner noch Eingeladene können ihn einschalten.
-  - Der Owner wird sofort informiert, oder beim nächsten Join, wenn er offline war. In seiner Liste steht der
-    Loader mit 🔒 und Grund.
-  - Admins mit `mrchunks.admin.manage` bekommen ingame eine Meldung mit [Teleport], dazu ein Discord-Log.
-  - **Mit MRadmin** bekommt der Owner zusätzlich automatisch ein **Ticket** mit allen Details der Sperre (Link im
-    Chat). Darin kann er erklären, was passiert ist. Schließen kann es nur das Team, das den Loader über
-    „Chunkloader-Menü“ im Ticket entsperren kann. Erneute Sperren und das Entsperren werden im selben Ticket vermerkt.
-- **Aufheben** können nur Admins (`mrchunks.admin.manage`): im Menü des Loaders („Lag-Sperre aufheben“) oder per
-  `/mrchunks unlock <spieler> <nr>`. Der Loader bleibt danach aus, der Owner schaltet ihn wieder ein. Eine neue Sperre
-  braucht danach wieder `lock-after-samples` (3) Messungen hintereinander über der Grenze, also frühestens 1,5 Minuten
-  nach dem Einschalten.
-- **Aktivität einsehen:** Das Menü jedes aktiven Loaders zeigt die letzte Messung, also die Werte, die ihren Grenzen
-  am nächsten sind. Das hilft auch Spielern, ihre Farm einzuschätzen.
-- Alle Grenzen stehen in der `config.yml` unter `lag-protection.limits`. Ein Wert von `0` schaltet die jeweilige
-  Messung ab, z.B. `hoppers: { warn: 0, lock: 0 }`. Dann wird dafür auch nicht mitgezählt.
+- **Über „Warnung“:** Der Loader taucht in `/mrchunks lag` auf (und in MRadmin), dazu ein Discord-Log. Sonst passiert nichts.
+- **Über „Sperre“:** Gesperrt wird erst, wenn der Wert **mehrere Messungen hintereinander** darüber liegt (Standard 3, also 1,5 Minuten) **und der Server dabei laggt**. Eine große Farm, mit der der Server gut zurechtkommt, wird nicht gesperrt. Beim Doppelten der Sperrgrenze wird auch ohne Server-Lag gesperrt.
+- **Gesperrt heißt:** Der Loader ist aus und kann nur von Admins entsperrt werden (Menü oder `/mrchunks unlock`). Der Owner wird informiert, mit MRadmin bekommt er automatisch ein **Ticket** mit allen Details.
+- Das Menü jedes aktiven Loaders zeigt die letzte Messung - so können Spieler ihre Farm selbst einschätzen.
+- Alle Grenzen stehen unter `lag-protection.limits`. `0` schaltet eine Messung ab.
 
-Die Paper-API kennt keine Tick-Zeit pro Chunk. MRchunks misst deshalb die üblichen Verursacher. Die Standardwerte
-sind bewusst großzügig: Normale Farmen bleiben weit darunter, außer Kontrolle geratene Maschinen nicht.
+Die Standardwerte sind bewusst großzügig: Normale Farmen bleiben weit darunter, außer Kontrolle geratene Maschinen nicht.
 
 ### Server-Pause
-Laggt der **ganze Server**, egal ob wegen Chunkloadern oder etwas anderem, pausiert MRchunks **alle** Chunkloader:
-- **Pause:** Liegt die TPS (Durchschnitt der letzten Minute) `pause-after-seconds` lang (Standard 30 s) unter
-  `below-tps` (Standard 15), geben alle Loader ihre Chunks frei. Kurze Lag-Spitzen lösen nichts aus.
-- **Verursacher zuerst:** Direkt vor der Pause misst MRchunks alle aktiven Loader noch einmal. Wer dabei über einer
-  Sperrgrenze (`lag-protection.limits`) liegt, wird sofort gesperrt (mit Ticket in MRadmin), ohne die sonst nötigen
-  Messungen hintereinander. Sonst würde die Pause den Verursacher verstecken: Seine Chunks werden frei, der Lag ist
-  weg, die Pause endet und alles beginnt von vorn.
-- **Fortsetzen:** Liegt die TPS `resume-after-seconds` lang (Standard 60 s) wieder bei mindestens `resume-tps`
-  (Standard 18), laden alle aktiven Loader automatisch wieder. Der Abstand zwischen 15 und 18 verhindert, dass die
-  Loader ständig an- und ausgehen, wenn der Server knapp an der Grenze läuft.
-- An/aus der Loader bleibt unverändert, niemand muss etwas wieder einschalten. Wer während der Pause einen Loader
-  einschaltet, bekommt einen Hinweis; er lädt, sobald die Pause endet.
-- Spieler können die Pause nicht umgehen: Auch Ein- und Ausschalten, Neusetzen oder `/mrchunks reload` laden
-  während der Pause keine Chunks. Nur die Config (`server-pause.enabled: false` + Reload) beendet sie vorzeitig.
-- Owner aktiver Loader und Admins werden im Chat informiert (`notify-owners`), dazu kommen Discord-Logs. Im Menü
-  steht bei aktiven Loadern „⏸ Pausiert“, `/mrchunks lag` zeigt den Status. Während der Pause selbst wird nicht gemessen.
-- Auf der Webkarte erscheinen aktive Loader während der Pause in `squaremap.paused-color` (orange) mit dem Status
-  „pausiert“. In MRadmin steht die Pause auf dem MRchunks-Knopf und als erster Eintrag im Serverzustand.
-- Einstellbar unter `server-pause` in der `config.yml`, abschaltbar mit `enabled: false`.
+Laggt der **ganze Server** - egal warum -, pausiert MRchunks **alle** Loader:
+- **Pause**, wenn die TPS 30 Sekunden lang unter 15 liegt. Kurze Lag-Spitzen lösen nichts aus. Direkt davor werden alle Loader noch einmal gemessen, und klare Verursacher werden gesperrt.
+- **Weiter**, wenn die TPS 60 Sekunden lang wieder bei mindestens 18 liegt. Niemand muss etwas neu einschalten.
+- Owner und Admins werden informiert, im Menü steht „⏸ Pausiert“. Einstellbar unter `server-pause`.
 
 ---
 
-## Admin-Menü (`/mrchunks gui`)
-- **Oben:** Übersicht (Anzahl Loader, aktive Loader, geladene Chunks, Spieler, Sperren), Version und Webkarten-Status, Filter (Alle mit Loadern, Online, Gesperrte).
-- **Spielerköpfe:** Loader und Limit, woher das Limit kommt, online, offline oder gesperrt.
-- **Klick auf einen Kopf:** beide Limits, setzbar (Erfahrungsflasche) und gleichzeitig aktiv (Leuchtfeuer), jeweils Linksklick +1, Rechtsklick −1, Shift-Klick zurücksetzen. Dazu: alle Loader löschen, sperren (1d, 7d, dauerhaft) oder entsperren, dazu alle Loader des Spielers.
-- **Klick auf einen Loader:** an/aus, umbenennen, Grenze anzeigen, **hinteleportieren**, löschen.
+## Konfiguration
+Alles steht in `plugins/MRchunks/config.yml`. Jede Option ist in der Datei kommentiert. Änderungen übernimmst du mit `/mrchunks reload`.
 
-Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Permission.
+| Abschnitt | Die wichtigsten Einstellungen |
+|---|---|
+| `loaders` | `radius` (3 = 7×7 Chunks), `default-limit`, `default-active-limit`, `overlap`, `load-method` |
+| `invites` | an/aus, Dauer-Auswahl, höchstens so viele Mitglieder |
+| `linked-accounts` | an/aus, wie viele Zweit-Accounts |
+| `dummies` | an/aus (Standard aus), Limit, Skin, sitzend |
+| `lag-protection` · `server-pause` | Mess- und Sperrgrenzen, TPS-Schwellen |
+| `item` · `border` | Aussehen des Loaders und der Grenze |
+| `squaremap` | Adresse der Webkarte, Farben, Raster |
+| `discord` · `update-checker` · `gui` | Logs, Update-Hinweise, Menüs |
+
+**Überschneidende Loader** (`loaders.overlap`): `allow` erlaubt einfach, `warn` (Standard) erlaubt mit Hinweis und zeigt die Grenze, `deny-own` verbietet Überschneidungen mit eigenen Loadern, `deny-all` mit allen. Jeder Chunk wird ohnehin nur **einmal** geladen gehalten.
+
+### Sprache & Texte
+- Sprache in der `config.yml`: `language: de` oder `language: en`.
+- Alle Texte - Chat, Menüs, Item, Webkarte, Discord - stehen in `plugins/MRchunks/lang/<sprache>.yml`. Ein leerer Text (`""`) schaltet die Nachricht ab.
+- **Eigene Sprache:** `lang/en.yml` kopieren (z.B. als `lang/fr.yml`), übersetzen und `language: fr` setzen. Neue Texte aus Updates werden automatisch ergänzt.
+
+### Discord
+Webhook anlegen (*Kanal bearbeiten → Integrationen → Webhooks*), `discord.enabled: true` setzen, die `webhook-url` eintragen, `/mrchunks reload` und mit `/mrchunks discord test` prüfen. Welche Ereignisse gesendet werden (Loader gesetzt, gelöscht, gesperrt, Einladungen, Admin-Aktionen …), stellst du unter `discord.events` ein.
 
 ---
 
 ## Webkarte (squaremap)
-MRchunks zeigt die Chunkloader auf **[squaremap](https://modrinth.com/plugin/squaremap)**, einer Webkarte mit echtem Minecraft-Gelände. **Ohne squaremap gibt es keine Webkarte**, alles andere funktioniert trotzdem ganz normal.
+MRchunks zeigt alle Chunkloader auf **[squaremap](https://modrinth.com/plugin/squaremap)**, einer Webkarte mit echtem Minecraft-Gelände. Ohne squaremap gibt es keine Webkarte - alles andere funktioniert trotzdem.
 
-### Einrichten
-1. squaremap (Paper, für 26.3 verfügbar) in den Ordner `plugins/` legen und den Server neu starten.
-2. **MRchunks erkennt squaremap automatisch und stellt es einmalig passend ein:**
-   - Die Karte aktualisiert sich alle 5 Sekunden, Gebautes ist nach ca. 5 bis 10 s sichtbar.
-   - Spieler werden weder auf der Karte noch in der Seitenleiste gezeigt.
-   - Die Welt-Auswahl (**Overworld**, **Nether**, **End**) ist immer sichtbar.
-   - Der Nether wird von innen gezeigt statt der Bedrock-Decke.
-
-   Danach kannst du in `plugins/squaremap/config.yml` alles frei ändern, MRchunks überschreibt das nicht mehr. Erneut ausführen: `/mrchunks map setup`. Abschalten: `squaremap.auto-configure: false`.
-3. **Einmal alles rendern.** squaremap zeichnet bestehende Gebiete erst nach einem Full-Render:
+1. squaremap in `plugins/` legen und den Server neu starten. **MRchunks erkennt es und richtet es einmalig passend ein** (schnelle Aktualisierung, keine Spieler auf der Karte, Weltauswahl Overworld/Nether/End). Danach kannst du squaremap frei anpassen.
+2. **Einmal alles rendern**, damit bestehende Gebiete erscheinen:
    ```text
    /squaremap fullrender minecraft:overworld
    /squaremap fullrender minecraft:the_nether
    /squaremap fullrender minecraft:the_end
    ```
-   Weiße Flächen sind Gebiete, die noch nie erzeugt wurden. Für eine vorab gefüllte Karte die Welt vorher mit [Chunky](https://modrinth.com/plugin/chunky) erzeugen (z.B. `/chunky world world_nether`, `/chunky radius 1000`, `/chunky start`).
-4. **Adresse festlegen**, damit Spieler mit **`/chunkloader map`** einen funktionierenden Link bekommen (siehe unten).
+3. **Adresse festlegen** (`squaremap.address`), damit Spieler über den Knopf **Webkarte** einen funktionierenden Link bekommen. Leer lassen = MRchunks ermittelt sie selbst (`http://<server-ip>:8080/`). Port 8080 muss dann beim Hoster freigegeben sein.
 
-### Adresse der Karte & Reverse Proxy
-`squaremap.address` in der MRchunks-Config bestimmt den Link:
+Auf der Karte gibt es zwei Ebenen, die jeder Besucher oben links ein- und ausschaltet: **Chunkloader** (Bereiche in einer Farbe pro Owner, ausgeschaltete grau, Infos beim Anklicken) und **Chunkraster** (Chunk-Linien, Regionsgrenzen, Koordinaten).
+
+<details>
+<summary>Eigene Domain, Reverse Proxy (nginx, Caddy, Cloudflare Tunnel)</summary>
 
 | `address` | `reverse-proxy` | Link |
 |---|---|---|
-| `""` (Standard) | – | automatisch: squaremaps `web-address` (falls geändert), sonst `server-ip` aus der `server.properties`, sonst die öffentliche IP → `http://1.2.3.4:8080/` |
-| `map.deinserver.de` | `false` | `http://map.deinserver.de:8080/` (Port von squaremaps internem Webserver) |
+| `""` (Standard) | – | automatisch → `http://1.2.3.4:8080/` |
+| `map.deinserver.de` | `false` | `http://map.deinserver.de:8080/` |
 | `map.deinserver.de` | `true` | `https://map.deinserver.de/` |
 | `https://deinserver.de/karte/` | egal | genau so, z.B. für einen Proxy mit Pfad |
 
-- **Ohne Proxy:** Port 8080 (bzw. `internal-webserver.port` in `plugins/squaremap/config.yml`) beim Hoster freigeben.
-- **Öffentliche IP:** Wird nur ermittelt, wenn `address` leer ist und keine `server-ip` gesetzt ist, einmal beim Start über `checkip.amazonaws.com`. Abschalten: `squaremap.detect-public-ip: false`.
-- **Reverse Proxy (nginx, Caddy, Traefik, Cloudflare Tunnel …):** Der Proxy leitet auf squaremaps Port weiter. Die Karte und das Chunkraster laden alles über relative Pfade und funktionieren deshalb auch unter einem Unterpfad wie `/karte/`. Läuft der Proxy auf demselben Rechner, squaremap am besten nur lokal lauschen lassen (`internal-webserver.bind: 127.0.0.1`), dann ist Port 8080 von außen zu. Beispiel nginx:
-  ```nginx
-  server {
-      server_name map.deinserver.de;
-      # listen 443 ssl; + Zertifikat (z.B. per certbot)
-      location / {
-          proxy_pass http://127.0.0.1:8080/;
-          proxy_set_header Host $host;
-          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-          proxy_set_header X-Forwarded-Proto $scheme;
-      }
-  }
-  ```
-  Unter einem Pfad: `location /karte/ { proxy_pass http://127.0.0.1:8080/; }`, dazu in MRchunks `address: "https://deinserver.de/karte/"`.
-- **Eigener Webserver statt squaremaps internem:** Liefert nginx o.ä. den Ordner `plugins/squaremap/web` direkt aus (`internal-webserver.enabled: false`), funktioniert das Chunkraster ebenfalls, weil MRchunks seine Datei direkt in diesen Ordner schreibt.
+Der Proxy leitet auf squaremaps Port weiter. Läuft er auf demselben Rechner, lass squaremap nur lokal lauschen (`internal-webserver.bind: 127.0.0.1` in `plugins/squaremap/config.yml`). Beispiel nginx:
 
-### Was MRchunks auf der Karte zeigt
-- **Ebene „Chunkloader“:** pro Loader der 7×7-Bereich als farbige Fläche, eine Farbe pro Owner, deaktivierte Loader grau. Dazu ein Chunkloader-Symbol und Infos beim Darüberfahren oder Anklicken (Owner, Position, Bereich, Status). Änderungen erscheinen sofort.
-- **Ebene „Chunkraster“:** Chunk-Linien ab einer sinnvollen Zoomstufe, gelbe Regionsgrenzen (32 × 32 Chunks) und bei starkem Zoom die Chunk-Koordinaten.
-- Beide Ebenen schaltet jeder Besucher im **Ebenen-Menü oben links** ein und aus.
-- Farben, Deckkraft, Symbol, Texte, Dimensionsnamen und Raster stellst du unter `squaremap:` in der MRchunks-Config ein. `/mrchunks map` zeigt den Status.
+```nginx
+server {
+    server_name map.deinserver.de;
+    # listen 443 ssl; + Zertifikat (z.B. per certbot)
+    location / {
+        proxy_pass http://127.0.0.1:8080/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
 
----
-
-## Discord
-Webhook in Discord anlegen (*Kanal bearbeiten → Integrationen → Webhooks*), dann `discord.enabled: true` setzen, die `webhook-url` eintragen und `/mrchunks reload` ausführen.
-`/mrchunks discord test` prüft die Einrichtung.
-
-Diese Events gibt es: Loader gesetzt, gelöscht, an/aus geschaltet, umbenannt, Einladung erteilt und zurückgenommen, Spieler per exempt bereinigt, Block wiederhergestellt oder fehlend, dazu die Admin-Aktionen Löschen, Sperren, Entsperren, Limit und Reload. An/aus und Farben stellst du unter `discord.events` in der Config ein, die Texte unter `discord` in der Sprachdatei.
+Unter einem Pfad: `location /karte/ { proxy_pass http://127.0.0.1:8080/; }` und in MRchunks `address: "https://deinserver.de/karte/"`. Die öffentliche IP wird nur ermittelt, wenn weder `address` noch `server-ip` gesetzt ist - abschaltbar mit `squaremap.detect-public-ip: false`.
+</details>
 
 ---
 
 ## Zusammenarbeit mit anderen Plugins
-MRchunks läuft **allein** – kein anderes Plugin ist Pflicht. Die MR-Plugins sprechen **über MRadmin** miteinander
-(Modul-Schnittstelle): Ohne MRadmin bekommen sie voneinander nichts mit. Was welche Plugins braucht:
+MRchunks läuft **allein**. Zusammen mit anderen MRtechnology-Plugins kann es mehr - die Plugins sprechen dafür über **MRadmin** miteinander:
 
 | Funktion | Braucht |
 |---|---|
-| MRchunks im Dashboard, Spieler-Menü und Serverzustand (auffällige und gesperrte Loader, Server-Pause) | MRadmin |
-| Seite **Chunkloader** im Web, Chunkloader-Teil auf der Spielerseite, Hinweise auf der Startseite (pausiert, gesperrt, auffällig) | MRadmin |
-| Ticket für den Owner bei einer Lag-Sperre | MRadmin |
-| In der Arena-Welt von MRpvp lassen sich keine Chunkloader setzen | MRadmin + MRpvp |
-| Webkarte | [squaremap](https://modrinth.com/plugin/squaremap) |
-| Dummy-Spieler werden von MRsleep, MRadmin und MRpvp nicht als Spieler gezählt | – (die Plugins erkennen sie selbst) |
-
----
+| MRchunks im Dashboard, Spieler-Menü und Serverzustand von MRadmin, Seite **Chunkloader** in der Weboberfläche | MRadmin |
+| Automatisches Ticket für den Owner bei einer Lag-Sperre | MRadmin |
+| In der Arena-Welt von MRpvp lassen sich keine Loader setzen | MRadmin + MRpvp |
+| Webkarte | squaremap |
+| Dummy-Spieler zählen bei MRsleep, MRadmin und MRpvp nicht als Spieler | nichts |
 
 ## Häufige Fragen
-**Ein Loader-Block ist trotzdem verschwunden (z.B. durch `/fill`, `/setblock` oder WorldEdit).**
-Solche Befehle umgehen den Schutz, weil sie keine Events auslösen. MRchunks prüft deshalb regelmäßig (`loaders.check-interval-seconds`) und zusätzlich jedes Mal, wenn ein Chunk mit einem Loader geladen wird, und stellt den Block wieder her. Mit `restore-missing-blocks: false` wird der Loader stattdessen gelöscht. Wird der Block per `/fill … destroy` zerstört, fällt nur ein normaler Emeraldblock heraus, kein Chunkloader-Item.
+**Ein Spieler kann keine Chunkloader holen.**
+Er braucht `mrchunks.use` - am einfachsten `mrchunks.player` für die Default-Gruppe (siehe [Schnellstart](#schnellstart)).
+
+**Die Loader eines Admins verschwinden beim Betreten.**
+Die Gruppe hat über `*` auch `mrchunks.exempt`. Setz `mrchunks.exempt` für die Gruppe auf `false`.
+
+**Ein Loader-Block ist trotzdem verschwunden (z.B. durch `/fill` oder WorldEdit).**
+Solche Befehle umgehen den Schutz. MRchunks prüft deshalb regelmäßig und beim Laden des Chunks und stellt den Block wieder her (`loaders.restore-missing-blocks`).
 
 **Was passiert, wenn ein Chunkloader-Item verloren geht?**
-Nichts Schlimmes: Items sind nur „Gutscheine“. Gezählt werden die **gesetzten** Loader. Ein verlorenes Item holst du dir einfach neu mit `/chunkloader give`. Items in Kisten oder bei anderen Spielern zählen nicht. Wer ein Item setzt, dem gehört der Loader, und es zählt zu seinem Limit.
+Nichts Schlimmes - gezählt werden nur **gesetzte** Loader. Ein neues Item holst du dir im Menü unter **Chunkloader holen**. Normale Smaragdblöcke sind übrigens keine Chunkloader, nur Items aus dem Menü.
 
 **Funktioniert das im Nether und im End?**
-Ja. Hast du in der Paper-Config `disable-world-ticking-when-empty` aktiviert, stell `loaders.load-method: forceload` ein. Dann ticken auch leere Dimensionen weiter.
+Ja. Hast du in Paper `disable-world-ticking-when-empty` aktiviert, stell `loaders.load-method: forceload` ein.
 
-**Überschneiden sich zwei Loader, sind die Chunks dann doppelt geladen?**
-Nein. Jeder Chunk wird nur einmal geladen gehalten und erst freigegeben, wenn kein Loader ihn mehr abdeckt.
+**Ich habe einen Fehler gefunden oder einen Wunsch.**
+Gern über das **[Formular auf der Website](https://mrtechnology.marcelr.at/report/mrchunks/)** - am besten mit der Ausgabe von `/mrchunks version`.
 
 ---
 
 ## Lizenz
-MRchunks ist **source-available**, aber nicht Open Source ([MRchunks Lizenz](LICENSE)).
+MRchunks steht unter der **[MRtechnology Lizenz](LICENSE)** (source-available, nicht Open Source). Kurz gesagt:
 
 | ✅ Erlaubt | ❌ Nicht erlaubt |
 |---|---|
-| Auf eigenen Servern nutzen, auch mit Spenden oder Rängen | Weiterveröffentlichen (auch verändert) |
-| Für den eigenen Gebrauch verändern | Verkaufen |
-| Verbesserungen per Pull Request einreichen | Lizenzhinweis entfernen |
+| Nutzen - privat und gewerblich, auch auf Servern mit Spenden, Rängen oder Shops | Weiterveröffentlichen (auch verändert), z.B. auf Modrinth, Spigot, in Modpacks |
+| Verändern und neu kompilieren | Verkaufen oder gegen Geld anbieten |
+| An dein Team oder deinen Hoster weitergeben | Als eigenes Werk ausgeben, Lizenzhinweis entfernen |
+| Verbesserungen per Pull Request einreichen | |
 
-Den Code-Aufbau beschreibt die [Projektdokumentation](docs/DOKUMENTATION.md).
+Die Nutzung erfolgt auf eigenes Risiko - leg vor Updates eine Sicherung an. Maßgeblich ist der vollständige Text in [LICENSE](LICENSE).
+
+## Für Entwickler
+Selbst bauen mit Java 25: `gradlew build` → `build/libs/MRchunks-mc<minecraft>-v<version>.jar`. Aufbau des Codes: [docs/DOKUMENTATION.md](docs/DOKUMENTATION.md), Branches und Releases: [docs/RELEASES.md](docs/RELEASES.md).
