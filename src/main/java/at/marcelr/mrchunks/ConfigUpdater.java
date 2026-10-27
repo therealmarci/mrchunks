@@ -71,6 +71,14 @@ public final class ConfigUpdater {
                 template.set(key, existing.get(oldKey));
                 carried++;
             }
+            // v10: every player gets the language of their game; a fixed language so far stays for Discord & co.
+            if (version < 10) {
+                String old = existing.getString("language", "auto").trim();
+                if (!old.isEmpty() && !old.equalsIgnoreCase("auto")) {
+                    template.set("server-language", old);
+                }
+                template.set("language", "auto");
+            }
             template.set("config-version", CURRENT_VERSION);
             // Keep long messages on one line instead of folding them.
             template.options().width(10_000);

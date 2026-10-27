@@ -53,7 +53,7 @@ public final class InviteDialog {
         DialogAction save = DialogAction.customClick((response, audience) -> {
             String name = response.getText(PLAYER);
             String choice = response.getText(DURATION);
-            Bukkit.getScheduler().runTask(plugin, () -> {
+            Bukkit.getScheduler().runTask(plugin, () -> plugin.messages().run(viewer, () -> {
                 if (!viewer.isOnline()) {
                     return;
                 }
@@ -64,14 +64,14 @@ public final class InviteDialog {
                 int index = parse(choice, durations.size());
                 plugin.adminActions().invite(viewer, owner, current, name, durations.get(index));
                 returnTo.open();
-            });
+            }));
         }, once);
         DialogAction cancel = DialogAction.customClick((response, audience) ->
-                Bukkit.getScheduler().runTask(plugin, () -> {
+                Bukkit.getScheduler().runTask(plugin, () -> plugin.messages().run(viewer, () -> {
                     if (viewer.isOnline()) {
                         returnTo.open();
                     }
-                }), once);
+                })), once);
 
         Dialog dialog = Dialog.create(factory -> factory.empty()
                 .base(DialogBase.builder(messages.get("invite-title", tag("scope", scope)))

@@ -27,7 +27,7 @@ public final class MenuListener implements Listener {
         refreshTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (player.getOpenInventory().getTopInventory().getHolder(false) instanceof Menu menu) {
-                    menu.render();
+                    plugin.messages().run(player, menu::render);
                 }
             }
         }, interval, interval);
@@ -57,7 +57,7 @@ public final class MenuListener implements Listener {
         }
         event.setCancelled(true);
         if (event.getClickedInventory() == event.getView().getTopInventory()) {
-            menu.click(event.getSlot(), event.getClick());
+            plugin.messages().run(event.getWhoClicked(), () -> menu.click(event.getSlot(), event.getClick()));
         }
     }
 

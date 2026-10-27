@@ -376,18 +376,17 @@ public final class AdminActions {
         loaders().setLimitOverride(target.getUniqueId(), kind, limit);
         String name = name(target);
         String effective = Texts.limit(loaders().limit(target, kind));
-        String type = limitType(kind);
-        notifyOwner(target.getUniqueId(), "limit-notify", tag("limit", effective), tag("type", type));
+        notifyOwner(target.getUniqueId(), "limit-notify", tag("limit", effective), Messages.lazy("type", () -> limitType(kind)));
         plugin.getLogger().info(admin + " (web) set the " + kind.name().toLowerCase(java.util.Locale.ROOT) + " limit of "
                 + name + " to " + (limit == null ? "default" : limit) + ".");
-        plugin.discord().log("admin-limit", "admin", admin, "player", name, "limit", effective, "type", type);
+        plugin.discord().log("admin-limit", "admin", admin, "player", name, "limit", effective, "type", messages().server(() -> limitType(kind)));
         enforceLimit(target, kind);
         return null;
     }
 
     /** Bans the player from chunk loaders: their loaders are deleted, loader items taken (if online). */
     public String webBan(String admin, OfflinePlayer target, long duration, String reason) {
-        String cleanReason = reason == null || reason.isBlank() ? messages().plain("ban-no-reason") : reason;
+        String cleanReason = reason == null || reason.isBlank() ? messages().server(() -> messages().plain("ban-no-reason")) : reason;
         UUID uuid = target.getUniqueId();
         int deleted = loaders().deleteAll(loaders().main(uuid));
         loaders().ban(uuid, duration, cleanReason, admin);
@@ -396,12 +395,13 @@ public final class AdminActions {
             plugin.loaderItem().remove(online, Integer.MAX_VALUE);
         }
         String name = name(target);
-        String durationText = Texts.banDuration(plugin, loaders().ban(uuid));
-        notifyOwner(uuid, "ban-notify", tag("duration", durationText), tag("reason", cleanReason));
-        plugin.getLogger().info(admin + " (web) banned " + name + " from chunk loaders (" + durationText + ", "
+        LoaderManager.Ban banned = loaders().ban(uuid);
+        java.util.function.Supplier<String> durationText = () -> Texts.banDuration(plugin, banned);
+        notifyOwner(uuid, "ban-notify", Messages.lazy("duration", durationText), tag("reason", cleanReason));
+        plugin.getLogger().info(admin + " (web) banned " + name + " from chunk loaders (" + messages().as(org.bukkit.Bukkit.getConsoleSender(), durationText) + ", "
                 + deleted + " loader(s) deleted).");
         plugin.discord().log("admin-ban", "admin", admin, "player", name,
-                "time", durationText, "reason", cleanReason, "count", deleted);
+                "time", messages().server(durationText), "reason", cleanReason, "count", deleted);
         return null;
     }
 
@@ -448,17 +448,21 @@ public final class AdminActions {
             clean = clean.substring(0, clean.offsetByCodePoints(0, max)).strip();
         }
         String name = clean.isEmpty() ? null : clean;
-        String oldName = Texts.name(plugin, loader);
+        String oldCustom = loader.name();
+        int number = loader.number();
         if (java.util.Objects.equals(name, loader.name())) {
             return;
         }
         loaders().rename(loader, name);
-        TagResolver tags = TagResolver.resolver(Texts.loader(plugin, loader), tag("old", oldName));
+        // The old default name ("Chunkloader 3") in the language of whoever gets the message.
+        TagResolver tags = TagResolver.resolver(Texts.loader(plugin, loader), Messages.lazy("old", () -> oldCustom != null
+                ? oldCustom : messages().plain("loader-default-name", "number", number)));
         messages().send(sender, name == null ? "rename-reset" : "renamed", tags);
         if (!isOwner(sender, loader)) {
             notifyOwner(loader.owner(), "owner-notify-renamed", tags, tag("admin", sender.getName()));
         }
-        plugin.discord().log("loader-renamed", discordTags(loader, "old", oldName, "admin", sender.getName()));
+        plugin.discord().log("loader-renamed", discordTags(loader, "old", oldCustom != null ? oldCustom
+                : messages().server(() -> messages().plain("loader-default-name", "number", number)), "admin", sender.getName()));
     }
 
     public void teleport(Player player, Loader loader) {
@@ -497,7 +501,7 @@ public final class AdminActions {
         LoaderManager loaders = loaders();
         LoaderManager.Ban ban = loaders.groupBan(player.getUniqueId());
         if (ban != null) {
-            messages().send(player, "banned", tag("duration", Texts.banDuration(plugin, ban)), tag("reason", ban.reason()));
+            messages().send(player, "banned", Messages.lazy("duration", () -> Texts.banDuration(plugin, ban)), tag("reason", ban.reason()));
             return;
         }
         LoaderManager.Limit limit = loaders.limit(player);
@@ -590,17 +594,16 @@ public final class AdminActions {
         }
         loaders().invite(owner, loader, target.getUniqueId(), durationMillis);
         long until = loaders().members(owner, loader).getOrDefault(target.getUniqueId(), Long.MAX_VALUE);
-        String duration = Texts.until(plugin, until);
+        java.util.function.Supplier<String> duration = () -> Texts.until(plugin, until);
         messages().send(sender, "invited", tag("player", name(target)),
-                tag("scope", scope(loader, "invite-scope-all", owner)), tag("duration", duration));
+                Messages.lazy("scope", () -> scope(loader, "invite-scope-all", owner)), Messages.lazy("duration", duration));
         if (online != null) {
             messages().send(online, "invite-notify", tag("owner", LoaderManager.name(owner)),
-                    tag("scope", scope(loader, "invite-scope-all-of", owner)), tag("duration", duration));
+                    Messages.lazy("scope", () -> scope(loader, "invite-scope-all-of", owner)), Messages.lazy("duration", duration));
         }
         plugin.discord().log("loader-invite", "owner", LoaderManager.name(owner), "player", name(target),
-                "scope", loader == null ? messages().plain("invite-scope-all-of", "owner", LoaderManager.name(owner))
-                        : Texts.name(plugin, loader),
-                "time", duration, "admin", sender.getName());
+                "scope", messages().server(() -> scope(loader, "invite-scope-all-of", owner)),
+                "time", messages().server(duration), "admin", sender.getName());
     }
 
     public void uninvite(CommandSender sender, UUID owner, Loader loader, UUID member) {
@@ -613,15 +616,14 @@ public final class AdminActions {
         }
         String memberName = LoaderManager.name(member);
         messages().send(sender, "uninvited", tag("player", memberName),
-                tag("scope", scope(loader, "invite-scope-all", owner)));
+                Messages.lazy("scope", () -> scope(loader, "invite-scope-all", owner)));
         Player online = org.bukkit.Bukkit.getPlayer(member);
         if (online != null) {
             messages().send(online, "uninvite-notify", tag("owner", LoaderManager.name(owner)),
-                    tag("scope", scope(loader, "invite-scope-all-of", owner)));
+                    Messages.lazy("scope", () -> scope(loader, "invite-scope-all-of", owner)));
         }
         plugin.discord().log("loader-uninvite", "owner", LoaderManager.name(owner), "player", memberName,
-                "scope", loader == null ? messages().plain("invite-scope-all-of", "owner", LoaderManager.name(owner))
-                        : Texts.name(plugin, loader),
+                "scope", messages().server(() -> scope(loader, "invite-scope-all-of", owner)),
                 "admin", sender.getName());
     }
 
@@ -665,8 +667,8 @@ public final class AdminActions {
         String type = limitType(kind);
         messages().send(sender, limit == null ? "limit-reset" : "limit-set",
                 tag("player", name), tag("limit", effective), tag("type", type));
-        notifyOwner(target.getUniqueId(), "limit-notify", tag("limit", effective), tag("type", type));
-        plugin.discord().log("admin-limit", "admin", sender.getName(), "player", name, "limit", effective, "type", type);
+        notifyOwner(target.getUniqueId(), "limit-notify", tag("limit", effective), Messages.lazy("type", () -> limitType(kind)));
+        plugin.discord().log("admin-limit", "admin", sender.getName(), "player", name, "limit", effective, "type", messages().server(() -> limitType(kind)));
         int switchedOff = enforceLimit(target, kind);
         if (switchedOff > 0) {
             messages().send(sender, kind == LoaderManager.LimitKind.DUMMY ? "dummy-limit-enforced" : "active-limit-enforced",
@@ -705,7 +707,7 @@ public final class AdminActions {
             messages().send(sender, "no-permission");
             return;
         }
-        String cleanReason = reason == null || reason.isBlank() ? messages().plain("ban-no-reason") : reason;
+        String cleanReason = reason == null || reason.isBlank() ? messages().server(() -> messages().plain("ban-no-reason")) : reason;
         UUID uuid = target.getUniqueId();
         int deleted = loaders().deleteAll(loaders().main(uuid));
         loaders().ban(uuid, duration, cleanReason, sender.getName());
@@ -714,12 +716,13 @@ public final class AdminActions {
             plugin.loaderItem().remove(online, Integer.MAX_VALUE);
         }
         String name = name(target);
-        String durationText = Texts.banDuration(plugin, loaders().ban(uuid));
-        messages().send(sender, "ban-set", tag("player", name), tag("duration", durationText),
+        LoaderManager.Ban banned = loaders().ban(uuid);
+        java.util.function.Supplier<String> durationText = () -> Texts.banDuration(plugin, banned);
+        messages().send(sender, "ban-set", tag("player", name), Messages.lazy("duration", durationText),
                 tag("reason", cleanReason), tag("count", deleted));
-        notifyOwner(uuid, "ban-notify", tag("duration", durationText), tag("reason", cleanReason));
+        notifyOwner(uuid, "ban-notify", Messages.lazy("duration", durationText), tag("reason", cleanReason));
         plugin.discord().log("admin-ban", "admin", sender.getName(), "player", name,
-                "time", durationText, "reason", cleanReason, "count", deleted);
+                "time", messages().server(durationText), "reason", cleanReason, "count", deleted);
     }
 
     public void unban(CommandSender sender, OfflinePlayer target) {
@@ -769,7 +772,7 @@ public final class AdminActions {
     /** Discord placeholders of a loader plus extra key/value pairs. */
     public Object[] discordTags(Loader loader, Object... extra) {
         Object[] base = {
-                "name", Texts.name(plugin, loader),
+                "name", messages().server(() -> Texts.name(plugin, loader)),
                 "number", loader.number(),
                 "id", loader.number(),
                 "player", LoaderManager.name(loader.owner()),

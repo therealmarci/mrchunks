@@ -8,7 +8,7 @@
 |---|---|
 | Server | Paper 26.3 (oder ein Fork wie Purpur), Java 25 |
 | Benötigt | nichts - LuckPerms ist empfohlen, [squaremap](https://modrinth.com/plugin/squaremap) für die Webkarte, MRadmin optional |
-| Sprachen | Deutsch, Englisch (eigene Übersetzungen möglich) |
+| Sprachen | Deutsch, Englisch - jeder Spieler automatisch in der Sprache seines Minecraft-Clients |
 | Status | Vorabversion (0.x) - Config, Befehle und Permissions können sich bis 1.0.0 noch ändern |
 
 ## Was kann MRchunks?
@@ -260,9 +260,11 @@ Alles steht in `plugins/MRchunks/config.yml`. Jede Option ist in der Datei komme
 **Überschneidende Loader** (`loaders.overlap`): `allow` erlaubt einfach, `warn` (Standard) erlaubt mit Hinweis und zeigt die Grenze, `deny-own` verbietet Überschneidungen mit eigenen Loadern, `deny-all` mit allen. Jeder Chunk wird ohnehin nur **einmal** geladen gehalten.
 
 ### Sprache & Texte
-- Sprache in der `config.yml`: `language: de` oder `language: en`.
+- **Jeder Spieler bekommt seine Sprache:** Mit `language: auto` (Standard) richtet sich MRchunks nach der Sprache, die der Spieler in Minecraft eingestellt hat - Deutsch (auch Österreich und Schweiz) bekommt Deutsch, Englisch bekommt Englisch. Für Sprachen ohne eigene Datei gilt `fallback-language` (Standard Englisch). Mit `language: de` oder `en` bekommen alle dieselbe Sprache.
+- **Server-Sprache:** Discord-Logs, die Webkarte und Tickets in MRadmin haben keinen einzelnen Empfänger - sie kommen in `server-language` (Standard `en`). Auf einem deutschen Server also `server-language: de` setzen.
+- Die Konsole ist immer Englisch.
 - Alle Texte - Chat, Menüs, Item, Webkarte, Discord - stehen in `plugins/MRchunks/lang/<sprache>.yml`. Ein leerer Text (`""`) schaltet die Nachricht ab.
-- **Eigene Sprache:** `lang/en.yml` kopieren (z.B. als `lang/fr.yml`), übersetzen und `language: fr` setzen. Neue Texte aus Updates werden automatisch ergänzt.
+- **Eigene Sprache:** `lang/en.yml` kopieren (z.B. als `lang/fr.yml`) und übersetzen - mit `language: auto` bekommen französische Spieler sie automatisch. Neue Texte aus Updates werden automatisch ergänzt.
 
 ### Discord
 Webhook anlegen (*Kanal bearbeiten → Integrationen → Webhooks*), `discord.enabled: true` setzen, die `webhook-url` eintragen, `/mrchunks reload` und mit `/mrchunks discord test` prüfen. Welche Ereignisse gesendet werden (Loader gesetzt, gelöscht, gesperrt, Einladungen, Admin-Aktionen …), stellst du unter `discord.events` ein.

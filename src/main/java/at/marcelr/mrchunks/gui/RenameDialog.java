@@ -41,20 +41,21 @@ public final class RenameDialog {
         DialogAction save = DialogAction.customClick((response, audience) -> {
             String text = response.getText(INPUT);
             // Run on the main thread: the click may arrive on the network thread.
-            Bukkit.getScheduler().runTask(plugin, () -> {
+            Bukkit.getScheduler().runTask(plugin, () -> plugin.messages().run(viewer, () -> {
                 Loader current = plugin.loaders().byId(loaderId);
                 if (current != null && viewer.isOnline()) {
                     plugin.adminActions().rename(viewer, current, text);
                     new LoaderMenu(plugin, viewer, loaderId, back).open();
                 }
-            });
+            }));
         }, ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(10)).build());
 
-        DialogAction cancel = DialogAction.customClick((response, audience) -> Bukkit.getScheduler().runTask(plugin, () -> {
-            if (viewer.isOnline() && plugin.loaders().byId(loaderId) != null) {
-                new LoaderMenu(plugin, viewer, loaderId, back).open();
-            }
-        }), ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(10)).build());
+        DialogAction cancel = DialogAction.customClick((response, audience) -> Bukkit.getScheduler().runTask(plugin,
+                () -> plugin.messages().run(viewer, () -> {
+                    if (viewer.isOnline() && plugin.loaders().byId(loaderId) != null) {
+                        new LoaderMenu(plugin, viewer, loaderId, back).open();
+                    }
+                })), ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(10)).build());
 
         Dialog dialog = Dialog.create(factory -> factory.empty()
                 .base(DialogBase.builder(messages.get("rename-title", tags))

@@ -9,6 +9,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+### Neu
+- **Jeder Spieler in seiner Sprache:** Chat, Menüs, Dialoge und der Chunkloader-Gegenstand richten sich jetzt nach der Sprache, die der Spieler in Minecraft eingestellt hat (`language: auto`, neuer Standard): Deutsch (auch Österreich/Schweiz) bekommt Deutsch, Englisch bekommt Englisch, alle anderen `fallback-language` (Standard `en`). `language: de` oder `en` stellt weiterhin eine Sprache für alle ein.
+- **Server-Sprache (`server-language`):** Discord-Logs, Beschriftungen auf der Webkarte und Tickets in MRadmin kommen in dieser Sprache (Standard `en`).
+- **Automatische Umstellung:** Bestehende Configs bekommen `language: auto`; eine bisher fest eingestellte Sprache wird zur `server-language`, damit z.B. die Discord-Logs eines deutschen Servers deutsch bleiben.
+- **Benachrichtigungen in der Sprache des Empfängers:** Meldungen an Owner, Eingeladene und das Team (Lag-Sperre, Einladungen, Limits, Sperren, Umbenennen) bekommt jeder in seiner Sprache - auch wenn ein Admin mit anderer Sprache sie auslöst.
+
 ### Behoben & geändert
 - **Config und plugin.yml auf Englisch:** Alle Kommentare in der `config.yml` und die Beschreibungen der Befehle und Permissions in der `plugin.yml` sind jetzt englisch. Bestehende Configs bekommen die neuen Kommentare beim nächsten Start automatisch (config-version 10, Sicherung als `config.v<alt>.backup.yml`), alle Einstellungen bleiben erhalten.
 - **Config-Kommentare korrigiert:** Sie nennen jetzt die richtigen Befehle `/mrchunks limit <spieler> place|active <anzahl>` (statt des nicht mehr vorhandenen `/mrchunks activelimit`).
