@@ -88,7 +88,7 @@ Hast du einen Zweit-Account (z.B. zum AFK-Farmen), verknüpf ihn mit deinem Haup
 - Es gilt **ein gemeinsames Limit** - das des Haupt-Accounts.
 - **Verknüpfen:** `/chunkloader` → **Verknüpfte Accounts** → **Account verknüpfen**. Der andere Account muss online sein und zustimmen.
 - **Lösen** kann jeder der beiden jederzeit im selben Menü. Die Loader bleiben beim Haupt-Account.
-- **Admins** verknüpfen und lösen Accounts auch ohne Zustimmung: mit `/mrchunks link <haupt> <zweit>` bzw. `/mrchunks unlink <spieler>` oder in der MRadmin-Weboberfläche auf der Spielerseite (`mrchunks.admin.manage`).
+- **Admins** verknüpfen und lösen Accounts auch ohne Zustimmung: mit `/mrchunks link <haupt> <zweit>` bzw. `/mrchunks unlink <spieler>` oder in der MRadmin-Weboberfläche auf der Spielerseite (`mrchunks.admin.link`).
 - Erlaubt ist standardmäßig ein Zweit-Account (`linked-accounts.max-accounts`). Eine Sperre gilt für alle verknüpften Accounts.
 
 ### Dummy-Spieler
@@ -111,13 +111,13 @@ Spieler brauchen keine Befehle außer `/chunkloader` - alles läuft über Menüs
 |---|---|---|
 | `/mrchunks gui` | Admin-Menü: alle Spieler und ihre Loader | `mrchunks.admin.gui` |
 | `/mrchunks tp <spieler> <nr>` | Zu einem Chunkloader teleportieren | `mrchunks.admin.teleport` |
-| `/mrchunks toggle <spieler> <nr>` | Chunkloader an/aus | `mrchunks.admin.manage` |
+| `/mrchunks toggle <spieler> <nr>` | Chunkloader an/aus | `mrchunks.admin.toggle` |
 | `/mrchunks delete <spieler> <nr>` | Chunkloader löschen | `mrchunks.admin.manage` |
 | `/mrchunks unlock <spieler> <nr>` | Lag-Sperre aufheben | `mrchunks.admin.manage` |
 | `/mrchunks lag` | Auffällige und gesperrte Loader anzeigen | `mrchunks.admin.manage` |
 | `/mrchunks dummy <spieler> <nr>` | Dummy eines Loaders an/aus (auch über das Limit hinaus) | `mrchunks.admin.manage` |
-| `/mrchunks link <haupt> <zweit>` | Accounts ohne Zustimmung verknüpfen | `mrchunks.admin.manage` |
-| `/mrchunks unlink <spieler>` | Verknüpfung lösen | `mrchunks.admin.manage` |
+| `/mrchunks link <haupt> <zweit>` | Accounts ohne Zustimmung verknüpfen | `mrchunks.admin.link` |
+| `/mrchunks unlink <spieler>` | Verknüpfung lösen | `mrchunks.admin.link` |
 | `/mrchunks limit <spieler> <place\|active\|dummy> <anzahl\|reset>` | Limit eines Spielers setzen (siehe [Limits](#limits)) | `mrchunks.admin.limit` |
 | `/mrchunks ban <spieler> [dauer\|permanent] [grund]` | Sperren: löscht alle Loader und verhindert neue | `mrchunks.admin.ban` |
 | `/mrchunks unban <spieler>` · `bans` | Sperre aufheben · alle Sperren anzeigen | `mrchunks.admin.ban` |
@@ -155,13 +155,29 @@ Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Perm
 | `mrchunks.limit.unlimited` · `active.unlimited` · `dummies.unlimited` | niemand | Ohne Begrenzung |
 | `mrchunks.exempt` | niemand | **Komplett ausgeschlossen:** keine Loader, keine Einladungen - vorhandene Loader werden beim Betreten **gelöscht** |
 
-**Admin**
+**Team-Gruppen** - in allen MRtechnology-Plugins gleich aufgebaut, jede enthält die darunter (und `mrchunks.player`):
+
+| Gruppe | Standard | Enthält |
+|---|---|---|
+| `mrchunks.groups.support` | OP | Admin-Menü (alle Loader und ihren Status sehen), zu Loadern teleportieren |
+| `mrchunks.groups.staff` | OP | Support + fremde Loader an/aus schalten, ihre Einladungen verwalten, Accounts verknüpfen und lösen |
+| `mrchunks.groups.admin` | OP | Alles: Staff + löschen, umbenennen, Dummies, Lag-Sperren aufheben, Limits, Sperren, Webkarte, Discord, Reload, Update-Hinweis |
+
+```text
+/lp group supporter permission set mrchunks.groups.support true
+/lp group staff permission set mrchunks.groups.staff true
+/lp group admin permission set mrchunks.groups.admin true
+```
+
+**Einzelne Team-Rechte**
 
 | Permission | Standard | Wofür |
 |---|---|---|
-| `mrchunks.admin` | OP | Alle folgenden Admin-Rechte |
 | `mrchunks.admin.gui` | OP | Admin-Menü öffnen (Aktionen darin brauchen ihre eigene Permission) |
-| `mrchunks.admin.manage` | OP | **Fremde** Loader schalten, umbenennen, löschen, entsperren, Dummies, Verknüpfungen |
+| `mrchunks.admin.toggle` | OP | **Fremde** Loader an/aus schalten (auch über das Aktiv-Limit hinaus) |
+| `mrchunks.admin.invites` | OP | Einladungen **fremder** Loader verwalten |
+| `mrchunks.admin.link` | OP | Accounts anderer verknüpfen und lösen |
+| `mrchunks.admin.manage` | OP | **Fremde** Loader löschen, umbenennen, Block wählen, Dummies, Lag-Sperren aufheben (enthält `toggle`, `invites`, `link`) |
 | `mrchunks.admin.teleport` | OP | Zu Loadern teleportieren |
 | `mrchunks.admin.limit` | OP | Limits vergeben |
 | `mrchunks.admin.ban` | OP | Spieler sperren und entsperren |
@@ -188,13 +204,12 @@ Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Perm
 /lp group vip permission set mrchunks.limit.15 true
 /lp group vip permission set mrchunks.active.3 true
 
-# Moderatoren: Menü, Teleport, Sperren - aber keine fremden Loader löschen
-/lp group mod permission set mrchunks.admin.gui true
-/lp group mod permission set mrchunks.admin.teleport true
+# Moderatoren: wie Staff (Loader an/aus, Einladungen, Accounts), dazu sperren - aber nichts löschen
+/lp group mod permission set mrchunks.groups.staff true
 /lp group mod permission set mrchunks.admin.ban true
 
 # Admins: alles
-/lp group admin permission set mrchunks.admin true
+/lp group admin permission set mrchunks.groups.admin true
 
 # Zweit-Accounts komplett ausschließen
 /lp group alt permission set mrchunks.exempt true

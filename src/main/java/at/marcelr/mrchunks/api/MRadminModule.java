@@ -150,6 +150,16 @@ final class MRadminModule implements AdminModule, WebModule {
     }
 
     @Override
+    public boolean openMenu(Player viewer, Runnable back) {
+        if (!viewer.hasPermission(PERM_GUI)) {
+            plugin.messages().send(viewer, "no-permission");
+            return false;
+        }
+        plugin.messages().run(viewer, () -> new at.marcelr.mrchunks.gui.AdminMenu(plugin, viewer).open());
+        return true;
+    }
+
+    @Override
     public boolean openPlayerMenu(Player viewer, UUID player, Runnable back) {
         if (!viewer.hasPermission(PERM_GUI)) {
             plugin.messages().send(viewer, "no-permission");
@@ -246,11 +256,12 @@ final class MRadminModule implements AdminModule, WebModule {
     }
 
     private static final Map<String, String> PERMISSIONS = Map.of(
-            "manage", "mrchunks.admin.manage", "limit", "mrchunks.admin.limit", "ban", "mrchunks.admin.ban");
+            "manage", "mrchunks.admin.manage", "limit", "mrchunks.admin.limit", "ban", "mrchunks.admin.ban",
+            "toggle", "mrchunks.admin.toggle", "link", "mrchunks.admin.link");
     private static final Map<String, String> ACTIONS = Map.of(
-            "toggle", "manage", "unlock", "manage", "delete", "manage", "dummy", "manage");
+            "toggle", "toggle", "unlock", "manage", "delete", "manage", "dummy", "manage");
     private static final Map<String, String> PLAYER_ACTIONS = Map.of(
-            "limit", "limit", "ban", "ban", "unban", "ban", "deleteAll", "manage", "unlink", "manage", "link", "manage");
+            "limit", "limit", "ban", "ban", "unban", "ban", "deleteAll", "manage", "unlink", "link", "link", "link");
 
     @Override
     public Map<String, String> permissions() {

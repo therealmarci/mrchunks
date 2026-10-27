@@ -23,7 +23,14 @@ public final class AdminActions {
 
     public static final String PERM_USE = "mrchunks.use";
     public static final String PERM_VIEW = "mrchunks.view";
+    /** Admins: delete, rename, dummies, block, lift lag locks - and everything below. */
     public static final String PERM_MANAGE = "mrchunks.admin.manage";
+    /** Staff: switch other players' loaders on and off (also beyond their active limit). */
+    public static final String PERM_TOGGLE = "mrchunks.admin.toggle";
+    /** Staff: manage the invites of other players' loaders. */
+    public static final String PERM_INVITES = "mrchunks.admin.invites";
+    /** Staff: link and unlink other players' accounts. */
+    public static final String PERM_LINK_OTHERS = "mrchunks.admin.link";
     public static final String PERM_TELEPORT = "mrchunks.admin.teleport";
     public static final String PERM_LIMIT = "mrchunks.admin.limit";
     public static final String PERM_BAN = "mrchunks.admin.ban";
@@ -71,7 +78,7 @@ public final class AdminActions {
     /** Owner, invited players, admins and everyone with mrchunks.view may open a loader's menu. */
     public boolean canView(CommandSender sender, Loader loader) {
         return isOwner(sender, loader) || isMember(sender, loader) || sender.hasPermission(PERM_VIEW)
-                || sender.hasPermission(PERM_MANAGE);
+                || sender.hasPermission(PERM_TOGGLE) || sender.hasPermission(PERM_MANAGE);
     }
 
     public static boolean isExempt(CommandSender sender) {
@@ -91,13 +98,14 @@ public final class AdminActions {
 
     /** Switching on/off: owner, admins - and invited players (only this, never deleting or renaming). */
     public boolean canToggle(CommandSender sender, Loader loader) {
-        return canManage(sender, loader) || isMember(sender, loader);
+        return canManage(sender, loader) || isMember(sender, loader) || sender.hasPermission(PERM_TOGGLE);
     }
 
     /** Managing the invites of a loader / of all loaders of {@code owner}: the owner (mrchunks.invite) or admins. */
     public static boolean canManageInvites(CommandSender sender, UUID owner) {
         boolean isOwner = sender instanceof Player player && accountOf(player).equals(owner);
-        return (isOwner && sender.hasPermission(PERM_INVITE) && !isExempt(sender)) || sender.hasPermission(PERM_MANAGE);
+        return (isOwner && sender.hasPermission(PERM_INVITE) && !isExempt(sender)) || sender.hasPermission(PERM_INVITES)
+                || sender.hasPermission(PERM_MANAGE);
     }
 
     // ------------------------------------------------------------- loaders
@@ -115,8 +123,8 @@ public final class AdminActions {
             return;
         }
         OfflinePlayer owner = org.bukkit.Bukkit.getOfflinePlayer(loader.owner());
-        // Owners stay within their active limit; admins (mrchunks.admin.manage) may go beyond it.
-        if (active && !sender.hasPermission(PERM_MANAGE) && !loaders().canActivate(owner)) {
+        // Owners stay within their active limit; the team (mrchunks.admin.toggle / .manage) may go beyond it.
+        if (active && !sender.hasPermission(PERM_TOGGLE) && !sender.hasPermission(PERM_MANAGE) && !loaders().canActivate(owner)) {
             messages().send(sender, "active-limit-reached",
                     tag("active", loaders().activeCount(loader.owner())),
                     tag("active-limit", Texts.limit(loaders().activeLimit(owner))));
@@ -250,7 +258,7 @@ public final class AdminActions {
 
     /** /mrchunks link: an admin links two accounts directly, without asking them. */
     public void adminLink(CommandSender sender, OfflinePlayer main, OfflinePlayer secondary) {
-        if (!sender.hasPermission(PERM_MANAGE)) {
+        if (!sender.hasPermission(PERM_LINK_OTHERS) && !sender.hasPermission(PERM_MANAGE)) {
             messages().send(sender, "no-permission");
             return;
         }
@@ -297,7 +305,7 @@ public final class AdminActions {
      */
     public void unlink(CommandSender sender, UUID account) {
         boolean self = sender instanceof Player player && loaders().sameGroup(player.getUniqueId(), account);
-        if (!self && !sender.hasPermission(PERM_MANAGE)) {
+        if (!self && !sender.hasPermission(PERM_LINK_OTHERS) && !sender.hasPermission(PERM_MANAGE)) {
             messages().send(sender, "no-permission");
             return;
         }
