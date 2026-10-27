@@ -1,8 +1,10 @@
 package at.marcelr.mrchunks;
 
 import at.marcelr.mrchunks.lag.LagLock;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -26,6 +28,7 @@ public final class AdminActions {
     public static final String PERM_LIMIT = "mrchunks.admin.limit";
     public static final String PERM_BAN = "mrchunks.admin.ban";
     public static final String PERM_INVITE = "mrchunks.invite";
+    public static final String PERM_BLOCK = "mrchunks.block";
     /** Linking another account with the own one (both share loaders and limits). */
     public static final String PERM_LINK = "mrchunks.link";
     /** Excludes a player from chunk loaders completely (e.g. second accounts). Strict: also for admins. */
@@ -172,6 +175,23 @@ public final class AdminActions {
     // ------------------------------------------------------------- dummies
 
     /** Switches the loader's dummy player on or off: owner (within their dummy limit) or admins. */
+    /** Choosing the block in the world: the owner with mrchunks.block, or an admin with mrchunks.admin.manage. */
+    public boolean canChangeBlock(CommandSender sender, Loader loader) {
+        return !plugin.settings().item().blockChoices().isEmpty() && canManage(sender, loader)
+                && (sender.hasPermission(PERM_BLOCK) || sender.hasPermission(PERM_MANAGE));
+    }
+
+    /** Sets the block the loader stands as in the world (item.material or one of item.block-choices). */
+    public void changeBlock(CommandSender sender, Loader loader, Material material) {
+        Settings.ItemSettings item = plugin.settings().item();
+        if (!canChangeBlock(sender, loader) || (material != item.material() && !item.blockChoices().contains(material))) {
+            messages().send(sender, "no-permission");
+            return;
+        }
+        loaders().setBlock(loader, material);
+        messages().send(sender, "block-changed", Texts.loader(plugin, loader), tag("block", Component.translatable(material)));
+    }
+
     public void toggleDummy(CommandSender sender, Loader loader) {
         if (!canManage(sender, loader)) {
             messages().send(sender, isOwner(sender, loader) ? "no-permission" : "not-owner");

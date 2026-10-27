@@ -34,7 +34,7 @@ src/main/java/at/marcelr/mrchunks/
 │  └─ nms/                NmsDummyBackend, FakeConnection - einzige Stelle mit Server-Interna
 ├─ link/                  LinkRequests (Anfrage + Zustimmungs-Dialog für verknüpfte Accounts)
 ├─ gui/                   Menu, MenuListener, Items, Heads, Pages, LoaderIcons, PlayerIcons,
-│                         LoaderMenu, MyLoadersMenu, AdminMenu, PlayerLoadersMenu, LinkMenu, LinkPickerMenu
+│                         LoaderMenu, BlockMenu, MyLoadersMenu, AdminMenu, PlayerLoadersMenu, LinkMenu, LinkPickerMenu
 ├─ map/                   MapHooks (ohne squaremap-Typen), SquaremapHook (Ebene, Marker, Icon,
 │                         Raster, Spieler ausblenden), SquaremapSetup (squaremap-Config einrichten)
 └─ util/                  DurationUtil, Versions (mit Tests)
@@ -87,7 +87,8 @@ Material, Name, Lore und Glanz kommen aus der Config. Markiert wird das Item im 
 ```yaml
 next-id: 3
 loaders:
-  '1': { owner: <uuid>, world: <uuid oder Weltname>, world-name: world, x: 100, y: 80, z: 100, created: <ms>, number: 1, name: "Farm", active: true, dummy: true }
+  '1': { owner: <uuid>, world: <uuid oder Weltname>, world-name: world, x: 100, y: 80, z: 100, created: <ms>, number: 1, name: "Farm", active: true, dummy: true, block: DIAMOND_BLOCK }
+# block nur, wenn der Besitzer einen anderen Block als item.material gewählt hat (Block ändern, item.block-choices)
 limits:
   <spieler-uuid>: 10
 active-limits: { <spieler-uuid>: 3 }
@@ -103,7 +104,8 @@ bans:
 `world` darf in einer von Hand bearbeiteten Datei auch ein Weltname sein. Beim nächsten Speichern wird daraus die UUID.
 
 ## 7. Menüs (`gui/*`)
-- **`LoaderMenu`**: Reihe 2 = An/Aus, Mitglieder, Grenze anzeigen/ausblenden, Umbenennen, Löschen; Teleport nur mit `mrchunks.admin.teleport` unten rechts (Schließen rückt dann nach links). Löschen mit zweitem Klick innerhalb von `gui.confirm-seconds`. Wird der Loader inzwischen gelöscht, springt das Menü zurück.
+- **`LoaderMenu`**: Reihe 2 = An/Aus, Mitglieder, Dummy, Grenze anzeigen/ausblenden, Block ändern (nur mit `item.block-choices`), Umbenennen, Löschen; Teleport nur mit `mrchunks.admin.teleport` unten rechts (Schließen rückt dann nach links). Löschen mit zweitem Klick innerhalb von `gui.confirm-seconds`. Wird der Loader inzwischen gelöscht, springt das Menü zurück.
+- **`BlockMenu`**: Auswahl des Blocks in der Welt (`item.material` + `item.block-choices`, Namen per `Component.translatable` = Sprache des Clients). `LoaderManager#setBlock` speichert ihn am Loader (`null` = `item.material`) und tauscht den Block sofort; `validate` tauscht andere Loader-Blöcke still zum gewählten, statt den Loader als fehlend zu behandeln. `Settings` lässt nur feste, ganze Blöcke ohne Schwerkraft und ohne Block-Entity zu.
 - **`MyLoadersMenu`**: die eigenen Loader.
 - **`AdminMenu`**: Statistik, Info, Filter, Spielerköpfe (auch offline; das Limit offline kennt nur Admin-Limit und Standard, weil Permissions nur bei Online-Spielern abfragbar sind).
 - **`PlayerLoadersMenu`**: Limit (links +1, rechts −1, Shift zurücksetzen), alle löschen, Sperren und die Loader des Spielers.

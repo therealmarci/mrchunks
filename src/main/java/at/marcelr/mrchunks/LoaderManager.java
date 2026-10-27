@@ -266,7 +266,7 @@ public final class LoaderManager {
         World world = loader.world();
         if (world != null) {
             Block block = world.getBlockAt(loader.x(), loader.y(), loader.z());
-            if (block.getType() == plugin.settings().item().material()) {
+            if (block.getType() == blockOf(loader) || loaderBlock(block.getType())) {
                 block.setType(Material.AIR, false);
             }
         }
@@ -295,6 +295,29 @@ public final class LoaderManager {
         syncDummy(loader);
         plugin.maps().refreshSoon();
         plugin.border().loaderChanged(loader);
+    }
+
+    // -------------------------------------------------------------- blocks
+
+    /** The block the loader stands as in the world: the owner's choice, otherwise item.material. */
+    public Material blockOf(Loader loader) {
+        return loader.block() != null ? loader.block() : plugin.settings().item().material();
+    }
+
+    /** Changes the loader's block and swaps it in the world right away (if the world is loaded). */
+    public void setBlock(Loader loader, Material material) {
+        loader.setBlock(material == plugin.settings().item().material() ? null : material);
+        World world = loader.world();
+        if (world != null) {
+            world.getBlockAt(loader.x(), loader.y(), loader.z()).setType(blockOf(loader), false);
+        }
+        save();
+    }
+
+    /** Whether a loader may stand as this block: item.material or one of item.block-choices. */
+    private boolean loaderBlock(Material material) {
+        Settings.ItemSettings item = plugin.settings().item();
+        return material == item.material() || item.blockChoices().contains(material);
     }
 
     // ------------------------------------------------------------- dummies
@@ -529,7 +552,6 @@ public final class LoaderManager {
     /** Like {@link #validate()} for some loaders only (e.g. those in a chunk that just loaded). */
     public Map<Loader, Boolean> validate(Collection<Loader> candidates) {
         Map<Loader, Boolean> result = new LinkedHashMap<>();
-        Material material = plugin.settings().item().material();
         boolean restore = plugin.settings().loaders().restoreMissingBlocks();
         for (Loader loader : candidates) {
             World world = loader.world();
@@ -538,7 +560,14 @@ public final class LoaderManager {
                 continue;
             }
             Block block = world.getBlockAt(loader.x(), loader.y(), loader.z());
+            Material material = blockOf(loader);
             if (block.getType() == material) {
+                continue;
+            }
+            if (loaderBlock(block.getType())) {
+                // Still a loader block, just not the chosen one (choice made while the world was not loaded,
+                // item.material changed ...): swap it quietly.
+                block.setType(material, false);
                 continue;
             }
             if (restore) {
@@ -973,6 +1002,8 @@ public final class LoaderManager {
                         s.getInt("number", 0), name == null || name.isBlank() ? null : name,
                         s.getBoolean("active", true));
                 loader.setDummy(s.getBoolean("dummy", false));
+                String block = s.getString("block");
+                loader.setBlock(block == null ? null : Material.matchMaterial(block));
                 loaders.put(id, loader);
                 nextId = Math.max(nextId, id + 1);
             }
@@ -1120,6 +1151,9 @@ public final class LoaderManager {
             data.set(p + "active", loader.active());
             if (loader.dummy()) {
                 data.set(p + "dummy", true);
+            }
+            if (loader.block() != null) {
+                data.set(p + "block", loader.block().name());
             }
         }
         limitOverrides.forEach((uuid, limit) -> data.set("limits." + uuid, limit));

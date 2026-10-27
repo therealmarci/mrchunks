@@ -18,7 +18,7 @@ commands:
 
 permissions:
   mrchunks.player:
-    description: All player permissions at once (use, map, view, invite, link) - e.g. for the default group in LuckPerms.
+    description: All player permissions at once (use, map, view, invite, link, block) - e.g. for the default group in LuckPerms.
     default: op
     children:
       mrchunks.use: true
@@ -26,6 +26,7 @@ permissions:
       mrchunks.view: true
       mrchunks.invite: true
       mrchunks.link: true
+      mrchunks.block: true
   mrchunks.use:
     description: Get chunk loaders (/chunkloader), place them and manage your own.
     default: op
@@ -40,6 +41,9 @@ permissions:
     default: op
   mrchunks.link:
     description: Link another account (e.g. a second account) with your own - both share chunk loaders and limit.
+    default: op
+  mrchunks.block:
+    description: Choose the block your chunk loaders stand as in the world (loader menu, item.block-choices).
     default: op
   mrchunks.exempt:
     description: Completely excludes from chunk loading (e.g. second accounts) - no loaders, no invites. Existing loaders are deleted. Warning, "*" in LuckPerms includes this too!

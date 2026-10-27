@@ -2,6 +2,7 @@ package at.marcelr.mrchunks;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 
 import java.util.UUID;
@@ -28,6 +29,8 @@ public final class Loader {
     private String name;
     /** The owner wants a dummy player on this loader (it only sits there while the loader is active). */
     private boolean dummy;
+    /** Block in the world chosen by the owner, null = item.material (see {@link LoaderManager#blockOf}). */
+    private Material block;
 
     public Loader(int id, UUID owner, UUID worldId, String worldName, int x, int y, int z, long created,
                   int number, String name, boolean active) {
@@ -122,10 +125,20 @@ public final class Loader {
         this.dummy = dummy;
     }
 
+    /** The block chosen for the world, null = item.material. */
+    public Material block() {
+        return block;
+    }
+
+    void setBlock(Material block) {
+        this.block = block;
+    }
+
     /** The same loader with another owner and number (accounts being linked, see {@link LoaderManager#link}). */
     Loader withOwner(UUID newOwner, int newNumber) {
         Loader copy = new Loader(id, newOwner, worldId, worldName, x, y, z, created, newNumber, name, active);
         copy.dummy = dummy;
+        copy.block = block;
         return copy;
     }
 

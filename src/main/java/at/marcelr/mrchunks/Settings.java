@@ -83,7 +83,9 @@ public record Settings(
         }
     }
 
-    public record ItemSettings(Material material, String name, List<String> lore, boolean glint) {
+    /** @param blockChoices blocks the owner may choose for the world besides {@code material} (empty = no choice) */
+    public record ItemSettings(Material material, String name, List<String> lore, boolean glint,
+                               List<Material> blockChoices) {
     }
 
     /** Glowing lines: block and glow colour while active / inactive, bar thickness, line heights around the viewer. */
@@ -136,10 +138,22 @@ public record Settings(
             log.warning("item.material '" + c.getString("item.material") + "' is not a solid block, using EMERALD_BLOCK.");
             material = Material.EMERALD_BLOCK;
         }
+        List<Material> blockChoices = new ArrayList<>();
+        for (String raw : c.getStringList("item.block-choices")) {
+            Material choice = Material.matchMaterial(raw);
+            // A plain full block: nothing that falls, holds items (chests, hoppers ...) or is only part of a block.
+            if (choice == null || !choice.isBlock() || !choice.isSolid() || choice.hasGravity() || !fullBlock(choice)
+                    || choice.createBlockData().createBlockState() instanceof org.bukkit.block.TileState) {
+                log.warning("item.block-choices: '" + raw + "' is not a solid block without gravity or function, skipped.");
+            } else if (choice != material && !blockChoices.contains(choice) && blockChoices.size() < 44) {
+                blockChoices.add(choice);
+            }
+        }
         ItemSettings item = new ItemSettings(material,
                 texts.optional("item-name"),
                 texts.list("item-lore"),
-                c.getBoolean("item.glint", true));
+                c.getBoolean("item.glint", true),
+                List.copyOf(blockChoices));
 
         BorderSettings border = new BorderSettings(
                 c.getBoolean("border.show-on-open", false),
@@ -275,6 +289,13 @@ public record Settings(
             log.warning("Invalid colour '" + raw + "' for " + path + ", using #8A958E.");
             return new java.awt.Color(0x8A958E);
         }
+    }
+
+    /** Top and bottom are whole faces (no slab, stairs, fence ...) - unlike isOccluding() also true for glowstone. */
+    private static boolean fullBlock(Material material) {
+        org.bukkit.block.data.BlockData data = material.createBlockData();
+        return data.isFaceSturdy(org.bukkit.block.BlockFace.UP, org.bukkit.block.BlockSupport.FULL)
+                && data.isFaceSturdy(org.bukkit.block.BlockFace.DOWN, org.bukkit.block.BlockSupport.FULL);
     }
 
     private static Material blockMaterial(String raw, Material fallback, String path, Logger log) {

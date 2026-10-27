@@ -23,7 +23,8 @@ import static at.marcelr.mrchunks.Messages.tag;
  * Menu of one loader (right-click on the block, or from a list). Layout (3 rows):
  * <pre>
  *  . . . . [info] . . . .
- *  . [toggle] [members] [dummy] [border] . [rename] [delete] .     (dummy only with dummies.enabled)
+ *  . [toggle] [members] [dummy] [border] [block] [rename] [delete] .   (dummy only with dummies.enabled,
+ *                                                                      block only with item.block-choices)
  *  [back] . . . [close] . . . .          (with mrchunks.admin.teleport: [back] . . [close] . [teleport] . . .)
  * </pre>
  * Toggle needs ownership, an invite or mrchunks.admin.manage; rename, invites and delete only ownership or the admin
@@ -100,6 +101,13 @@ public final class LoaderMenu extends Menu {
         } else {
             button(10, Material.LIME_DYE, "gui-toggle-on-name", "gui-toggle-on-lore", toggle,
                     () -> actions.toggle(viewer, loader), tags);
+        }
+
+        if (manage && !plugin.settings().item().blockChoices().isEmpty()) {
+            Material current = plugin.loaders().blockOf(loader);
+            button(14, current, "gui-block-name", "gui-block-lore", actions.canChangeBlock(viewer, loader),
+                    () -> new BlockMenu(plugin, viewer, loader.id(), this).open(),
+                    TagResolver.resolver(tags, tag("block", Component.translatable(current))));
         }
 
         button(15, Material.NAME_TAG, "gui-rename-name", "gui-rename-lore", manage,

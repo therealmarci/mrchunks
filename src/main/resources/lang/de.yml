@@ -164,6 +164,8 @@ owner-notify-deleted: "<prefix><gray>Dein Chunkloader <white><name></white> wurd
 border-shown: "<prefix><gray>Grenze von <white><name></white> wird <white><seconds>s</white> lang angezeigt. <dark_gray>(im Menü wieder ausblendbar)"
 border-hidden: "<prefix><gray>Grenze ausgeblendet."
 teleported: "<prefix><gray>Zu <white><name></white> teleportiert."
+# Block in der Welt geändert (item.block-choices). Platzhalter: <name>, <block> (Blockname in der Sprache des Spielers)
+block-changed: "<prefix><green><white><name></white> steht jetzt als <white><block></white> in der Welt."
 renamed: "<prefix><green><white><old></white> heißt jetzt <white><name></white>."
 rename-reset: "<prefix><green><white><old></white> heißt wieder <white><name></white>."
 owner-notify-renamed: "<prefix><gray>Dein Chunkloader <white><old></white> wurde von <white><admin></white> in <white><name></white> umbenannt."
@@ -393,6 +395,16 @@ gui-rename-name: "<aqua>Umbenennen"
 gui-rename-lore:
   - "<gray>Gib dem Chunkloader einen eigenen Namen."
   - "<gray>Er erscheint auch auf der Webkarte."
+gui-block-name: "<aqua>Block ändern"
+gui-block-lore:
+  - "<gray>Aktuell: <white><block>"
+  - "<gray>Ändert nur den Block in der Welt."
+gui-title-block: "<dark_gray>Block wählen"
+gui-block-choice-name: "<white><block>"
+gui-block-choice-lore:
+  - "<yellow>» Klicken zum Auswählen"
+gui-block-selected-lore:
+  - "<green>✔ Ausgewählt"
 gui-border-name: "<aqua>Grenze anzeigen"
 gui-border-lore:
   - "<gray>Zeigt <white><seconds>s</white> lang die Außengrenze"

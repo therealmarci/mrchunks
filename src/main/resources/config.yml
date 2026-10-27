@@ -16,7 +16,7 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 10
+config-version: 11
 
 # Language of the texts (chat, menus, items). The texts are in plugins/MRchunks/lang/<language>.yml.
 #   auto = every player gets the language set in their Minecraft client:
@@ -207,6 +207,24 @@ item:
   material: EMERALD_BLOCK
   # Enchantment glint on the item.
   glint: true
+  # Blocks owners can choose for their chunk loaders in the loader menu ("Change block", permission mrchunks.block).
+  # Only the block in the world changes - menus and the item keep the material above, which is always a choice too.
+  # Only solid blocks without gravity or function (no sand, chests, furnaces ...). Empty list [] = no choice.
+  block-choices:
+    - DIAMOND_BLOCK
+    - GOLD_BLOCK
+    - IRON_BLOCK
+    - LAPIS_BLOCK
+    - NETHERITE_BLOCK
+    - AMETHYST_BLOCK
+    - WAXED_COPPER_BLOCK
+    - QUARTZ_BLOCK
+    - OBSIDIAN
+    - CRYING_OBSIDIAN
+    - GLOWSTONE
+    - SEA_LANTERN
+    - SHROOMLIGHT
+    - PURPUR_BLOCK
 
 
 # ------------------------------------------------------------------------------

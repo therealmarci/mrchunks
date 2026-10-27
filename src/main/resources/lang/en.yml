@@ -164,6 +164,8 @@ owner-notify-deleted: "<prefix><gray>Your chunk loader <white><name></white> was
 border-shown: "<prefix><gray>Showing the border of <white><name></white> for <white><seconds>s</white>. <dark_gray>(can be hidden in the menu)"
 border-hidden: "<prefix><gray>Border hidden."
 teleported: "<prefix><gray>Teleported to <white><name></white>."
+# Block in the world changed (item.block-choices). Placeholders: <name>, <block> (block name in the player's language)
+block-changed: "<prefix><green><white><name></white> now stands as <white><block></white> in the world."
 renamed: "<prefix><green><white><old></white> is now called <white><name></white>."
 rename-reset: "<prefix><green><white><old></white> is called <white><name></white> again."
 owner-notify-renamed: "<prefix><gray>Your chunk loader <white><old></white> was renamed to <white><name></white> by <white><admin></white>."
@@ -393,6 +395,16 @@ gui-rename-name: "<aqua>Rename"
 gui-rename-lore:
   - "<gray>Give the chunk loader its own name."
   - "<gray>It also appears on the web map."
+gui-block-name: "<aqua>Change block"
+gui-block-lore:
+  - "<gray>Current: <white><block>"
+  - "<gray>Only changes the block in the world."
+gui-title-block: "<dark_gray>Choose a block"
+gui-block-choice-name: "<white><block>"
+gui-block-choice-lore:
+  - "<yellow>» Click to choose"
+gui-block-selected-lore:
+  - "<green>✔ Selected"
 gui-border-name: "<aqua>Show border"
 gui-border-lore:
   - "<gray>Shows the outer border of the loaded"
