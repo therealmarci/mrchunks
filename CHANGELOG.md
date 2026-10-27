@@ -16,6 +16,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 - **Benachrichtigungen in der Sprache des Empfängers:** Meldungen an Owner, Eingeladene und das Team (Lag-Sperre, Einladungen, Limits, Sperren, Umbenennen) bekommt jeder in seiner Sprache - auch wenn ein Admin mit anderer Sprache sie auslöst.
 
 ### Behoben & geändert
+- **Menütitel in der falschen Sprache:** „Meine Chunkloader“ (über `/chunkloader`), das Loader-Menü per Rechtsklick auf den Block und die Menüs aus MRadmin hatten den Titel in der Server-Sprache statt in der Sprache des Spielers. Jetzt ist auch der Titel in der Sprache des Spielers.
 - **Update-Hinweis bei `/mrchunks version` doppelt:** Fand die Abfrage eine neue Version, kam zuerst der Admin-Hinweis „Für MRchunks gibt es ein Update“ und direkt danach „Neue Version verfügbar“. Jetzt kommt nur noch die Antwort auf den Befehl. Die Download-Links führen auf die Website (https://mrtechnology.marcelr.at/download/mrchunks/).
 - **Config und plugin.yml auf Englisch:** Alle Kommentare in der `config.yml` und die Beschreibungen der Befehle und Permissions in der `plugin.yml` sind jetzt englisch. Bestehende Configs bekommen die neuen Kommentare beim nächsten Start automatisch (config-version 10, Sicherung als `config.v<alt>.backup.yml`), alle Einstellungen bleiben erhalten.
 - **Config-Kommentare korrigiert:** Sie nennen jetzt die richtigen Befehle `/mrchunks limit <spieler> place|active <anzahl>` (statt des nicht mehr vorhandenen `/mrchunks activelimit`).

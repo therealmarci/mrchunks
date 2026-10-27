@@ -155,7 +155,7 @@ final class MRadminModule implements AdminModule, WebModule {
             plugin.messages().send(viewer, "no-permission");
             return false;
         }
-        new PlayerLoadersMenu(plugin, viewer, player, back).open();
+        plugin.messages().run(viewer, () -> new PlayerLoadersMenu(plugin, viewer, player, back).open());
         return true;
     }
 
@@ -233,7 +233,8 @@ final class MRadminModule implements AdminModule, WebModule {
         if (loader == null) {
             return false;
         }
-        new LoaderMenu(plugin, viewer, loader.id(), back).open();
+        int loaderId = loader.id();
+        plugin.messages().run(viewer, () -> new LoaderMenu(plugin, viewer, loaderId, back).open());
         return true;
     }
 

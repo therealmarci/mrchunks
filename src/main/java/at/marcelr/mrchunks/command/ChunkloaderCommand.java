@@ -24,7 +24,7 @@ public final class ChunkloaderCommand implements TabExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (sender instanceof Player player) {
-            new MyLoadersMenu(plugin, player).open();
+            plugin.messages().run(player, () -> new MyLoadersMenu(plugin, player).open());
         } else {
             plugin.messages().as(sender, () -> {
                 plugin.messages().send(sender, "players-only-menu");
