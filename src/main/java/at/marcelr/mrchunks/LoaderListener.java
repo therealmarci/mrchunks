@@ -69,7 +69,7 @@ public final class LoaderListener implements Listener {
             LoaderManager.Ban ban = loaders().groupBan(player.getUniqueId());
             if (ban != null) {
                 event.setCancelled(true);
-                messages.send(player, "banned", tag("duration", Texts.banDuration(plugin, ban)), tag("reason", ban.reason()));
+                messages.send(player, "banned", Messages.lazy("duration", () -> Texts.banDuration(plugin, ban)), tag("reason", ban.reason()));
                 return;
             }
             LoaderManager.Limit limit = loaders().limit(player);
@@ -108,6 +108,10 @@ public final class LoaderListener implements Listener {
 
     /** With loaders.overlap warn: tells the player which loaders the new one overlaps and shows its border. */
     private void warnOverlap(Player player, Loader loader) {
+        plugin.messages().run(player, () -> warnOverlapNow(player, loader));
+    }
+
+    private void warnOverlapNow(Player player, Loader loader) {
         if (plugin.settings().loaders().overlap() != Settings.OverlapMode.WARN) {
             return;
         }
@@ -262,7 +266,7 @@ public final class LoaderListener implements Listener {
             plugin.messages().send(player, "no-permission");
             return;
         }
-        new LoaderMenu(plugin, player, loader.id(), (Runnable) null).open();
+        plugin.messages().run(player, () -> new LoaderMenu(plugin, player, loader.id(), (Runnable) null).open());
         if (plugin.settings().border().showOnOpen()) {
             plugin.border().show(player, loader);
         }

@@ -8,7 +8,7 @@
 |---|---|
 | Server | Paper 26.3 (oder ein Fork wie Purpur), Java 25 |
 | Benötigt | nichts - LuckPerms ist empfohlen, [squaremap](https://modrinth.com/plugin/squaremap) für die Webkarte, MRadmin optional |
-| Sprachen | Deutsch, Englisch (eigene Übersetzungen möglich) |
+| Sprachen | Deutsch, Englisch - jeder Spieler automatisch in der Sprache seines Minecraft-Clients |
 | Status | Vorabversion (0.x) - Config, Befehle und Permissions können sich bis 1.0.0 noch ändern |
 
 ## Was kann MRchunks?
@@ -41,7 +41,7 @@
 ## So funktioniert's (für Spieler)
 1. **`/chunkloader`** (oder `/cl`) öffnet dein Menü. Unten rechts holt **Chunkloader holen** einen Loader ins Inventar (Linksklick 1, Shift bis zu 64 - so viele, wie dein Limit erlaubt). **Chunkloader zurückgeben** daneben nimmt Items wieder zurück.
 2. **Block platzieren** - ab sofort bleiben die `7×7` Chunks rundherum geladen.
-3. **Rechtsklick** auf den Block öffnet sein Menü: Infos, umbenennen, Mitglieder, **Grenze anzeigen**, an/aus, Dummy, löschen. **Sneak + Rechtsklick** verhält sich normal, du kannst also weiter Blöcke daran bauen.
+3. **Rechtsklick** auf den Block öffnet sein Menü: Infos, umbenennen, Mitglieder, **Grenze anzeigen**, **Block ändern**, an/aus, Dummy, löschen. **Sneak + Rechtsklick** verhält sich normal, du kannst also weiter Blöcke daran bauen.
 4. **Löschen** geht nur über das Menü (zweimal klicken). Danach ist dein Limit wieder frei.
 
 Die Menüleiste in `/chunkloader` von links nach rechts:
@@ -50,8 +50,8 @@ Die Menüleiste in `/chunkloader` von links nach rechts:
 |---|---|---|
 | **Mitglieder für alle Loader** | Spieler für alle deine Loader einladen | `mrchunks.invite` |
 | **Mit mir geteilt** | Loader anderer Spieler, zu denen du eingeladen bist | – |
-| **Webkarte** | Link zur Webkarte im Chat (nur mit squaremap) | `mrchunks.map` |
 | **Verknüpfte Accounts** | Zweit-Account verknüpfen oder lösen | `mrchunks.link` |
+| **Webkarte** | Link zur Webkarte im Chat (nur mit squaremap) | `mrchunks.map` |
 | **Chunkloader holen** / **zurückgeben** | Loader-Items holen oder zurückgeben | `mrchunks.use` |
 
 Hast du mehr als 45 Loader, erscheinen Pfeile zum Blättern.
@@ -71,6 +71,7 @@ Hast du mehr als 45 Loader, erscheinen Pfeile zum Blättern.
 
 ### Namen, Nummern und Grenze
 - Jeder Loader bekommt die **kleinste freie Nummer** („Chunkloader 4“). Über **Umbenennen** gibst du ihm einen eigenen Namen - er erscheint im Chat, in Menüs, auf der Webkarte und in Discord.
+- **Block ändern** wählt, als welcher Block dein Loader in der Welt steht (z.B. Diamant-, Gold- oder Netheritblock). Nur der Block in der Welt ändert sich - in Menüs und als Item bleibt es der Smaragdblock. Die Auswahl legt der Server fest (`item.block-choices`), du brauchst `mrchunks.block`.
 - **Grenze anzeigen** zeichnet einen leuchtenden Zaun an die Außenkante des Bereichs, sichtbar auch durch Blöcke und nur für dich. Er verschwindet nach einer Weile von selbst.
 
 ### Mitspieler einladen
@@ -87,6 +88,7 @@ Hast du einen Zweit-Account (z.B. zum AFK-Farmen), verknüpf ihn mit deinem Haup
 - Es gilt **ein gemeinsames Limit** - das des Haupt-Accounts.
 - **Verknüpfen:** `/chunkloader` → **Verknüpfte Accounts** → **Account verknüpfen**. Der andere Account muss online sein und zustimmen.
 - **Lösen** kann jeder der beiden jederzeit im selben Menü. Die Loader bleiben beim Haupt-Account.
+- **Admins** verknüpfen und lösen Accounts auch ohne Zustimmung: mit `/mrchunks link <haupt> <zweit>` bzw. `/mrchunks unlink <spieler>` oder in der MRadmin-Weboberfläche auf der Spielerseite (`mrchunks.admin.manage`).
 - Erlaubt ist standardmäßig ein Zweit-Account (`linked-accounts.max-accounts`). Eine Sperre gilt für alle verknüpften Accounts.
 
 ### Dummy-Spieler
@@ -140,12 +142,13 @@ Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Perm
 
 | Permission | Standard | Wofür |
 |---|---|---|
-| `mrchunks.player` | OP | **Alle Spieler-Rechte** auf einmal (`use`, `map`, `view`, `invite`, `link`) - am besten der Default-Gruppe geben |
+| `mrchunks.player` | OP | **Alle Spieler-Rechte** auf einmal (`use`, `map`, `view`, `invite`, `link`, `block`) - am besten der Default-Gruppe geben |
 | `mrchunks.use` | OP | Chunkloader holen, setzen und die eigenen verwalten |
 | `mrchunks.map` | OP | Knopf **Webkarte** |
 | `mrchunks.view` | OP | Menü **fremder** Loader ansehen (nur ansehen und Grenze anzeigen) |
 | `mrchunks.invite` | OP | Mitspieler zu eigenen Loadern einladen |
 | `mrchunks.link` | OP | Zweit-Account verknüpfen |
+| `mrchunks.block` | OP | Block der eigenen Loader in der Welt ändern (Auswahl aus `item.block-choices`) |
 | `mrchunks.limit.<anzahl>` | – | So viele Loader **setzen**, z.B. `mrchunks.limit.15` |
 | `mrchunks.active.<anzahl>` | – | So viele **gleichzeitig aktiv**, z.B. `mrchunks.active.3` |
 | `mrchunks.dummies.<anzahl>` | – | So viele Dummy-Spieler, z.B. `mrchunks.dummies.2` |
@@ -253,16 +256,18 @@ Alles steht in `plugins/MRchunks/config.yml`. Jede Option ist in der Datei komme
 | `linked-accounts` | an/aus, wie viele Zweit-Accounts |
 | `dummies` | an/aus (Standard aus), Limit, Skin, sitzend |
 | `lag-protection` · `server-pause` | Mess- und Sperrgrenzen, TPS-Schwellen |
-| `item` · `border` | Aussehen des Loaders und der Grenze |
+| `item` · `border` | Aussehen des Loaders und der Grenze, `item.block-choices`: Blöcke, die Spieler für ihre Loader wählen dürfen (leere Liste `[]` = keine Auswahl) |
 | `squaremap` | Adresse der Webkarte, Farben, Raster |
 | `discord` · `update-checker` · `gui` | Logs, Update-Hinweise, Menüs |
 
 **Überschneidende Loader** (`loaders.overlap`): `allow` erlaubt einfach, `warn` (Standard) erlaubt mit Hinweis und zeigt die Grenze, `deny-own` verbietet Überschneidungen mit eigenen Loadern, `deny-all` mit allen. Jeder Chunk wird ohnehin nur **einmal** geladen gehalten.
 
 ### Sprache & Texte
-- Sprache in der `config.yml`: `language: de` oder `language: en`.
+- **Jeder Spieler bekommt seine Sprache:** Mit `language: auto` (Standard) richtet sich MRchunks nach der Sprache, die der Spieler in Minecraft eingestellt hat - Deutsch (auch Österreich und Schweiz) bekommt Deutsch, Englisch bekommt Englisch. Für Sprachen ohne eigene Datei gilt `fallback-language` (Standard Englisch). Mit `language: de` oder `en` bekommen alle dieselbe Sprache.
+- **Server-Sprache:** Discord-Logs, die Webkarte und Tickets in MRadmin haben keinen einzelnen Empfänger - sie kommen in `server-language` (Standard `en`). Auf einem deutschen Server also `server-language: de` setzen.
+- Die Konsole ist immer Englisch.
 - Alle Texte - Chat, Menüs, Item, Webkarte, Discord - stehen in `plugins/MRchunks/lang/<sprache>.yml`. Ein leerer Text (`""`) schaltet die Nachricht ab.
-- **Eigene Sprache:** `lang/en.yml` kopieren (z.B. als `lang/fr.yml`), übersetzen und `language: fr` setzen. Neue Texte aus Updates werden automatisch ergänzt.
+- **Eigene Sprache:** `lang/en.yml` kopieren (z.B. als `lang/fr.yml`) und übersetzen - mit `language: auto` bekommen französische Spieler sie automatisch. Neue Texte aus Updates werden automatisch ergänzt.
 
 ### Discord
 Webhook anlegen (*Kanal bearbeiten → Integrationen → Webhooks*), `discord.enabled: true` setzen, die `webhook-url` eintragen, `/mrchunks reload` und mit `/mrchunks discord test` prüfen. Welche Ereignisse gesendet werden (Loader gesetzt, gelöscht, gesperrt, Einladungen, Admin-Aktionen …), stellst du unter `discord.events` ein.

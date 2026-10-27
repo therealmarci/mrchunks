@@ -155,7 +155,8 @@ public final class MRChunks extends JavaPlugin {
 
     private void loadConfiguration() {
         config = ConfigUpdater.load(this);
-        messages.load(this, config.getString("language", "de"));
+        messages.load(this, config.getString("language", "auto"), config.getString("fallback-language", "en"),
+                config.getString("server-language", "en"));
         settings = Settings.from(config, messages, getLogger());
         discord.load(config.getConfigurationSection("discord"));
     }

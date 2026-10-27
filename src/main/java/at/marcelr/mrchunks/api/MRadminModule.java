@@ -80,7 +80,7 @@ final class MRadminModule implements AdminModule, WebModule {
         Location location = loader.location();
         service.report(ID, new Report(String.valueOf(loader.id()), "chunkloader-lock", loader.owner(),
                 LoaderManager.name(loader.owner()),
-                plugin.messages().plain("report-lock-subject", "name", Texts.name(plugin, loader)), details,
+                plugin.messages().server(() -> plugin.messages().plain("report-lock-subject", "name", Texts.name(plugin, loader))), details,
                 location == null ? null : location.add(0.5, 0, 0.5), "chunks-locked"));
     }
 
@@ -88,7 +88,8 @@ final class MRadminModule implements AdminModule, WebModule {
     static void resolveLock(MRChunks plugin, Loader loader, String admin) {
         MRadminService service = MRadminService.get();
         if (service != null) {
-            service.resolve(ID, String.valueOf(loader.id()), plugin.messages().plain("report-lock-lifted", "admin", admin));
+            service.resolve(ID, String.valueOf(loader.id()),
+                    plugin.messages().server(() -> plugin.messages().plain("report-lock-lifted", "admin", admin)));
         }
     }
 
@@ -154,7 +155,7 @@ final class MRadminModule implements AdminModule, WebModule {
             plugin.messages().send(viewer, "no-permission");
             return false;
         }
-        new PlayerLoadersMenu(plugin, viewer, player, back).open();
+        plugin.messages().run(viewer, () -> new PlayerLoadersMenu(plugin, viewer, player, back).open());
         return true;
     }
 
@@ -232,7 +233,8 @@ final class MRadminModule implements AdminModule, WebModule {
         if (loader == null) {
             return false;
         }
-        new LoaderMenu(plugin, viewer, loader.id(), back).open();
+        int loaderId = loader.id();
+        plugin.messages().run(viewer, () -> new LoaderMenu(plugin, viewer, loaderId, back).open());
         return true;
     }
 
@@ -248,7 +250,7 @@ final class MRadminModule implements AdminModule, WebModule {
     private static final Map<String, String> ACTIONS = Map.of(
             "toggle", "manage", "unlock", "manage", "delete", "manage", "dummy", "manage");
     private static final Map<String, String> PLAYER_ACTIONS = Map.of(
-            "limit", "limit", "ban", "ban", "unban", "ban", "deleteAll", "manage", "unlink", "manage");
+            "limit", "limit", "ban", "ban", "unban", "ban", "deleteAll", "manage", "unlink", "manage", "link", "manage");
 
     @Override
     public Map<String, String> permissions() {

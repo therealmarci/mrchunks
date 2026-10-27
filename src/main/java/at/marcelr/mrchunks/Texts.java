@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
+import static at.marcelr.mrchunks.Messages.lazy;
 import static at.marcelr.mrchunks.Messages.tag;
 
 /** Placeholders shared by all messages and menu items that show a loader or a ban. */
@@ -34,7 +35,7 @@ public final class Texts {
         Settings.LoaderSettings settings = plugin.settings().loaders();
         Messages messages = plugin.messages();
         return TagResolver.resolver(
-                tag("name", name(plugin, loader)),
+                lazy("name", () -> name(plugin, loader)),
                 tag("number", loader.number()),
                 tag("player", LoaderManager.name(loader.owner())),
                 tag("world", loader.worldName()),
@@ -45,8 +46,8 @@ public final class Texts {
                 tag("cz", loader.chunkZ()),
                 tag("size", settings.size()),
                 tag("chunks", settings.chunkCount()),
-                tag("created", date(messages, loader.created())),
-                tag("state", messages.get(loader.active() ? "gui-state-active" : "gui-state-inactive")));
+                lazy("created", () -> date(messages, loader.created())),
+                lazy("state", () -> messages.get(loader.active() ? "gui-state-active" : "gui-state-inactive")));
     }
 
     /** The name the player gave the loader, or the default name ("Chunkloader 3") in the current language. */

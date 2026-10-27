@@ -38,9 +38,10 @@ public final class LoaderItem {
 
         ItemStack stack = new ItemStack(item.material(), Math.max(1, amount));
         stack.editMeta(meta -> {
-            meta.displayName(noItalic(mini.deserialize(item.name(), tags)));
+            // Name and lore in the language of whoever gets the item (see Messages#as).
+            meta.displayName(noItalic(mini.deserialize(plugin.messages().optional("item-name"), tags)));
             List<Component> lore = new ArrayList<>();
-            for (String line : item.lore()) {
+            for (String line : plugin.messages().list("item-lore")) {
                 lore.add(noItalic(mini.deserialize(line, tags)));
             }
             meta.lore(lore);

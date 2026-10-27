@@ -5,20 +5,20 @@ api-version: '${mcVersion}'
 softdepend: [squaremap, MRadmin]
 author: _therealmarci
 website: ${website}/docs/${websiteSlug}/
-description: Chunkloader-Blöcke mit Limits, Menüs, Admin-GUI, squaremap-Anbindung und Discord-Logs.
+description: Chunk loader blocks with limits, menus, admin GUI, squaremap integration and Discord logs.
 
 commands:
   chunkloader:
-    description: Menü mit deinen Chunkloadern - holen, zurückgeben, verwalten, teilen, Webkarte und Hilfe.
+    description: Menu with your chunk loaders - get, return, manage, share, web map and help.
     usage: /chunkloader
     aliases: [cl, chunkloaders]
   mrchunks:
-    description: Verwaltung von MRchunks.
+    description: Management of MRchunks.
     usage: /mrchunks <gui|tp|toggle|delete|unlock|lag|limit|ban|unban|bans|link|unlink|map|discord|reload|version>
 
 permissions:
   mrchunks.player:
-    description: Alle Spieler-Rechte auf einmal (use, map, view, invite, link) - z.B. für die Default-Gruppe in LuckPerms.
+    description: All player permissions at once (use, map, view, invite, link, block) - e.g. for the default group in LuckPerms.
     default: op
     children:
       mrchunks.use: true
@@ -26,35 +26,39 @@ permissions:
       mrchunks.view: true
       mrchunks.invite: true
       mrchunks.link: true
+      mrchunks.block: true
   mrchunks.use:
-    description: Chunkloader holen (/chunkloader), setzen und die eigenen verwalten.
+    description: Get chunk loaders (/chunkloader), place them and manage your own.
     default: op
   mrchunks.map:
-    description: Knopf "Webkarte" in /chunkloader - Link zur Webkarte.
+    description: Button "Web map" in /chunkloader - link to the web map.
     default: op
   mrchunks.view:
-    description: Das Menü fremder Chunkloader öffnen (nur ansehen und Grenze anzeigen).
+    description: Open the menu of other players' chunk loaders (view only and show the border).
     default: op
   mrchunks.invite:
-    description: Andere Spieler einladen, die eigenen Chunkloader an- und auszuschalten.
+    description: Invite other players to switch your own chunk loaders on and off.
     default: op
   mrchunks.link:
-    description: Einen anderen Account (z.B. Zweit-Account) mit dem eigenen verknüpfen - beide teilen sich Chunkloader und Limit.
+    description: Link another account (e.g. a second account) with your own - both share chunk loaders and limit.
+    default: op
+  mrchunks.block:
+    description: Choose the block your chunk loaders stand as in the world (loader menu, item.block-choices).
     default: op
   mrchunks.exempt:
-    description: Schließt vom Chunkloading komplett aus (z.B. Zweit-Accounts) - keine Loader, keine Einladungen. Vorhandene Loader werden gelöscht. Achtung, "*" in LuckPerms enthält das auch!
+    description: Completely excludes from chunk loading (e.g. second accounts) - no loaders, no invites. Existing loaders are deleted. Warning, "*" in LuckPerms includes this too!
     default: false
   mrchunks.limit.unlimited:
-    description: Beliebig viele Chunkloader. Feste Grenzen gehen per mrchunks.limit.<anzahl>, z.B. mrchunks.limit.10.
+    description: Any number of chunk loaders. Fixed limits via mrchunks.limit.<number>, e.g. mrchunks.limit.10.
     default: false
   mrchunks.active.unlimited:
-    description: Beliebig viele gleichzeitig aktive Chunkloader. Feste Grenzen per mrchunks.active.<anzahl>, z.B. mrchunks.active.3.
+    description: Any number of chunk loaders active at the same time. Fixed limits via mrchunks.active.<number>, e.g. mrchunks.active.3.
     default: false
   mrchunks.dummies.unlimited:
-    description: Beliebig viele Dummy-Spieler. Feste Grenzen per mrchunks.dummies.<anzahl>, z.B. mrchunks.dummies.2.
+    description: Any number of dummy players. Fixed limits via mrchunks.dummies.<number>, e.g. mrchunks.dummies.2.
     default: false
   mrchunks.admin:
-    description: Alle Admin-Rechte von MRchunks.
+    description: All admin permissions of MRchunks.
     default: op
     children:
       mrchunks.admin.gui: true
@@ -67,22 +71,22 @@ permissions:
       mrchunks.admin.reload: true
       mrchunks.admin.update: true
   mrchunks.admin.gui:
-    description: /mrchunks gui - Admin-Menü öffnen (Aktionen darin brauchen ihre eigene Permission).
+    description: /mrchunks gui - open the admin menu (actions in it need their own permission).
     default: op
   mrchunks.admin.manage:
-    description: Fremde Chunkloader aktivieren/deaktivieren und löschen, Dummies schalten, Accounts verknüpfen und lösen.
+    description: Switch other players' chunk loaders on/off and delete them, toggle dummies, link and unlink accounts.
     default: op
   mrchunks.admin.teleport:
-    description: Zu Chunkloadern teleportieren.
+    description: Teleport to chunk loaders.
     default: op
   mrchunks.admin.limit:
-    description: Individuelle Limits vergeben (/mrchunks limit <spieler> <place|active|dummy> <anzahl>).
+    description: Grant individual limits (/mrchunks limit <player> <place|active|dummy> <number>).
     default: op
   mrchunks.admin.ban:
-    description: Spieler für Chunkloader sperren und entsperren.
+    description: Ban and unban players from chunk loaders.
     default: op
   mrchunks.admin.map:
-    description: /mrchunks map [setup] - Status der Webkarte, squaremap einrichten.
+    description: /mrchunks map [setup] - status of the web map, set up squaremap.
     default: op
   mrchunks.admin.discord:
     description: /mrchunks discord [test]
@@ -91,5 +95,5 @@ permissions:
     description: /mrchunks reload
     default: op
   mrchunks.admin.update:
-    description: Hinweis beim Betreten des Servers, wenn ein Update verfügbar ist.
+    description: Notice when joining the server if an update is available.
     default: op

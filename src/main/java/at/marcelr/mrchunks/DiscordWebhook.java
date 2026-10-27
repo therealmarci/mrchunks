@@ -168,7 +168,7 @@ public final class DiscordWebhook {
         if (!current.enabled()) {
             return CompletableFuture.completedFuture(plugin.messages().as(sender, this::disabledReason));
         }
-        String text = plugin.messages().optional("discord.test-message");
+        String text = plugin.messages().server(() -> plugin.messages().optional("discord.test-message"));
         String payload = buildPayload(current, 0x2ECC71, text.isEmpty() ? "MRchunks" : text);
         URI waitUrl = URI.create(current.url() + (current.url().getQuery() == null ? "?" : "&") + "wait=true");
         // The error text goes back to the sender, so build it in their language (English for the console).
@@ -192,7 +192,7 @@ public final class DiscordWebhook {
             }
             return;
         }
-        String text = plugin.messages().optional("discord." + eventKey);
+        String text = plugin.messages().server(() -> plugin.messages().optional("discord." + eventKey));
         if (!event.enabled() || text.isEmpty()) {
             return;
         }

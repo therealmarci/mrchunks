@@ -9,6 +9,23 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+## [0.7.0] - 2026-10-27
+
+### Neu
+- **Accounts in MRadmin verknüpfen:** Auf der Spielerseite der MRadmin-Weboberfläche lassen sich Accounts jetzt auch verknüpfen (bisher nur lösen) - per Spielername als Zweit- oder Haupt-Account, ohne Zustimmung der Spieler wie `/mrchunks link`. Permission `mrchunks.admin.manage`.
+- **Eigener Block pro Chunkloader:** Im Loader-Menü wählt der Besitzer über **Block ändern**, als welcher Block der Loader in der Welt steht (z.B. Diamant-, Gold-, Netherit- oder Amethystblock). Menüs und das Item bleiben beim Smaragdblock. Die Auswahl steht in `item.block-choices` (leere Liste = keine Auswahl; nur feste, ganze Blöcke ohne Schwerkraft und ohne Inventar), Permission `mrchunks.block` (in `mrchunks.player` enthalten). Admins mit `mrchunks.admin.manage` dürfen den Block fremder Loader ändern.
+- **Jeder Spieler in seiner Sprache:** Chat, Menüs, Dialoge und der Chunkloader-Gegenstand richten sich jetzt nach der Sprache, die der Spieler in Minecraft eingestellt hat (`language: auto`, neuer Standard): Deutsch (auch Österreich/Schweiz) bekommt Deutsch, Englisch bekommt Englisch, alle anderen `fallback-language` (Standard `en`). `language: de` oder `en` stellt weiterhin eine Sprache für alle ein.
+- **Server-Sprache (`server-language`):** Discord-Logs, Beschriftungen auf der Webkarte und Tickets in MRadmin kommen in dieser Sprache (Standard `en`).
+- **Automatische Umstellung:** Bestehende Configs bekommen `language: auto`; eine bisher fest eingestellte Sprache wird zur `server-language`, damit z.B. die Discord-Logs eines deutschen Servers deutsch bleiben.
+- **Benachrichtigungen in der Sprache des Empfängers:** Meldungen an Owner, Eingeladene und das Team (Lag-Sperre, Einladungen, Limits, Sperren, Umbenennen) bekommt jeder in seiner Sprache - auch wenn ein Admin mit anderer Sprache sie auslöst.
+
+### Behoben & geändert
+- **Menütitel in der falschen Sprache:** „Meine Chunkloader“ (über `/chunkloader`), das Loader-Menü per Rechtsklick auf den Block und die Menüs aus MRadmin hatten den Titel in der Server-Sprache statt in der Sprache des Spielers. Jetzt ist auch der Titel in der Sprache des Spielers.
+- **Menüs symmetrischer:** In „Meine Chunkloader“ sitzt die Kette (verknüpfte Accounts) ein Feld weiter links, gegenüber dem Schließen-Knopf; die Webkarte rückt in die Mitte der unteren Leiste. Im Loader-Menü steht die Grenze in der Mitte der zweiten Reihe, links davon (mit Abstand) An/Aus, Mitglieder und Dummy, rechts Block ändern, Umbenennen und Löschen.
+- **Update-Hinweis bei `/mrchunks version` doppelt:** Fand die Abfrage eine neue Version, kam zuerst der Admin-Hinweis „Für MRchunks gibt es ein Update“ und direkt danach „Neue Version verfügbar“. Jetzt kommt nur noch die Antwort auf den Befehl. Die Download-Links führen auf die Website (https://mrtechnology.marcelr.at/download/mrchunks/).
+- **Config und plugin.yml auf Englisch:** Alle Kommentare in der `config.yml` und die Beschreibungen der Befehle und Permissions in der `plugin.yml` sind jetzt englisch. Bestehende Configs bekommen die neuen Kommentare beim nächsten Start automatisch (config-version 10, Sicherung als `config.v<alt>.backup.yml`), alle Einstellungen bleiben erhalten.
+- **Config-Kommentare korrigiert:** Sie nennen jetzt die richtigen Befehle `/mrchunks limit <spieler> place|active <anzahl>` (statt des nicht mehr vorhandenen `/mrchunks activelimit`).
+
 ## [0.6.0] - 2026-10-27
 
 ### Geändert – Lizenz, Doku, Website

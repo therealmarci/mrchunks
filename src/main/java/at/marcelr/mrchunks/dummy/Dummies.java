@@ -148,7 +148,6 @@ public final class Dummies implements Listener {
 
     // ----------------------------------------------------------------- state
 
-    @SuppressWarnings("deprecation")
     public static boolean isDummy(Player player) {
         return player.hasMetadata(METADATA);
     }

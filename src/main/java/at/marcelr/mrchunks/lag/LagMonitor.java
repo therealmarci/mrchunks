@@ -350,11 +350,11 @@ public final class LagMonitor implements Listener {
         if (owner != null) {
             messages.send(owner, "lag-locked-owner", tags);
         }
-        Component teleport = messages.get("lag-teleport-label").clickEvent(ClickEvent.runCommand(
-                "/mrchunks tp " + LoaderManager.name(loader.owner()) + " " + loader.number()));
+        var teleport = Messages.lazy("teleport", () -> messages.get("lag-teleport-label").clickEvent(
+                ClickEvent.runCommand("/mrchunks tp " + LoaderManager.name(loader.owner()) + " " + loader.number())));
         for (Player staff : Bukkit.getOnlinePlayers()) {
             if (staff.hasPermission(AdminActions.PERM_MANAGE) && !staff.equals(owner)) {
-                messages.send(staff, "lag-locked-staff", tags, tag("teleport", teleport));
+                messages.send(staff, "lag-locked-staff", tags, teleport);
             }
         }
         plugin.getLogger().warning("Chunk loader " + Texts.consoleName(plugin, loader) + " was locked because of lag ("
@@ -468,10 +468,10 @@ public final class LagMonitor implements Listener {
     public net.kyori.adventure.text.minimessage.tag.resolver.TagResolver tags(Loader loader, LagLock lock) {
         return net.kyori.adventure.text.minimessage.tag.resolver.TagResolver.resolver(
                 Texts.loader(plugin, loader),
-                tag("metric", plugin.messages().plain("lag-metric-" + lock.metric().key())),
+                Messages.lazy("metric", () -> plugin.messages().plain("lag-metric-" + lock.metric().key())),
                 tag("value", format(lock.value())),
                 tag("limit", format(lock.limit())),
-                tag("time", Texts.date(plugin.messages(), lock.since())));
+                Messages.lazy("time", () -> Texts.date(plugin.messages(), lock.since())));
     }
 
     /** Whole numbers, rates with at most one decimal. */

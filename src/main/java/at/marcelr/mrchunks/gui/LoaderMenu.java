@@ -23,7 +23,8 @@ import static at.marcelr.mrchunks.Messages.tag;
  * Menu of one loader (right-click on the block, or from a list). Layout (3 rows):
  * <pre>
  *  . . . . [info] . . . .
- *  . [toggle] [members] [dummy] [border] . [rename] [delete] .     (dummy only with dummies.enabled)
+ *  [toggle] [members] [dummy] . [border] . [block] [rename] [delete]   (dummy only with dummies.enabled,
+ *                                                                     block only with item.block-choices)
  *  [back] . . . [close] . . . .          (with mrchunks.admin.teleport: [back] . . [close] . [teleport] . . .)
  * </pre>
  * Toggle needs ownership, an invite or mrchunks.admin.manage; rename, invites and delete only ownership or the admin
@@ -89,25 +90,32 @@ public final class LoaderMenu extends Menu {
         LagLock lock = plugin.loaders().lagLock(loader);
         TagResolver lockTags = lock == null ? tags : TagResolver.resolver(tags, plugin.lag().tags(loader, lock));
         if (lock != null && viewer.hasPermission(AdminActions.PERM_MANAGE)) {
-            button(10, Material.IRON_DOOR, "gui-unlock-name", "gui-unlock-lore", true,
+            button(9, Material.IRON_DOOR, "gui-unlock-name", "gui-unlock-lore", true,
                     () -> actions.unlock(viewer, loader), lockTags);
         } else if (lock != null) {
-            set(10, Items.of(Material.REDSTONE_BLOCK).name(messages.item("gui-locked-name", lockTags))
+            set(9, Items.of(Material.REDSTONE_BLOCK).name(messages.item("gui-locked-name", lockTags))
                     .lore(messages.lore("gui-locked-lore", lockTags)).build());
         } else if (loader.active()) {
-            button(10, Material.RED_DYE, "gui-toggle-off-name", "gui-toggle-off-lore", toggle,
+            button(9, Material.RED_DYE, "gui-toggle-off-name", "gui-toggle-off-lore", toggle,
                     () -> actions.toggle(viewer, loader), tags);
         } else {
-            button(10, Material.LIME_DYE, "gui-toggle-on-name", "gui-toggle-on-lore", toggle,
+            button(9, Material.LIME_DYE, "gui-toggle-on-name", "gui-toggle-on-lore", toggle,
                     () -> actions.toggle(viewer, loader), tags);
         }
 
-        button(15, Material.NAME_TAG, "gui-rename-name", "gui-rename-lore", manage,
+        if (manage && !plugin.settings().item().blockChoices().isEmpty()) {
+            Material current = plugin.loaders().blockOf(loader);
+            button(15, current, "gui-block-name", "gui-block-lore", actions.canChangeBlock(viewer, loader),
+                    () -> new BlockMenu(plugin, viewer, loader.id(), this).open(),
+                    TagResolver.resolver(tags, tag("block", Component.translatable(current))));
+        }
+
+        button(16, Material.NAME_TAG, "gui-rename-name", "gui-rename-lore", manage,
                 () -> RenameDialog.open(plugin, viewer, loader, back), tags);
 
         if (plugin.settings().invites().enabled() && AdminActions.canManageInvites(viewer, loader.owner())) {
             int count = plugin.loaders().members(loader.owner(), loader).size();
-            button(11, Material.PLAYER_HEAD, "gui-members-name", "gui-members-lore", true,
+            button(10, Material.PLAYER_HEAD, "gui-members-name", "gui-members-lore", true,
                     () -> new MembersMenu(plugin, viewer, loader.owner(), loader.id(), this).open(),
                     TagResolver.resolver(tags, tag("count", count)));
         }
@@ -130,7 +138,7 @@ public final class LoaderMenu extends Menu {
         }
 
         boolean armed = System.currentTimeMillis() < confirmUntil;
-        button(16, armed ? Material.TNT_MINECART : Material.TNT,
+        button(17, armed ? Material.TNT_MINECART : Material.TNT,
                 armed ? "gui-delete-confirm-name" : "gui-delete-name",
                 armed ? "gui-delete-confirm-lore" : "gui-delete-lore", manage, () -> {
                     if (System.currentTimeMillis() < confirmUntil) {
@@ -181,7 +189,7 @@ public final class LoaderMenu extends Menu {
         } else {
             lore = "gui-dummy-waiting-lore";
         }
-        button(12, loader.dummy() ? Material.ARMOR_STAND : Material.LEATHER_HELMET,
+        button(11, loader.dummy() ? Material.ARMOR_STAND : Material.LEATHER_HELMET,
                 loader.dummy() ? "gui-dummy-off-name" : "gui-dummy-on-name", lore, manage,
                 () -> plugin.adminActions().toggleDummy(viewer, loader), all);
     }

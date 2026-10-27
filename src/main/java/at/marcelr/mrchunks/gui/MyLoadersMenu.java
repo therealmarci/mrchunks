@@ -33,8 +33,8 @@ public final class MyLoadersMenu extends Menu {
     private static final int MEMBERS = 45;
     private static final int SHARED = 46;
     private static final int PAGE_BACK = 47;
-    private static final int MAP = 48;
-    private static final int LINKS = 49;
+    private static final int LINKS = 48;
+    private static final int MAP = 49;
     private static final int CLOSE = 50;
     private static final int PAGE_FORWARD = 51;
     private static final int GET = 52;

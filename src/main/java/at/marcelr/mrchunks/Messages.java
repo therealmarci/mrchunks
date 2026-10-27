@@ -1,8 +1,10 @@
 package at.marcelr.mrchunks;
 
+import at.marcelr.mrchunks.util.LanguageChoice;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.Tag;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.World;
@@ -23,20 +25,20 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 
 /**
- * All texts of the plugin, read from {@code lang/<language>.yml}. The bundled languages are copied into the plugin
- * folder; texts missing from a file (e.g. after an update) are added from the bundled defaults.
+ * All texts of the plugin, read from {@code lang/<language>.yml}. Every player gets the language of their game
+ * (de -> de.yml, no file -> fallback) unless the config fixes one; the console is always English and texts without a
+ * player recipient (Discord ...) use the server language. The bundled languages are copied into the plugin folder;
+ * texts missing from a file are added from the bundled defaults.
  */
 public final class Messages {
 
     /** Languages shipped with the plugin; the first one is the fallback. */
     public static final List<String> BUNDLED = List.of("en", "de");
-    private static final Map<String, String> ALIASES = Map.of(
-            "eng", "en", "english", "en", "englisch", "en",
-            "deu", "de", "ger", "de", "german", "de", "deutsch", "de");
 
     /** Version of the bundled language files (lang-version in de.yml/en.yml). */
     private final int langVersion;
@@ -53,29 +55,54 @@ public final class Messages {
         this.langVersion = langVersion;
         this.changedTexts = new TreeMap<>(changedTexts);
     }
-    /** Set while texts for the console are built (see {@link #as}). */
-    private static final ThreadLocal<Boolean> CONSOLE = ThreadLocal.withInitial(() -> false);
-    private volatile YamlConfiguration lang = new YamlConfiguration();
-    /** The bundled English texts - the console is always English, whatever language players get. */
+    /** Texts of the recipient whose message is being built right now (see {@link #as}), or null. */
+    private static final ThreadLocal<YamlConfiguration> CURRENT = new ThreadLocal<>();
+    /** All language files of the lang folder by code ("de", "en", "fr" ...). */
+    private volatile Map<String, YamlConfiguration> languages = Map.of();
+    /** Code of the fixed language, or null if every player gets the language of their game. */
+    private volatile String fixed;
+    /** Language for players whose game language has no file. */
+    private volatile String fallbackCode = BUNDLED.getFirst();
+    /** Language of texts without a player recipient (Discord ...). */
+    private volatile String serverCode = BUNDLED.getFirst();
+    /** The English texts - the console is always English, whatever language players get. */
     private volatile YamlConfiguration english = new YamlConfiguration();
 
-    /** Loads the language file for the given tag (e.g. "de", "en", "eng", "de_DE"). */
-    public void load(JavaPlugin plugin, String tag) {
+    /**
+     * Loads all language files of the lang folder.
+     *
+     * @param setting  "auto" = every player gets the language of their game (Minecraft setting), otherwise a fixed
+     *                 language for everyone ("de", "en", "deutsch" ...)
+     * @param fallback language for players whose game language has no file
+     * @param server   language of texts without a player recipient (Discord ...)
+     */
+    public void load(JavaPlugin plugin, String setting, String fallback, String server) {
         File dir = new File(plugin.getDataFolder(), "lang");
         for (String code : BUNDLED) {
             if (!new File(dir, code + ".yml").exists()) {
                 plugin.saveResource("lang/" + code + ".yml", false);
             }
         }
-        String code = resolve(dir, tag);
-        File file = new File(dir, code + ".yml");
-        if (!file.exists()) {
-            plugin.getLogger().warning("Language file lang/" + code + ".yml not found, using "
-                    + BUNDLED.getFirst() + ".");
-            code = BUNDLED.getFirst();
-            file = new File(dir, code + ".yml");
+        Map<String, YamlConfiguration> loaded = new TreeMap<>();
+        File[] files = dir.listFiles((parent, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml"));
+        for (File file : files == null ? new File[0] : files) {
+            String code = file.getName().substring(0, file.getName().length() - 4).toLowerCase(Locale.ROOT);
+            loaded.put(code, loadFile(plugin, file, code));
         }
+        for (String code : BUNDLED) {
+            loaded.computeIfAbsent(code, missing -> bundled(plugin, missing));
+        }
+        languages = Map.copyOf(loaded);
+        english = loaded.get("en");
 
+        fallbackCode = LanguageChoice.resolve(loaded.keySet(), fallback, BUNDLED.getFirst());
+        serverCode = LanguageChoice.resolve(loaded.keySet(), server, fallbackCode);
+        boolean auto = setting == null || setting.isBlank() || setting.trim().equalsIgnoreCase("auto");
+        fixed = auto ? null : LanguageChoice.resolve(loaded.keySet(), setting, fallbackCode);
+    }
+
+    /** Reads one language file and brings it up to date with the bundled defaults (saved if something changed). */
+    private YamlConfiguration loadFile(JavaPlugin plugin, File file, String code) {
         YamlConfiguration loaded = new YamlConfiguration();
         try {
             loaded.loadFromString(ConfigUpdater.stripBom(Files.readString(file.toPath(), StandardCharsets.UTF_8)));
@@ -120,21 +147,18 @@ public final class Messages {
                 plugin.getLogger().log(Level.WARNING, "Could not update lang/" + code + ".yml: " + e.getMessage());
             }
         }
-        english = code.equals("en") ? defaults : bundled(plugin, "en");
-        lang = loaded;
+        return loaded;
     }
 
-    /** Finds the file for a tag: exact name first, then aliases (eng, deutsch ...), then the part before _ or -. */
-    private static String resolve(File dir, String tag) {
-        String code = tag == null || tag.isBlank() ? BUNDLED.getFirst() : tag.trim().toLowerCase(Locale.ROOT);
-        if (new File(dir, code + ".yml").exists()) {
-            return code;
+    /**
+     * The language a player gets: the fixed one from the config, or the language of their game ("de_at" -> de.yml,
+     * a language without file -> the fallback).
+     */
+    public String languageOf(Player player) {
+        if (fixed != null) {
+            return fixed;
         }
-        if (ALIASES.containsKey(code)) {
-            return ALIASES.get(code);
-        }
-        String base = code.split("[_-]", 2)[0];
-        return ALIASES.getOrDefault(base, base);
+        return LanguageChoice.resolve(languages.keySet(), player.locale().toString(), fallbackCode);
     }
 
     /** The bundled language file, used to fill in missing texts. */
@@ -150,24 +174,69 @@ public final class Messages {
         return config;
     }
 
-    /** Texts for the current recipient: English while something is sent to the console, otherwise the language file. */
+    /** Texts for the current recipient (see {@link #as}); outside of that the fixed or the server language. */
     private YamlConfiguration texts() {
-        return CONSOLE.get() ? english : lang;
+        YamlConfiguration current = CURRENT.get();
+        if (current != null) {
+            return current;
+        }
+        YamlConfiguration texts = languages.get(fixed != null ? fixed : serverCode);
+        return texts != null ? texts : english;
     }
 
     /**
-     * Runs {@code action} with English texts if {@code sender} is not a player (console, command block ...).
-     * Commands use this so that every value they build - not just the final message - is English in the console.
+     * Runs {@code action} with the texts of {@code recipient}: their own language for a player, English for the
+     * console (and command blocks ...). Everything that builds texts for someone runs inside this - not just the final
+     * message - so menus, item names and placeholders are all in the same language.
      */
-    public <T> T as(CommandSender sender, Supplier<T> action) {
-        if (sender instanceof Player || CONSOLE.get()) {
-            return action.get();
-        }
-        CONSOLE.set(true);
+    public <T> T as(CommandSender recipient, Supplier<T> action) {
+        YamlConfiguration target = recipient instanceof Player player
+                ? languages.getOrDefault(languageOf(player), english)
+                : english;
+        YamlConfiguration previous = CURRENT.get();
+        CURRENT.set(target);
         try {
             return action.get();
         } finally {
-            CONSOLE.set(false);
+            if (previous == null) {
+                CURRENT.remove();
+            } else {
+                CURRENT.set(previous);
+            }
+        }
+    }
+
+    /** Like {@link #as(CommandSender, Supplier)} for actions without result. */
+    public void run(CommandSender recipient, Runnable action) {
+        as(recipient, () -> {
+            action.run();
+            return null;
+        });
+    }
+
+    /**
+     * Runs {@code action} with the server language - for texts without a player recipient (Discord ...) that are
+     * built while a command or menu of some player is running.
+     */
+    public <T> T server(Supplier<T> action) {
+        YamlConfiguration target = languages.getOrDefault(fixed != null ? fixed : serverCode, english);
+        YamlConfiguration previous = CURRENT.get();
+        CURRENT.set(target);
+        try {
+            return action.get();
+        } finally {
+            if (previous == null) {
+                CURRENT.remove();
+            } else {
+                CURRENT.set(previous);
+            }
+        }
+    }
+
+    /** Runs {@code action} once per recipient, each time in the recipient's language (see {@link #as}). */
+    public void each(Iterable<? extends CommandSender> recipients, Consumer<CommandSender> action) {
+        for (CommandSender recipient : recipients) {
+            run(recipient, () -> action.accept(recipient));
         }
     }
 
@@ -252,22 +321,16 @@ public final class Messages {
     }
 
     public void send(CommandSender target, String key, TagResolver... resolvers) {
-        as(target, () -> {
+        run(target, () -> {
             if (raw(key) != null) {
                 target.sendMessage(get(key, resolvers));
             }
-            return null;
         });
     }
 
+    /** Sends the message to everyone in the world, each player in their own language. */
     public void broadcast(World world, String key, TagResolver... resolvers) {
-        if (raw(key) == null) {
-            return;
-        }
-        Component message = get(key, resolvers);
-        for (Player player : world.getPlayers()) {
-            player.sendMessage(message);
-        }
+        each(world.getPlayers(), player -> send(player, key, resolvers));
     }
 
     /** Formats a number of nights, e.g. "1 night" / "3 nights", using nights-singular / nights-plural. */
@@ -287,5 +350,17 @@ public final class Messages {
     /** Placeholder with a formatted component as value. */
     public static TagResolver tag(String name, Component value) {
         return Placeholder.component(name, value);
+    }
+
+    /**
+     * Placeholder whose value (text or component) is only built when the message is built - so a placeholder made
+     * for one player and sent to another is still in the recipient's language.
+     */
+    public static TagResolver lazy(String name, Supplier<?> value) {
+        return TagResolver.resolver(name, (arguments, context) -> {
+            Object result = value.get();
+            return Tag.selfClosingInserting(result instanceof Component component ? component
+                    : Component.text(String.valueOf(result)));
+        });
     }
 }

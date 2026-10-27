@@ -68,8 +68,12 @@ public final class LinkRequests {
         ask(target, main, seconds);
     }
 
-    /** Dialog plus chat buttons for the asked player. */
+    /** Dialog plus chat buttons for the asked player, in their language. */
     private void ask(Player target, Player main, int seconds) {
+        plugin.messages().run(target, () -> askNow(target, main, seconds));
+    }
+
+    private void askNow(Player target, Player main, int seconds) {
         Messages messages = plugin.messages();
         UUID targetId = target.getUniqueId();
         UUID mainId = main.getUniqueId();

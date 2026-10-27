@@ -1,187 +1,199 @@
 ﻿# ==============================================================================
-#   MRchunks - Konfiguration
+#   MRchunks - Configuration
 # ==============================================================================
-#   Nach Änderungen:  /mrchunks reload   (kein Neustart nötig)
-#   Admin-Menü:       /mrchunks gui
-#   Spieler-Menü:     /chunkloader
+#   After changes:   /mrchunks reload   (no restart needed)
+#   Admin menu:      /mrchunks gui
+#   Player menu:     /chunkloader
+#   Help & docs:     https://mrtechnology.marcelr.at/docs/mrchunks/
 #
-#   Zeitangaben: d = Tage, h = Stunden, m = Minuten, s = Sekunden,
-#                z.B. "30m", "1h30m", "7d". Eine reine Zahl zählt als Minuten.
+#   Durations: d = days, h = hours, m = minutes, s = seconds,
+#              e.g. "30m", "1h30m", "7d". A plain number counts as minutes.
 #
-#   Texte & Nachrichten (auch Item, Karte, Discord): lang/de.yml bzw. lang/en.yml.
+#   Texts & messages (also item, map, Discord): lang/de.yml or lang/en.yml.
 #
-#   Diese Datei ist UTF-8-kodiert. Falls Umlaute (ä, ö, ü) falsch angezeigt werden,
-#   im Editor die Kodierung auf "UTF-8" stellen.
+#   This file is UTF-8 encoded. If special characters (ä, ö, ü) look wrong,
+#   set the encoding in your editor to "UTF-8".
 # ==============================================================================
 
-# Nicht ändern - wird für automatische Config-Updates verwendet.
-config-version: 9
+# Do not change - used for automatic config updates.
+config-version: 11
 
-# Sprache aller Texte: de = Deutsch, en = English. Die Texte stehen in plugins/MRchunks/lang/<sprache>.yml
-# und können dort angepasst werden. Eigene Sprache: Datei kopieren (z.B. fr.yml), übersetzen, language: fr.
-language: de
+# Language of the texts (chat, menus, items). The texts are in plugins/MRchunks/lang/<language>.yml.
+#   auto = every player gets the language set in their Minecraft client:
+#          German (also Austria/Switzerland) -> de.yml, English -> en.yml, a language without a file -> fallback-language.
+#   de / en / ... = fixed language for all players.
+# The console is always English. Own language: copy a file (e.g. as fr.yml) and translate it - with "auto"
+# French players then get it automatically.
+language: auto
+
+# Language for players whose Minecraft language has no file of its own.
+fallback-language: en
+
+# Language of texts that are not meant for a single player: Discord logs, the web map (squaremap),
+# tickets in MRadmin.
+server-language: en
 
 
 # ------------------------------------------------------------------------------
-#   1) CHUNKLOADER
+#   1) CHUNK LOADERS
 # ------------------------------------------------------------------------------
 loaders:
-  # Wie viele Chunks in jede Richtung um den Loader geladen bleiben.
-  # 3 = 7x7 Chunks (49 Chunks), 2 = 5x5, 1 = 3x3.
+  # How many chunks in each direction around the loader stay loaded.
+  # 3 = 7x7 chunks (49 chunks), 2 = 5x5, 1 = 3x3.
   radius: 3
 
-  # Wie viele Chunkloader jeder Spieler SETZEN darf.
-  # Mehr gibt es per Permission "mrchunks.limit.<anzahl>" (z.B. mrchunks.limit.15)
-  # oder per Admin-Befehl /mrchunks limit <spieler> <anzahl>.
+  # How many chunk loaders each player may PLACE.
+  # More via the permission "mrchunks.limit.<number>" (e.g. mrchunks.limit.15)
+  # or the admin command /mrchunks limit <player> place <number>.
   default-limit: 3
 
-  # Wie viele davon GLEICHZEITIG AKTIV sein dürfen (also wirklich Chunks laden).
-  # Weitere gesetzte Loader bleiben deaktiviert, bis ein anderer ausgeschaltet wird.
-  # Beispiel: default-limit 15 und default-active-limit 3 = 15 Loader setzen, 3 davon gleichzeitig nutzen.
-  # Mehr gibt es per Permission "mrchunks.active.<anzahl>" oder per /mrchunks activelimit <spieler> <anzahl>.
+  # How many of them may be ACTIVE AT THE SAME TIME (actually loading chunks).
+  # Further placed loaders stay switched off until another one is switched off.
+  # Example: default-limit 15 and default-active-limit 3 = place 15 loaders, use 3 of them at the same time.
+  # More via the permission "mrchunks.active.<number>" or /mrchunks limit <player> active <number>.
   default-active-limit: 3
 
-  # Welten, in denen keine Chunkloader gesetzt werden können (Name, Groß-/Kleinschreibung egal).
-  # Chunkloader funktionieren in allen Dimensionen (Oberwelt, Nether, End).
-  # Die Arena-Welt von MRpvp ist immer gesperrt (MRpvp baut die Arenen dort selbst auf und ab) - das erkennt MRchunks
-  # nur, wenn auch MRadmin installiert ist (die Plugins sprechen über MRadmins Modul-Schnittstelle miteinander).
+  # Worlds in which no chunk loaders can be placed (name, case does not matter).
+  # Chunk loaders work in all dimensions (overworld, Nether, End).
+  # MRpvp's arena world is always blocked (MRpvp builds and removes the arenas there itself) - MRchunks only
+  # detects it when MRadmin is installed too (the plugins talk to each other through MRadmin's module interface).
   disabled-worlds: []
 
-  # Wie die Chunks geladen gehalten werden:
-  #   ticket    = Plugin-Ticket (empfohlen). Wird beim Stoppen des Plugins sauber entfernt.
-  #   forceload = wie der Vanilla-Befehl /forceload. Nur nötig, wenn in der Paper-Config
-  #               "disable-world-ticking-when-empty" aktiv ist (sonst hört eine Dimension ohne
-  #               Spieler auf zu ticken). Chunks, die schon anders geforceloadet sind, bleiben unangetastet.
+  # How the chunks are kept loaded:
+  #   ticket    = plugin ticket (recommended). Removed cleanly when the plugin stops.
+  #   forceload = like the vanilla command /forceload. Only needed if "disable-world-ticking-when-empty"
+  #               is active in the Paper config (otherwise a dimension without players stops
+  #               ticking). Chunks that are already force-loaded in another way are left alone.
   load-method: ticket
 
-  # Was passiert, wenn sich der Bereich eines neuen Chunkloaders mit bestehenden überschneidet?
-  # (Doppelt abgedeckte Chunks werden nur einmal geladen. Wird ein Loader deaktiviert oder gelöscht, bleiben
-  # die Chunks geladen, die ein anderer aktiver Loader abdeckt.)
-  #   allow    = einfach erlauben
-  #   warn     = erlauben, aber Hinweis mit den betroffenen Loadern und die Grenze anzeigen
-  #   deny-own = verbieten, wenn er sich mit eigenen Loadern überschneidet
-  #   deny-all = verbieten, wenn er sich mit irgendeinem Loader überschneidet
+  # What happens if the area of a new chunk loader overlaps existing ones?
+  # (Chunks covered twice are only loaded once. If a loader is switched off or deleted, the chunks
+  # another active loader covers stay loaded.)
+  #   allow    = simply allow it
+  #   warn     = allow it, but show a notice with the affected loaders and the border
+  #   deny-own = forbid it if it overlaps the player's own loaders
+  #   deny-all = forbid it if it overlaps any loader
   overlap: warn
 
-  # Verschwindet ein Loader-Block doch einmal (z.B. durch WorldEdit):
-  #   true  = Block wird automatisch wiederhergestellt
-  #   false = Chunkloader wird gelöscht
+  # If a loader block disappears after all (e.g. through WorldEdit):
+  #   true  = the block is restored automatically
+  #   false = the chunk loader is deleted
   restore-missing-blocks: true
-  # Wie oft das geprüft wird (in Sekunden).
+  # How often this is checked (in seconds).
   check-interval-seconds: 60
 
 
-# Einladungen: Owner können andere Spieler einladen, ihre Chunkloader an- und auszuschalten - für einen Loader
-# (Menü des Loaders -> Mitglieder) oder für alle (/chunkloader -> Mitglieder für alle Loader).
-# Eingeladene dürfen nur an/aus schalten, nicht umbenennen oder löschen. Das zählt bei niemandem zum Limit,
-# das Aktiv-Limit des Owners gilt weiter. Eingeladene finden die Loader unter /chunkloader -> Mit mir geteilt.
+# Invites: owners can invite other players to switch their chunk loaders on and off - for one loader
+# (loader menu -> Members) or for all of them (/chunkloader -> Members for all loaders).
+# Invited players may only switch on/off, not rename or delete. This counts towards nobody's limit,
+# the owner's active limit still applies. Invited players find the loaders under /chunkloader -> Shared with me.
 invites:
   enabled: true
-  # Auswahl der Dauer im Einladen-Dialog ("permanent" = dauerhaft).
+  # Choice of durations in the invite dialog ("permanent" = forever).
   durations: ["1d", "7d", "30d", "permanent"]
-  # Höchstens so viele Eingeladene pro Loader bzw. für "alle Loader".
+  # At most this many invited players per loader or for "all loaders".
   max-members: 10
 
-# Verknüpfte Accounts (z.B. ein Zweit-Account zum AFK-Farmen): Ein Spieler verknüpft unter /chunkloader ->
-# Verknüpfte Accounts einen anderen Account mit dem eigenen, der andere muss zustimmen (beide müssen online sein).
-# Danach teilen sich beide alles wie ein einziger Spieler: dieselben Chunkloader, das Limit (das des Haupt-Accounts,
-# also des Spielers, der verknüpft hat), Einladungen und Dummies. Chunkloader, die der Zweit-Account schon hatte,
-# gehen dabei an den Haupt-Account über. Eine Sperre gilt für alle verknüpften Accounts.
-# Lösen kann die Verknüpfung jeder der beiden jederzeit (die Chunkloader bleiben beim Haupt-Account) sowie Admins
-# (/mrchunks unlink <spieler>). Admins können auch direkt verknüpfen: /mrchunks link <haupt-account> <zweit-account>
-# Spieler brauchen dafür die Permission mrchunks.link (in mrchunks.player enthalten).
+# Linked accounts (e.g. a second account for AFK farming): under /chunkloader -> Linked accounts a player links
+# another account with their own, the other one has to agree (both have to be online).
+# Afterwards both share everything like a single player: the same chunk loaders, the limit (the one of the main
+# account, i.e. the player who linked), invites and dummies. Chunk loaders the second account already had
+# go to the main account. A ban applies to all linked accounts.
+# Either of the two can remove the link at any time (the chunk loaders stay with the main account), and so can
+# admins (/mrchunks unlink <player>). Admins can also link directly: /mrchunks link <main account> <second account>
+# Players need the permission mrchunks.link for this (included in mrchunks.player).
 linked-accounts:
   enabled: true
-  # Wie viele Zweit-Accounts ein Haupt-Account haben darf.
+  # How many second accounts a main account may have.
   max-accounts: 1
-  # So lange (Sekunden) kann der andere Account die Anfrage annehmen.
+  # How long (seconds) the other account has to accept the request.
   request-seconds: 120
 
 
 # ------------------------------------------------------------------------------
-#   2) DUMMY-SPIELER
+#   2) DUMMY PLAYERS
 # ------------------------------------------------------------------------------
-# Ein Dummy ist ein künstlicher Spieler, der auf einem Chunkloader sitzt. Der Chunkloader allein hält Chunks nur
-# geladen - für den Server ist aber trotzdem kein Spieler in der Nähe. Deshalb sind Mobs dort fast inaktiv (z.B.
-# laufen sie nicht durch Portale), es spawnen keine Mobs und manches wächst nicht. Ein Dummy zählt als Spieler in
-# der Nähe, damit laufen solche Farmen wie mit einem echten Spieler daneben.
+# A dummy is an artificial player sitting on a chunk loader. A chunk loader alone only keeps chunks
+# loaded - but for the server there is still no player nearby. That is why mobs there are almost inactive (e.g.
+# they do not walk through portals), no mobs spawn and some things do not grow. A dummy counts as a player
+# nearby, so such farms run as if a real player were standing next to them.
 #
-# Der Owner schaltet den Dummy im Menü des Chunkloaders ein. Er sitzt (sichtbar, mit dem Skin des Owners) auf dem
-# Block, solange der Loader aktiv ist. Er ist unverwundbar, wird von Mobs ignoriert, steht nicht in der Tab-Liste
-# und zählt nicht zur Spielerzahl. Für MRsleep, MRadmin und MRpvp ist er kein Spieler.
+# The owner switches the dummy on in the chunk loader's menu. It sits on the block (visible, with the owner's
+# skin) as long as the loader is active. It is invulnerable, ignored by mobs, not in the tab list
+# and does not count towards the player count. For MRsleep, MRadmin and MRpvp it is not a player.
 #
-# ACHTUNG: Dummies kosten deutlich mehr Leistung als ein Chunkloader allein (Mob-Spawning und Mob-KI wie bei einem
-# echten Spieler). Lag-Schutz und Server-Pause gelten auch hier - wird ein Loader gesperrt oder pausiert, ist auch
-# sein Dummy weg. Dummies nutzen Server-Interna: Passt die MRchunks-Version nicht zur Server-Version, sind sie aus
-# (Hinweis in der Konsole), der Rest von MRchunks funktioniert normal.
+# WARNING: dummies cost a lot more performance than a chunk loader alone (mob spawning and mob AI like a
+# real player). Lag protection and server pause apply here too - if a loader is locked or paused, its
+# dummy is gone as well. Dummies use server internals: if the MRchunks version does not match the server version,
+# they are off (notice in the console), the rest of MRchunks works normally.
 dummies:
   enabled: false
-  # Wie viele Dummies jeder Spieler gleichzeitig einschalten darf (einer pro Chunkloader).
-  # Mehr per Permission "mrchunks.dummies.<anzahl>" (z.B. mrchunks.dummies.3), "mrchunks.dummies.unlimited"
-  # oder per /mrchunks limit <spieler> dummy <anzahl>.
+  # How many dummies each player may switch on at the same time (one per chunk loader).
+  # More via the permission "mrchunks.dummies.<number>" (e.g. mrchunks.dummies.3), "mrchunks.dummies.unlimited"
+  # or /mrchunks limit <player> dummy <number>.
   default-limit: 1
-  # true = der Dummy sitzt auf dem Block, false = er steht darauf.
+  # true = the dummy sits on the block, false = it stands on it.
   sit: true
-  # true = Skin des Owners, false = Standard-Skin.
+  # true = the owner's skin, false = default skin.
   owner-skin: true
 
 
 # ------------------------------------------------------------------------------
-#   3) LAG-SCHUTZ
+#   3) LAG PROTECTION
 # ------------------------------------------------------------------------------
-# MRchunks misst regelmäßig, was im Bereich jedes aktiven Chunkloaders passiert (alle Chunks zusammen).
-# Ist ein Wert über "warn", gilt der Loader als auffällig: Admins sehen ihn in /mrchunks lag (und im
-# Serverzustand von MRadmin, falls installiert), dazu ein Discord-Log (höchstens einmal pro Stunde).
-# Ist ein Wert mehrmals hintereinander über "lock", wird der Loader deaktiviert und GESPERRT: nur Admins können
-# die Sperre aufheben (Menü des Loaders oder /mrchunks unlock <spieler> <nr>). Der Owner wird informiert.
-# Ein Wert von 0 schaltet die jeweilige Messung ab (z.B. hoppers: { warn: 0, lock: 0 }).
+# MRchunks regularly measures what happens in the area of every active chunk loader (all chunks together).
+# If a value is above "warn", the loader counts as suspicious: admins see it in /mrchunks lag (and in
+# MRadmin's server status, if installed), plus a Discord log (at most once per hour).
+# If a value is above "lock" several times in a row, the loader is switched off and LOCKED: only admins can
+# lift the lock (loader menu or /mrchunks unlock <player> <nr>). The owner is informed.
+# A value of 0 switches the respective measurement off (e.g. hoppers: { warn: 0, lock: 0 }).
 lag-protection:
   enabled: true
-  # Alle so viele Sekunden wird gemessen.
+  # Measure every this many seconds.
   sample-seconds: 30
-  # So viele Messungen hintereinander über "lock", bevor gesperrt wird (3 x 30 s = 1,5 Minuten).
-  # Das gilt auch nach dem Entsperren: frühestens nach so vielen neuen Messungen kann wieder gesperrt werden.
+  # This many measurements in a row above "lock" before locking (3 x 30 s = 1.5 minutes).
+  # This also applies after unlocking: it can lock again after this many new measurements at the earliest.
   lock-after-samples: 3
-  # true = nur sperren, wenn der Server dabei wirklich laggt (durchschnittliche Tick-Zeit ab server-lag-mspt).
-  #        Eine große Farm, mit der der Server gut zurechtkommt, wird dann nicht gesperrt.
-  # false = immer sperren, sobald die Grenzen überschritten sind.
+  # true = only lock if the server really lags at that time (average tick time from server-lag-mspt).
+  #        A big farm the server copes with well is then not locked.
+  # false = always lock as soon as the limits are exceeded.
   only-when-server-lags: true
-  # Ab dieser durchschnittlichen Tick-Zeit (ms) gilt der Server als laggend (50 = 20 TPS gerade noch gehalten).
+  # From this average tick time (ms) the server counts as lagging (50 = 20 TPS just about held).
   server-lag-mspt: 40
-  # Bedingungslose Sperre: Ab dem Wievielfachen der "lock"-Grenze wird auch OHNE Server-Lag gesperrt (ebenfalls erst
-  # nach lock-after-samples Messungen hintereinander). Nur wichtig bei only-when-server-lags: true.
-  # 1 = sobald "lock" überschritten ist, 2 = ab doppelter Grenze (z. B. 1600 Entities bei lock 800), 1.5 geht auch.
-  # 0 = aus, dann wird ohne Server-Lag nie gesperrt.
+  # Unconditional lock: from how many times the "lock" limit to lock even WITHOUT server lag (also only
+  # after lock-after-samples measurements in a row). Only relevant with only-when-server-lags: true.
+  # 1 = as soon as "lock" is exceeded, 2 = from double the limit (e.g. 1600 entities with lock 800), 1.5 works too.
+  # 0 = off, then it never locks without server lag.
   force-lock-multiplier: 2
-  # Grenzen für den gesamten Bereich eines Loaders (Standard 7x7 Chunks).
+  # Limits for the whole area of a loader (default 7x7 chunks).
   limits:
-    # Entities (Mobs, Tiere, Loren, Rüstungsständer ... inkl. Items am Boden, ohne Spieler)
+    # Entities (mobs, animals, minecarts, armour stands ... including items on the ground, without players)
     entities: { warn: 300, lock: 800 }
-    # Items, die am Boden liegen
+    # Items lying on the ground
     items: { warn: 200, lock: 1000 }
-    # Redstone-Signaländerungen pro Sekunde (Clocks, große Schaltungen)
+    # Redstone signal changes per second (clocks, large circuits)
     redstone: { warn: 500, lock: 2000 }
-    # Item-Transfers von Trichtern, Droppern, Trichterloren ... pro Sekunde
+    # Item transfers of hoppers, droppers, hopper minecarts ... per second
     hoppers: { warn: 300, lock: 1200 }
-    # Kolben-Bewegungen pro Sekunde
+    # Piston movements per second
     pistons: { warn: 40, lock: 150 }
-    # Neue Mobs und Items pro Sekunde
+    # New mobs and items per second
     spawns: { warn: 20, lock: 80 }
 
-# Server-Pause: Laggt der ganze Server (egal ob wegen Chunkloadern oder etwas anderem), geben ALLE Chunkloader ihre
-# Chunks frei, bis er sich erholt hat - danach laden sie automatisch wieder. An/aus der Loader bleibt unverändert,
-# niemand muss etwas wieder einschalten. Owner aktiver Loader und Admins werden informiert (dazu ein Discord-Log).
-# Gemessen wird die TPS des Servers über die letzte Minute (20 = flüssig).
+# Server pause: if the whole server lags (no matter whether because of chunk loaders or something else), ALL chunk
+# loaders release their chunks until it has recovered - afterwards they load again automatically. Whether a loader is
+# on or off stays unchanged, nobody has to switch anything back on. Owners of active loaders and admins are informed
+# (plus a Discord log). Measured is the server's TPS over the last minute (20 = smooth).
 server-pause:
   enabled: true
-  # Pausieren, wenn die TPS so lange unter "below-tps" liegt (Sekunden) - kurze Lag-Spitzen lösen nichts aus.
+  # Pause when the TPS stays below "below-tps" for this long (seconds) - short lag spikes trigger nothing.
   below-tps: 15
   pause-after-seconds: 30
-  # Fortsetzen, wenn die TPS so lange mindestens "resume-tps" ist. Etwas höher als below-tps, damit die Loader
-  # nicht ständig an- und ausgehen, wenn der Server knapp an der Grenze läuft.
+  # Resume when the TPS is at least "resume-tps" for this long. A bit higher than below-tps, so the loaders
+  # do not keep switching on and off when the server runs right at the limit.
   resume-tps: 18
   resume-after-seconds: 60
-  # Owner aktiver Loader und Admins im Chat über Pause und Fortsetzen informieren.
+  # Tell owners of active loaders and admins in the chat about pausing and resuming.
   notify-owners: true
 
 
@@ -189,109 +201,127 @@ server-pause:
 #   4) ITEM & BLOCK
 # ------------------------------------------------------------------------------
 item:
-  # Aussehen des Chunkloaders als Block und als Item.
-  # Normale Blöcke dieses Typs sind KEINE Chunkloader - nur die aus /chunkloader ("Chunkloader holen").
-  # Name und Beschreibung des Items stehen in der Sprachdatei (item-name, item-lore).
+  # Look of the chunk loader as a block and as an item.
+  # Normal blocks of this type are NOT chunk loaders - only the ones from /chunkloader ("Get chunk loader").
+  # Name and description of the item are in the language file (item-name, item-lore).
   material: EMERALD_BLOCK
-  # Verzauberungs-Glanz auf dem Item.
+  # Enchantment glint on the item.
   glint: true
+  # Blocks owners can choose for their chunk loaders in the loader menu ("Change block", permission mrchunks.block).
+  # Only the block in the world changes - menus and the item keep the material above, which is always a choice too.
+  # Only solid blocks without gravity or function (no sand, chests, furnaces ...). Empty list [] = no choice.
+  block-choices:
+    - DIAMOND_BLOCK
+    - GOLD_BLOCK
+    - IRON_BLOCK
+    - LAPIS_BLOCK
+    - NETHERITE_BLOCK
+    - AMETHYST_BLOCK
+    - WAXED_COPPER_BLOCK
+    - QUARTZ_BLOCK
+    - OBSIDIAN
+    - CRYING_OBSIDIAN
+    - GLOWSTONE
+    - SEA_LANTERN
+    - SHROOMLIGHT
+    - PURPUR_BLOCK
 
 
 # ------------------------------------------------------------------------------
-#   5) GRENZANZEIGE
+#   5) BORDER DISPLAY
 # ------------------------------------------------------------------------------
 border:
-  # Die Grenze besteht aus leuchtenden Linien (ein "Zaun" an jedem Chunk der Außenkante), die durch Blöcke
-  # hindurch sichtbar sind. Nur der Spieler selbst sieht sie. Sie folgt seiner Höhe und verschwindet nach der
-  # Zeit unten, beim Löschen des Loaders oder über den Button im Menü.
-  # Grenze automatisch zeigen, wenn das Menü eines Chunkloaders geöffnet wird (sonst nur über den Button im Menü).
+  # The border consists of glowing lines (a "fence" at every chunk of the outer edge) that are visible
+  # through blocks. Only the player themselves sees it. It follows their height and disappears after the
+  # time below, when the loader is deleted or via the button in the menu.
+  # Show the border automatically when a chunk loader's menu is opened (otherwise only via the button in the menu).
   show-on-open: false
-  # Wie lange die Grenze sichtbar bleibt (in Sekunden).
+  # How long the border stays visible (in seconds).
   duration-seconds: 60
-  # Farbe des Leuchtens und Block der Linien - für aktive und für deaktivierte Chunkloader.
+  # Colour of the glow and block of the lines - for active and for switched-off chunk loaders.
   color: "#4CFF7A"
   block: LIME_CONCRETE
   inactive-color: "#A0A8A4"
   inactive-block: LIGHT_GRAY_CONCRETE
-  # Dicke der Linien in Blöcken.
+  # Thickness of the lines in blocks.
   thickness: 0.08
-  # Linien von "below" Blöcken unter bis "above" Blöcken über den Füßen des Spielers, alle "line-spacing" Blöcke.
+  # Lines from "below" blocks under to "above" blocks over the player's feet, every "line-spacing" blocks.
   below: 1
   above: 5
   line-spacing: 3
 
 
 # ------------------------------------------------------------------------------
-#   6) WEBKARTE (squaremap)
+#   6) WEB MAP (squaremap)
 # ------------------------------------------------------------------------------
-# Ist das Plugin squaremap installiert (https://modrinth.com/plugin/squaremap), zeichnet MRchunks
-# die geladenen Bereiche als eigene Ebene "Chunkloader" auf die echte Minecraft-Karte ein.
-# Ohne squaremap gibt es keine Webkarte - MRchunks funktioniert sonst aber ganz normal.
+# If the plugin squaremap is installed (https://modrinth.com/plugin/squaremap), MRchunks draws
+# the loaded areas as their own layer "Chunk loaders" onto the real Minecraft map.
+# Without squaremap there is no web map - apart from that MRchunks works completely normally.
 squaremap:
   enabled: true
-  # Beim ersten Start mit squaremap stellt MRchunks dessen Config einmalig passend ein:
-  # Karte aktualisiert alle 5 Sekunden, keine Spieler-Standorte, Welt-Auswahl immer sichtbar,
-  # Nether von innen statt der Bedrock-Decke und die Dimensionsnamen aus der Sprachdatei (map-dimension-*).
-  # Danach kannst du in plugins/squaremap/config.yml alles frei ändern. Erneut ausführen: /mrchunks map setup
+  # On the first start with squaremap, MRchunks sets up its config once to fit:
+  # map updates every 5 seconds, no player locations, world selection always visible,
+  # the Nether from the inside instead of the bedrock ceiling and the dimension names from the language file (map-dimension-*).
+  # Afterwards you can change everything freely in plugins/squaremap/config.yml. Run again: /mrchunks map setup
   auto-configure: true
-  # Spieler weder auf der Karte noch in der Seitenleiste anzeigen.
+  # Show players neither on the map nor in the sidebar.
   hide-players: true
-  # true = Ebene ist beim Öffnen der Karte ausgeblendet (in der Ebenen-Auswahl einschaltbar).
+  # true = the layer is hidden when the map opens (can be switched on in the layer selection).
   default-hidden: false
-  # Deaktivierte Chunkloader (grau) ebenfalls anzeigen.
+  # Also show switched-off chunk loaders (grey).
   show-inactive: true
-  # Farbe der Bereiche: "owner" = eigene, gleichbleibende Farbe pro Spieler, oder ein fester Wert wie "#2ECC71".
+  # Colour of the areas: "owner" = an own, constant colour per player, or a fixed value like "#2ECC71".
   color: owner
   inactive-color: "#8A958E"
-  # Farbe aktiver Chunkloader während einer Server-Pause (siehe server-pause).
+  # Colour of active chunk loaders during a server pause (see server-pause).
   paused-color: "#F39C12"
-  # Deckkraft der Fläche (0.0 - 1.0).
+  # Opacity of the area (0.0 - 1.0).
   fill-opacity: 0.25
-  # Kleines Chunkloader-Symbol in der Mitte des Bereichs.
+  # Small chunk loader icon in the middle of the area.
   show-icon: true
-  # Spätestens so oft werden die Markierungen neu abgeglichen (Änderungen erscheinen sonst sofort).
+  # The markers are synchronised at least this often (otherwise changes appear immediately).
   update-seconds: 60
-  # Adresse der Webkarte für Spieler (Knopf "Webkarte" in /chunkloader, Link im Chat):
-  #   ""                             = automatisch: "web-address" aus der squaremap-Config (falls geändert),
-  #                                    sonst server-ip aus der server.properties, sonst die öffentliche IP
-  #   "map.deinserver.de"            = eigene Domain (FQDN) oder IP - der squaremap-Port wird angehängt
-  #   "https://deinserver.de/karte/" = komplette URL, wird genau so verwendet (z.B. Reverse Proxy mit Pfad)
+  # Address of the web map for players (button "Web map" in /chunkloader, link in the chat):
+  #   ""                               = automatic: "web-address" from the squaremap config (if changed),
+  #                                      otherwise server-ip from server.properties, otherwise the public IP
+  #   "map.yourserver.com"             = own domain (FQDN) or IP - the squaremap port is appended
+  #   "https://yourserver.com/map/"    = full URL, used exactly like that (e.g. reverse proxy with a path)
   address: ""
-  # true = die Karte läuft hinter einem Reverse Proxy (nginx, Caddy, Traefik, Cloudflare ...):
-  #        der Link wird zu https://<address>/ ohne Port. Den Proxy auf squaremaps Port weiterleiten lassen.
+  # true = the map runs behind a reverse proxy (nginx, Caddy, Traefik, Cloudflare ...):
+  #        the link becomes https://<address>/ without a port. Let the proxy forward to squaremap's port.
   reverse-proxy: false
-  # Öffentliche IP einmal beim Start über checkip.amazonaws.com ermitteln, falls address leer ist und in der
-  # server.properties keine server-ip steht (es wird nur abgefragt, nichts gesendet).
+  # Determine the public IP once on startup via checkip.amazonaws.com if address is empty and there is
+  # no server-ip in server.properties (it only asks, nothing is sent).
   detect-public-ip: true
 
-  # Chunkraster auf der Karte (MRchunks ergänzt squaremap um ein eigenes Raster-Overlay).
+  # Chunk grid on the map (MRchunks adds its own grid overlay to squaremap).
   chunk-grid:
     enabled: true
-    # Beim Öffnen der Karte eingeblendet. Besucher können es im Ebenen-Menü (oben links) ein-/ausschalten.
+    # Shown when the map opens. Visitors can switch it on/off in the layer menu (top left).
     default-visible: true
     color: "#FFFFFF"
     opacity: 0.35
-    # Chunk-Linien erst zeichnen, wenn ein Chunk mindestens so viele Pixel breit ist
-    # (weiter herausgezoomt wären die Linien nur noch eine graue Fläche).
+    # Only draw chunk lines when a chunk is at least this many pixels wide
+    # (zoomed out further the lines would just be a grey area).
     min-chunk-pixels: 8
-    # Regionsgrenzen (32x32 Chunks = eine .mca-Datei) hervorheben.
+    # Highlight region borders (32x32 chunks = one .mca file).
     region-lines: true
     region-color: "#FFD54F"
-    # Chunk-Koordinaten bei starkem Zoom in jeden Chunk schreiben.
+    # Write the chunk coordinates into every chunk when zoomed in a lot.
     labels: true
 
 
 # ------------------------------------------------------------------------------
-#   7) DISCORD-LOGS
+#   7) DISCORD LOGS
 # ------------------------------------------------------------------------------
-# Webhook anlegen: Discord-Kanal -> Kanal bearbeiten -> Integrationen -> Webhooks
-#                  -> Neuer Webhook -> Webhook-URL kopieren.
-# Die Texte der Events stehen in der Sprachdatei (lang/<sprache>.yml, Abschnitt discord).
-# Ein Event mit "enabled: false" oder leerem Text wird nicht gesendet.
-# Funktioniert es nicht? -> /mrchunks discord zeigt den Status, /mrchunks discord test schickt eine Testnachricht.
+# Create a webhook: Discord channel -> Edit Channel -> Integrations -> Webhooks
+#                   -> New Webhook -> Copy Webhook URL.
+# The texts of the events are in the language file (lang/<language>.yml, section discord).
+# An event with "enabled: false" or an empty text is not sent.
+# Not working? -> /mrchunks discord shows the status, /mrchunks discord test sends a test message.
 discord:
   enabled: false
-  # Komplette URL in Anführungszeichen, z.B. "https://discord.com/api/webhooks/123456/abcdef"
+  # Full URL in quotes, e.g. "https://discord.com/api/webhooks/123456/abcdef"
   webhook-url: ""
   username: "MRchunks"
   avatar-url: ""
@@ -367,29 +397,29 @@ discord:
 
 
 # ------------------------------------------------------------------------------
-#   8) UPDATE-CHECK
+#   8) UPDATE CHECK
 # ------------------------------------------------------------------------------
 update-checker:
   enabled: true
-  # Quelle: "github" (GitHub Releases, Standard) oder "modrinth"
+  # Source: "github" (GitHub Releases, default) or "modrinth"
   source: github
-  # Auch Beta-/Alpha-Versionen melden. Läuft selbst eine Vorabversion (0.x), werden sie immer gemeldet.
+  # Also report beta/alpha versions. If a pre-release (0.x) is running, they are always reported.
   include-prereleases: false
   interval-hours: 6
-  # Spieler mit "mrchunks.admin.update" beim Betreten des Servers informieren.
+  # Notify players with "mrchunks.admin.update" when they join the server.
   notify-on-join: true
 
 
 # ------------------------------------------------------------------------------
-#   9) MENÜS
+#   9) MENUS
 # ------------------------------------------------------------------------------
 gui:
-  # Wie oft offene Menüs aktualisiert werden (in Ticks, 20 = 1 Sekunde).
+  # How often open menus are refreshed (in ticks, 20 = 1 second).
   refresh-ticks: 20
-  # Löschen muss innerhalb dieser Zeit ein zweites Mal geklickt werden (Schutz vor Fehlklicks).
+  # Deleting needs a second click within this time (protection against misclicks).
   confirm-seconds: 5
-  # Schnellauswahl für Sperren im Admin-Menü ("permanent" = dauerhaft, genau 3 Einträge).
+  # Quick choices for bans in the admin menu ("permanent" = forever, exactly 3 entries).
   ban-durations: ["1d", "7d", "permanent"]
   sounds: true
-  # Wie lang der Name eines Chunkloaders höchstens sein darf (Umbenennen im Menü).
+  # Maximum length of a chunk loader's name (renaming in the menu).
   max-name-length: 24

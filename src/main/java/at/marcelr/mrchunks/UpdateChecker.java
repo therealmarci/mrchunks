@@ -108,6 +108,10 @@ public final class UpdateChecker {
     /** Checks right away, reports the result to {@code sender} and then runs {@code after} (on the main thread). */
     public void checkNow(CommandSender sender, Runnable after) {
         plugin.messages().send(sender, "version-checking");
+        if (sender instanceof Player player) {
+            // The answer already contains the update notice - do not also send the admin notice right before it.
+            noticed.put(player.getUniqueId(), System.currentTimeMillis());
+        }
         CompletableFuture.runAsync(this::check).whenComplete((ignored, throwable) ->
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     sendStatus(sender);
@@ -139,8 +143,8 @@ public final class UpdateChecker {
     public void notifyIfOutdated(Player player) {
         if (state == State.OUTDATED && plugin.settings().update().notifyOnJoin() && player.hasPermission(PERM_NOTIFY)
                 && firstNoticeFor(player)) {
-            plugin.messages().send(player, "update-join-notify",
-                    tag("latest", latestVersion()), tag("current", currentVersion()), tag("download", downloadLink()));
+            plugin.messages().run(player, () -> plugin.messages().send(player, "update-join-notify",
+                    tag("latest", latestVersion()), tag("current", currentVersion()), tag("download", downloadLink())));
         }
     }
 

@@ -35,7 +35,7 @@ import java.util.UUID;
  *                                   linked accounts (main, secondAccounts), dummies
  *  flags                            uuid -> marks for MRadmin's player list (chunks-locked, chunks-warn, chunks-banned)
  *  playerAction {uuid, action, admin, kind?, value?, reason?}   limit (kind place|active|dummy) | ban | unban
- *                                   | deleteAll | unlink  -> null or an error key
+ *                                   | deleteAll | unlink | link {other, role}  -> null or an error key
  * </pre>
  */
 final class WebData {
@@ -85,6 +85,8 @@ final class WebData {
             seconds.add(Map.of("uuid", second.toString(), "name", LoaderManager.name(second)));
         }
         m.put("secondAccounts", seconds);
+        m.put("linksEnabled", plugin.settings().links().enabled());
+        m.put("maxLinks", plugin.settings().links().maxAccounts());
         m.put("dummiesEnabled", plugin.dummies().enabled());
         m.put("dummies", loaders.dummyCount(main));
         m.put("dummyLimit", limit(loaders, target, LoaderManager.LimitKind.DUMMY));
@@ -150,7 +152,7 @@ final class WebData {
 
     /**
      * Player actions: limit {kind place|active, value number or "" = back to default/permission}, ban {value = duration
-     * in ms from gui.ban-durations, reason}, unban, deleteAll. @return null or an error key
+     * in ms from gui.ban-durations, reason}, unban, deleteAll, unlink, link {other = player name, role second|main}. @return null or an error key
      */
     private static String playerAction(MRChunks plugin, Map<?, ?> args) {
         OfflinePlayer target = target(args.get("uuid"));
@@ -198,6 +200,18 @@ final class WebData {
             case "unban" -> actions.webUnban(admin, target);
             case "deleteAll" -> actions.webDeleteAll(admin, target);
             case "unlink" -> actions.webUnlink(admin, target);
+            case "link" -> {
+                OfflinePlayer other = named(args.get("other"));
+                if (other == null) {
+                    yield "player-unknown";
+                }
+                // role "second": the other account becomes a second account of the target, "main": its main account.
+                yield switch (String.valueOf(args.get("role"))) {
+                    case "second" -> actions.webLink(admin, target, other);
+                    case "main" -> actions.webLink(admin, other, target);
+                    default -> "unknown-action";
+                };
+            }
             default -> "unknown-action";
         };
     }
@@ -210,6 +224,16 @@ final class WebData {
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    /** A player by name who has been on the server; null for anything else. */
+    private static OfflinePlayer named(Object name) {
+        String raw = name == null ? "" : String.valueOf(name).strip();
+        if (!raw.matches("[A-Za-z0-9_.]{1,16}")) {
+            return null;
+        }
+        OfflinePlayer player = Bukkit.getOfflinePlayerIfCached(raw);
+        return player != null && (player.isOnline() || player.hasPlayedBefore()) ? player : null;
     }
 
     private static Loader loader(MRChunks plugin, Map<?, ?> args) {
