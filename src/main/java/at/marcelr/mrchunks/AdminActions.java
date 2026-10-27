@@ -437,6 +437,14 @@ public final class AdminActions {
     }
 
     /** Removes the link of the player (a main account: of all its second accounts); the loaders stay. */
+    /** Links two accounts from the web (like /mrchunks link): the second account's loaders go to the main account. */
+    public String webLink(String admin, OfflinePlayer main, OfflinePlayer secondary) {
+        if (!plugin.settings().links().enabled()) {
+            return "links-disabled";
+        }
+        return link(main, secondary, admin + " (web)");
+    }
+
     public String webUnlink(String admin, OfflinePlayer target) {
         return removeLinks(target.getUniqueId(), admin, null) == 0 ? "not-linked" : null;
     }

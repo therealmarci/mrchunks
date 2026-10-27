@@ -88,6 +88,7 @@ Hast du einen Zweit-Account (z.B. zum AFK-Farmen), verknüpf ihn mit deinem Haup
 - Es gilt **ein gemeinsames Limit** - das des Haupt-Accounts.
 - **Verknüpfen:** `/chunkloader` → **Verknüpfte Accounts** → **Account verknüpfen**. Der andere Account muss online sein und zustimmen.
 - **Lösen** kann jeder der beiden jederzeit im selben Menü. Die Loader bleiben beim Haupt-Account.
+- **Admins** verknüpfen und lösen Accounts auch ohne Zustimmung: mit `/mrchunks link <haupt> <zweit>` bzw. `/mrchunks unlink <spieler>` oder in der MRadmin-Weboberfläche auf der Spielerseite (`mrchunks.admin.manage`).
 - Erlaubt ist standardmäßig ein Zweit-Account (`linked-accounts.max-accounts`). Eine Sperre gilt für alle verknüpften Accounts.
 
 ### Dummy-Spieler

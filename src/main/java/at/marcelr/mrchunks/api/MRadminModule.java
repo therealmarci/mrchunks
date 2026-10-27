@@ -250,7 +250,7 @@ final class MRadminModule implements AdminModule, WebModule {
     private static final Map<String, String> ACTIONS = Map.of(
             "toggle", "manage", "unlock", "manage", "delete", "manage", "dummy", "manage");
     private static final Map<String, String> PLAYER_ACTIONS = Map.of(
-            "limit", "limit", "ban", "ban", "unban", "ban", "deleteAll", "manage", "unlink", "manage");
+            "limit", "limit", "ban", "ban", "unban", "ban", "deleteAll", "manage", "unlink", "manage", "link", "manage");
 
     @Override
     public Map<String, String> permissions() {
