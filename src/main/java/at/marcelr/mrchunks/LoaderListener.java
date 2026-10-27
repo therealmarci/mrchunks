@@ -1,5 +1,6 @@
 package at.marcelr.mrchunks;
 
+import at.marcelr.mrchunks.dummy.Dummies;
 import at.marcelr.mrchunks.gui.LoaderMenu;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -31,6 +32,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import static at.marcelr.mrchunks.Messages.tag;
 
@@ -64,14 +66,14 @@ public final class LoaderListener implements Listener {
         } else if (!loaders().isWorldAllowed(event.getBlock().getWorld())) {
             denial = "place-world-disabled";
         } else {
-            LoaderManager.Ban ban = loaders().ban(player.getUniqueId());
+            LoaderManager.Ban ban = loaders().groupBan(player.getUniqueId());
             if (ban != null) {
                 event.setCancelled(true);
                 messages.send(player, "banned", tag("duration", Texts.banDuration(plugin, ban)), tag("reason", ban.reason()));
                 return;
             }
             LoaderManager.Limit limit = loaders().limit(player);
-            if (loaders().count(player.getUniqueId()) >= limit.value()) {
+            if (loaders().count(AdminActions.accountOf(player)) >= limit.value()) {
                 event.setCancelled(true);
                 messages.send(player, "place-limit", tag("limit", Texts.limit(limit)));
                 return;
@@ -79,7 +81,7 @@ public final class LoaderListener implements Listener {
             Loader conflict = overlapConflict(player, event.getBlock());
             if (conflict != null) {
                 event.setCancelled(true);
-                boolean own = conflict.owner().equals(player.getUniqueId());
+                boolean own = conflict.owner().equals(AdminActions.accountOf(player));
                 messages.send(player, own ? "place-overlap-denied-own" : "place-overlap-denied", Texts.loader(plugin, conflict));
                 return;
             }
@@ -97,7 +99,7 @@ public final class LoaderListener implements Listener {
             return null;
         }
         for (Loader other : loaders().overlapping(block.getWorld(), block.getX() >> 4, block.getZ() >> 4, null)) {
-            if (mode == Settings.OverlapMode.DENY_ALL || other.owner().equals(player.getUniqueId())) {
+            if (mode == Settings.OverlapMode.DENY_ALL || other.owner().equals(AdminActions.accountOf(player))) {
                 return other;
             }
         }
@@ -117,7 +119,7 @@ public final class LoaderListener implements Listener {
         Messages messages = plugin.messages();
         List<String> names = new ArrayList<>();
         for (Loader other : others) {
-            names.add(messages.plain(other.owner().equals(player.getUniqueId()) ? "overlap-entry-own" : "overlap-entry-other",
+            names.add(messages.plain(other.owner().equals(loader.owner()) ? "overlap-entry-own" : "overlap-entry-other",
                     "name", Texts.name(plugin, other), "player", LoaderManager.name(other.owner())));
         }
         messages.send(player, "place-overlap-warning", Texts.loader(plugin, loader),
@@ -134,12 +136,14 @@ public final class LoaderListener implements Listener {
         }
         Player player = event.getPlayer();
         // Starts active only if the player still has an active slot; otherwise it is placed switched off.
+        // A linked second account places for its main account.
+        UUID owner = AdminActions.accountOf(player);
         boolean active = loaders().canActivate(player);
-        Loader loader = loaders().create(player.getUniqueId(), event.getBlockPlaced(), active);
+        Loader loader = loaders().create(owner, event.getBlockPlaced(), active);
         plugin.messages().send(player, active ? "placed" : "placed-inactive", Texts.loader(plugin, loader),
-                tag("placed", loaders().count(player.getUniqueId())),
+                tag("placed", loaders().count(owner)),
                 tag("limit", Texts.limit(loaders().limit(player))),
-                tag("active", loaders().activeCount(player.getUniqueId())),
+                tag("active", loaders().activeCount(owner)),
                 tag("active-limit", Texts.limit(loaders().activeLimit(player))));
         plugin.discord().log("loader-placed", plugin.adminActions().discordTags(loader));
         warnOverlap(player, loader);
@@ -287,6 +291,9 @@ public final class LoaderListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+        if (Dummies.isDummy(player)) {
+            return;
+        }
         plugin.adminActions().enforceExempt(player);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (player.isOnline()) {

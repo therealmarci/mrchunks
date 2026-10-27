@@ -23,7 +23,7 @@ import static at.marcelr.mrchunks.Messages.tag;
  * Menu of one loader (right-click on the block, or from a list). Layout (3 rows):
  * <pre>
  *  . . . . [info] . . . .
- *  . [toggle] [members] . [border] . [rename] [delete] .
+ *  . [toggle] [members] [dummy] [border] . [rename] [delete] .     (dummy only with dummies.enabled)
  *  [back] . . . [close] . . . .          (with mrchunks.admin.teleport: [back] . . [close] . [teleport] . . .)
  * </pre>
  * Toggle needs ownership, an invite or mrchunks.admin.manage; rename, invites and delete only ownership or the admin
@@ -112,6 +112,10 @@ public final class LoaderMenu extends Menu {
                     TagResolver.resolver(tags, tag("count", count)));
         }
 
+        if (plugin.dummies().enabled()) {
+            dummyButton(loader, manage, tags);
+        }
+
         if (plugin.border().isShowing(viewer, loader)) {
             button(13, Material.SPYGLASS, "gui-border-hide-name", "gui-border-hide-lore", true, () -> {
                 plugin.border().hide(viewer);
@@ -163,6 +167,23 @@ public final class LoaderMenu extends Menu {
         for (int row = 0; row < 3; row++) {
             fillRow(row);
         }
+    }
+
+    /** Dummy player on/off with the owner's dummies in use and whether it sits there right now. */
+    private void dummyButton(Loader loader, boolean manage, TagResolver tags) {
+        TagResolver all = TagResolver.resolver(tags,
+                plugin.adminActions().dummyTags(Bukkit.getOfflinePlayer(loader.owner())));
+        String lore;
+        if (!loader.dummy()) {
+            lore = "gui-dummy-on-lore";
+        } else if (plugin.dummies().dummyOf(loader) != null) {
+            lore = "gui-dummy-off-lore";
+        } else {
+            lore = "gui-dummy-waiting-lore";
+        }
+        button(12, loader.dummy() ? Material.ARMOR_STAND : Material.LEATHER_HELMET,
+                loader.dummy() ? "gui-dummy-off-name" : "gui-dummy-on-name", lore, manage,
+                () -> plugin.adminActions().toggleDummy(viewer, loader), all);
     }
 
     /** A button that is either usable or shows "no permission" and refuses the click. */

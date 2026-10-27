@@ -1,10 +1,13 @@
 package at.marcelr.mrchunks;
 
+import at.marcelr.mrchunks.api.MRadminLink;
 import at.marcelr.mrchunks.command.ChunkloaderCommand;
 import at.marcelr.mrchunks.command.MRChunksCommand;
+import at.marcelr.mrchunks.dummy.Dummies;
 import at.marcelr.mrchunks.gui.MenuListener;
 import at.marcelr.mrchunks.lag.LagMonitor;
 import at.marcelr.mrchunks.lag.ServerPause;
+import at.marcelr.mrchunks.link.LinkRequests;
 import at.marcelr.mrchunks.map.MapHooks;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
@@ -21,23 +24,26 @@ public final class MRChunks extends JavaPlugin {
 
     private FileConfiguration config;
     private Settings settings;
-    /** lang-version 2: version display with MC version; 3: loaders by name/number; 4: squaremap.address; 5: merged admin commands; 6: shorter window titles; 7: lag protection (admin usage); 8: /chunkloader is only the menu (invite notice); 9: get/return as two buttons. */
-    private final Messages messages = new Messages(10, Map.of(
-            2, Set.of("version", "gui-info-name"),
-            3, Set.of("discord.loader-placed", "discord.loader-deleted", "discord.loader-toggled",
+    /** lang-version 2: version display with MC version; 3: loaders by name/number; 4: squaremap.address; 5: merged admin commands; 6: shorter window titles; 7: lag protection (admin usage); 8: /chunkloader is only the menu (invite notice); 9: get/return as two buttons; 11: dummies and linked accounts (admin usage). */
+    private final Messages messages = new Messages(12, Map.ofEntries(
+            Map.entry(2, Set.of("version", "gui-info-name")),
+            Map.entry(3, Set.of("discord.loader-placed", "discord.loader-deleted", "discord.loader-toggled",
                     "discord.loader-restored", "discord.loader-removed-missing", "discord.admin-delete",
                     "map-hover-tooltip", "map-click-tooltip", "loader-not-found", "usage", "placed", "placed-inactive",
                     "toggled", "deleted", "delete-confirm", "owner-notify-toggled", "owner-notify-deleted",
                     "border-shown", "teleported", "admin-usage", "list-entry", "gui-loader-name", "gui-loader-lore",
-                    "gui-title-loader"),
-            4, Set.of("map-url-unknown"),
-            5, Set.of("admin-usage", "gui-invite-lore"),
-            6, Set.of("gui-title-loader", "gui-title-mine", "gui-title-player"),
-            7, Set.of("admin-usage"),
-            8, Set.of("invite-notify"),
-            9, Set.of("gui-items-lore", "gui-mine-empty-lore"),
+                    "gui-title-loader")),
+            Map.entry(4, Set.of("map-url-unknown")),
+            Map.entry(5, Set.of("admin-usage", "gui-invite-lore")),
+            Map.entry(6, Set.of("gui-title-loader", "gui-title-mine", "gui-title-player")),
+            Map.entry(7, Set.of("admin-usage")),
+            Map.entry(8, Set.of("invite-notify")),
+            Map.entry(9, Set.of("gui-items-lore", "gui-mine-empty-lore")),
             // The ticket shows the location itself - no second "Location" line in the lock details.
-            10, Set.of("lock-details")));
+            Map.entry(10, Set.of("lock-details")),
+            Map.entry(11, Set.of("admin-usage")),
+            // 12: "Website | GitHub" in /mrchunks version.
+            Map.entry(12, Set.of("version-links"))));
     private final DiscordWebhook discord = new DiscordWebhook(this);
     private final AdminActions adminActions = new AdminActions(this);
     private LoaderManager loaders;
@@ -48,6 +54,9 @@ public final class MRChunks extends JavaPlugin {
     private MapHooks maps;
     private LagMonitor lag;
     private ServerPause pause;
+    private MRadminLink mradmin;
+    private Dummies dummies;
+    private LinkRequests linkRequests;
     private BukkitTask validationTask;
 
     @Override
@@ -62,6 +71,12 @@ public final class MRChunks extends JavaPlugin {
         loaders.load();
         loaders.applyAll();
         startValidation();
+        dummies = new Dummies(this);
+        dummies.checkAvailability();
+        dummies.start();
+        // Dummies log in like players - not while the plugin is still enabling.
+        Bukkit.getScheduler().runTask(this, dummies::syncAll);
+        linkRequests = new LinkRequests(this);
         lag = new LagMonitor(this);
         pause = new ServerPause(this);
         lag.start();
@@ -76,8 +91,13 @@ public final class MRChunks extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new LoaderListener(this), this);
         getServer().getPluginManager().registerEvents(border, this);
         getServer().getPluginManager().registerEvents(menuListener, this);
+        getServer().getPluginManager().registerEvents(dummies, this);
         register("chunkloader", new ChunkloaderCommand(this));
         register("mrchunks", new MRChunksCommand(this));
+        // Optional: MRadmin (module API) - dashboard, player menu, server health, tickets, web interface.
+        mradmin = new MRadminLink(this);
+        getServer().getPluginManager().registerEvents(mradmin, this);
+        mradmin.connect();
 
         getLogger().info(loaders.all().size() + " chunk loader(s) loaded, " + loaders.loadedChunkCount() + " chunks are kept loaded.");
     }
@@ -100,6 +120,9 @@ public final class MRChunks extends JavaPlugin {
         if (validationTask != null) {
             validationTask.cancel();
         }
+        if (dummies != null) {
+            dummies.shutdown();
+        }
         if (loaders != null) {
             loaders.releaseAll();
             loaders.save();
@@ -118,6 +141,7 @@ public final class MRChunks extends JavaPlugin {
         ConfigUpdater.update(this);
         loaders.releaseAll();
         loadConfiguration();
+        dummies.checkAvailability();
         loaders.applyAll();
         startValidation();
         lag.start();
@@ -221,5 +245,19 @@ public final class MRChunks extends JavaPlugin {
 
     public MapHooks maps() {
         return maps;
+    }
+
+    /** The optional connection to MRadmin. */
+    public MRadminLink mradmin() {
+        return mradmin;
+    }
+
+    /** Dummy players; null only while the plugin is starting. */
+    public Dummies dummies() {
+        return dummies;
+    }
+
+    public LinkRequests linkRequests() {
+        return linkRequests;
     }
 }

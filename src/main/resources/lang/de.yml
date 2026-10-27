@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Nicht ändern - damit erkennt das Plugin bei Updates, welche Texte erneuert werden müssen.
-lang-version: 10
+lang-version: 12
 
 # Texte der Discord-Logs (Markdown wie in Discord). Platzhalter: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. An/aus und Farbe stehen in der config.yml.
@@ -35,6 +35,9 @@ discord:
   loader-lag-unlocked: "🔓 **{admin}** hat die Lag-Sperre von **{name}** ({player}) aufgehoben."
   server-paused: "⏸️ Der Server laggt ({value} TPS) - alle Chunkloader sind pausiert ({count} Chunks freigegeben)."
   server-resumed: "▶️ Der Server läuft wieder flüssig ({value} TPS) - die Chunkloader laden wieder (Pause: {time})."
+  dummy-toggled: "🧍 Der Dummy auf **{name}** von **{player}** ist jetzt **{state}** (geändert von {admin})."
+  accounts-linked: "🔗 **{player}** ist jetzt mit **{owner}** verknüpft ({count} Chunkloader übernommen, durch {admin})."
+  accounts-unlinked: "⛓️ Die Verknüpfung von **{player}** mit **{owner}** wurde gelöst (durch {admin})."
 
 # --- Chunkloader-Item ----------------------------------------------------------
 # Platzhalter: <size> (z.B. 7), <chunks> (z.B. 49)
@@ -188,6 +191,44 @@ invite-label-duration: "Dauer"
 invite-save: "<green>Einladen"
 invite-cancel: "<red>Abbrechen"
 
+# --- Dummy-Spieler -------------------------------------------------------------
+# Platzhalter: <name> (Loader), <dummies> (eingeschaltete Dummies), <dummy-limit>
+dummy-on: "<prefix><green>Der Dummy sitzt jetzt auf <white><name></white>. <gray>(<dummies>/<dummy-limit> Dummies)"
+dummy-on-inactive: "<prefix><yellow>Dummy für <white><name></white> eingeschaltet - er erscheint, sobald der Chunkloader aktiv ist. <gray>(<dummies>/<dummy-limit> Dummies)"
+dummy-off: "<prefix><green>Der Dummy von <white><name></white> ist weg. <gray>(<dummies>/<dummy-limit> Dummies)"
+dummy-limit-reached: "<prefix><red>Du hast schon <white><dummies>/<dummy-limit></white> Dummies. <gray>Schalte zuerst einen anderen aus."
+dummy-disabled: "<prefix><red>Dummy-Spieler sind auf diesem Server ausgeschaltet."
+owner-notify-dummy: "<prefix><gray>Der Dummy auf deinem Chunkloader <white><name></white> wurde von <white><admin></white> auf <white><state></white> gestellt."
+dummy-limit-enforced: "<prefix><yellow><white><count></white> Dummies von <white><player></white> wurden ausgeschaltet, weil das neue Dummy-Limit niedriger ist."
+dummy-limit-enforced-notify: "<prefix><yellow><white><count></white> deiner Dummies wurden ausgeschaltet, weil dein Dummy-Limit gesenkt wurde."
+
+# --- Verknüpfte Accounts -------------------------------------------------------
+# Platzhalter: <main> (Haupt-Account), <second> (Zweit-Account), <player>, <count> (übernommene Chunkloader)
+links-disabled: "<prefix><red>Verknüpfte Accounts sind auf diesem Server ausgeschaltet."
+link-request-sent: "<prefix><green>Anfrage an <white><player></white> geschickt. <gray>Die Anfrage gilt <seconds> Sekunden."
+link-request-received: "<prefix><yellow><white><main></white> möchte deinen Account mit dem eigenen verknüpfen.</yellow> <gray>Ihr teilt euch dann Chunkloader und Limit von <main>; deine <count> Chunkloader gehen an <main> über. <accept> <decline> <dark_gray>(<seconds> s)"
+link-accept-label: "<green><u>[Annehmen]</u></green>"
+link-decline-label: "<red><u>[Ablehnen]</u></red>"
+link-dialog-title: "Account mit <main> verknüpfen?"
+link-dialog-text: "<white><main></white><gray> möchte deinen Account als Zweit-Account mit dem eigenen verknüpfen. Dann teilt ihr euch alle Chunkloader, das Limit von <main>, Einladungen und Dummies. Deine <white><count></white> eigenen Chunkloader gehen an <main> über. Lösen könnt ihr die Verknüpfung jederzeit unter /chunkloader → Verknüpfte Accounts."
+link-dialog-accept: "<green>Annehmen"
+link-dialog-decline: "<red>Ablehnen"
+link-done: "<prefix><green><white><second></white> ist jetzt mit <white><main></white> verknüpft.</green> <gray>Ihr teilt euch alle Chunkloader (<count> übernommen)."
+link-admin-done: "<prefix><green><white><second></white> ist jetzt mit <white><main></white> verknüpft."
+link-request-expired: "<prefix><gray>Diese Anfrage ist abgelaufen."
+link-main-offline: "<prefix><red><white><player></white> ist nicht mehr online - die Anfrage ist verfallen."
+link-declined: "<prefix><gray><white><player></white> hat deine Anfrage abgelehnt."
+link-declined-self: "<prefix><gray>Anfrage abgelehnt."
+link-self: "<prefix><red>Du kannst deinen Account nicht mit sich selbst verknüpfen."
+link-main-is-second: "<prefix><red>Ein Zweit-Account kann keine weiteren Accounts verknüpfen - das macht der Haupt-Account."
+link-already-linked: "<prefix><red><white><player></white> ist schon mit einem Account verknüpft."
+link-full: "<prefix><red>Es sind schon <white><max></white> Zweit-Accounts verknüpft."
+link-exempt: "<prefix><red>Ein Account, der vom Chunkloading ausgeschlossen ist, kann nicht verknüpft werden."
+link-banned: "<prefix><red>Ein gesperrter Account kann nicht verknüpft werden."
+link-not-linked: "<prefix><gray><white><player></white> ist mit keinem Account verknüpft."
+link-removed: "<prefix><green>Die Verknüpfung von <white><second></white> mit <white><main></white> ist gelöst.</green> <gray>Die Chunkloader bleiben bei <main>."
+link-removed-notify: "<prefix><gray>Die Verknüpfung von <white><second></white> mit <white><main></white> wurde von <white><admin></white> gelöst. Die Chunkloader bleiben bei <main>."
+
 # --- Admin -------------------------------------------------------------------
 admin-usage: |-
   <prefix><gray>Admin-Befehle:
@@ -196,11 +237,14 @@ admin-usage: |-
   <green>/mrchunks toggle <spieler> <nr></green> <dark_gray>- <gray>Chunkloader an/aus
   <green>/mrchunks delete <spieler> <nr></green> <dark_gray>- <gray>Chunkloader löschen
   <green>/mrchunks unlock <spieler> <nr></green> <dark_gray>- <gray>Lag-Sperre aufheben
+  <green>/mrchunks dummy <spieler> <nr></green> <dark_gray>- <gray>Dummy-Spieler an/aus
   <green>/mrchunks lag</green> <dark_gray>- <gray>Auffällige und gesperrte Chunkloader
-  <green>/mrchunks limit <spieler> <place|active> <anzahl|reset></green> <dark_gray>- <gray>Setzbare bzw. gleichzeitig aktive Loader
+  <green>/mrchunks limit <spieler> <place|active|dummy> <anzahl|reset></green> <dark_gray>- <gray>Setzbare, gleichzeitig aktive Loader bzw. Dummies
   <green>/mrchunks ban <spieler> [dauer] [grund]</green> <dark_gray>- <gray>Sperren (löscht alle seine Loader)
   <green>/mrchunks unban <spieler></green> <dark_gray>- <gray>Sperre aufheben
   <green>/mrchunks bans</green> <dark_gray>- <gray>Alle Sperren
+  <green>/mrchunks link <haupt-account> <zweit-account></green> <dark_gray>- <gray>Accounts verknüpfen
+  <green>/mrchunks unlink <spieler></green> <dark_gray>- <gray>Verknüpfung lösen
   <green>/mrchunks map [setup]</green> <dark_gray>- <gray>Status der Webkarte / squaremap neu einrichten
   <green>/mrchunks discord [test]</green> <dark_gray>- <gray>Discord-Status / Testnachricht
   <green>/mrchunks reload</green> <dark_gray>- <gray>Konfiguration neu laden
@@ -211,6 +255,7 @@ limit-reset: "<prefix><green><type> von <white><player></white> zurückgesetzt <
 limit-notify: "<prefix><green>Dein <type> ist jetzt <white><limit></white>."
 limit-type-place: "Limit (setzbare Loader)"
 limit-type-active: "Aktiv-Limit (gleichzeitig aktive Loader)"
+limit-type-dummy: "Dummy-Limit (eingeschaltete Dummies)"
 active-limit-enforced: "<prefix><yellow><white><count></white> Chunkloader von <white><player></white> wurden deaktiviert, weil das neue Aktiv-Limit niedriger ist."
 active-limit-enforced-notify: "<prefix><yellow><white><count></white> deiner Chunkloader wurden deaktiviert, weil dein Aktiv-Limit gesenkt wurde."
 ban-set: "<prefix><green><white><player></white> ist gesperrt <dark_gray>(<duration>, Grund: <reason>)<green>. <white><count></white> Chunkloader gelöscht."
@@ -265,7 +310,7 @@ version-latest: "<prefix><green>Du nutzt die aktuellste Version."
 version-outdated: "<prefix><gold>Neue Version verfügbar: <white><latest></white> <gray>(installiert: <current>) <download>"
 version-unknown: "<prefix><gray>Update-Status unbekannt: <reason>"
 version-checking: "<prefix><gray>Suche nach Updates ..."
-version-links: "<prefix><modrinth> <dark_gray>| <github>"
+version-links: "<prefix><website> <dark_gray>| <github>"
 update-download-label: "<aqua><u>[Download]</u></aqua>"
 update-join-notify: "<prefix><gold>Für MRchunks gibt es ein Update: <white><latest></white> <gray>(installiert: <current>) <download>"
 update-reason-disabled: "Update-Check ist deaktiviert"
@@ -409,6 +454,24 @@ gui-delete-confirm-name: "<dark_red><bold>Wirklich löschen?"
 gui-delete-confirm-lore:
   - "<red>Noch einmal klicken zum Löschen."
 gui-teleport-name: "<aqua>Hinteleportieren"
+# Dummy-Knopf im Menü eines Chunkloaders. Platzhalter: <dummies> <dummy-limit>
+gui-dummy-on-name: "<light_purple>Dummy einschalten"
+gui-dummy-on-lore:
+  - "<gray>Ein Dummy-Spieler setzt sich auf den Block"
+  - "<gray>und zählt als Spieler in der Nähe: Mobs"
+  - "<gray>bleiben aktiv, Farmen laufen wie mit dir."
+  - ""
+  - "<gray>Deine Dummies: <white><dummies>/<dummy-limit>"
+gui-dummy-off-name: "<light_purple>Dummy ausschalten"
+gui-dummy-off-lore:
+  - "<green>● Der Dummy sitzt auf dem Block."
+  - ""
+  - "<gray>Deine Dummies: <white><dummies>/<dummy-limit>"
+gui-dummy-waiting-lore:
+  - "<yellow>● Eingeschaltet - er erscheint, sobald"
+  - "<yellow>  der Chunkloader aktiv ist."
+  - ""
+  - "<gray>Deine Dummies: <white><dummies>/<dummy-limit>"
 
 # Eigene Chunkloader (/chunkloader)
 gui-title-mine: "<dark_gray>Meine Chunkloader <gray>(<placed>/<limit>)"
@@ -436,6 +499,43 @@ gui-map-lore:
   - ""
   - "<yellow>Klick: Link im Chat"
 players-only-menu: "<prefix><red>/chunkloader öffnet ein Menü und geht nur ingame. <gray>Für die Konsole: /mrchunks"
+
+# Verknüpfte Accounts (/chunkloader → Verknüpfte Accounts)
+gui-links-name: "<aqua>Verknüpfte Accounts <gray>(<count>)"
+gui-links-lore:
+  - "<gray>Einen Zweit-Account verknüpfen: Ihr"
+  - "<gray>teilt euch Chunkloader und Limit."
+gui-title-links: "<dark_gray>Verknüpfte Accounts"
+gui-links-info-name: "<aqua>Verknüpfte Accounts"
+gui-links-info-lore:
+  - "<gray>Verknüpfte Accounts teilen sich alles:"
+  - "<gray>Chunkloader, Limit des Haupt-Accounts,"
+  - "<gray>Einladungen und Dummies."
+  - ""
+  - "<gray>Der andere Account muss online sein und"
+  - "<gray>zustimmen. Höchstens <white><max></white> Zweit-Account(s)."
+gui-links-unlinked-lore:
+  - "<gray>Noch nicht verknüpft."
+gui-links-main-lore:
+  - "<green>Haupt-Account"
+  - "<gray>Sein Limit gilt für alle verknüpften Accounts."
+gui-links-second-lore:
+  - "<gray>Zweit-Account"
+gui-links-remove: "<red>» Klicken zum Lösen"
+gui-links-remove-confirm: "<dark_red><bold>Noch einmal klicken zum Lösen"
+gui-links-add-name: "<green>Account verknüpfen <gray>(<count>/<max>)"
+gui-links-add-lore:
+  - "<gray>Wähle einen Spieler, der gerade online ist."
+  - "<gray>Der Spieler bekommt eine Anfrage und muss zustimmen."
+gui-title-link-pick: "<dark_gray>Account verknüpfen"
+gui-link-pick-lore:
+  - "<gray>Eigene Chunkloader: <white><count></white> <dark_gray>(gehen an dich über)"
+  - ""
+  - "<green>» Klicken zum Anfragen"
+gui-link-nobody: "<gray>Niemand zum Verknüpfen online"
+gui-link-nobody-lore:
+  - "<gray>Der andere Account muss online sein"
+  - "<gray>und darf noch nicht verknüpft sein."
 
 # Admin-Menü
 gui-title-admin: "<dark_gray>MRchunks <gray>» <dark_green>Übersicht"
@@ -469,6 +569,13 @@ gui-player-lore:
   - "<gray>Limit: <limit-source>"
   - "<gray>Status: <status>"
 # Zusammenfassung auf dem MRchunks-Knopf im Admin-Kompass von MRadmin. Platzhalter: <loaders> <active> <chunks> <bans>
+# Ticket in MRadmin, wenn ein Chunkloader wegen Lag gesperrt wird (Betreff) bzw. die Sperre aufgehoben wird (Notiz).
+report-lock-subject: "<name> gesperrt"
+report-lock-lifted: "Die Sperre wurde von <admin> aufgehoben. Der Chunkloader ist noch aus und kann wieder eingeschaltet werden."
+# Hinweise auf der Startseite der MRadmin-Weboberfläche (reiner Text). Platzhalter: <tps>, <count>
+web-alert-paused: "Chunkloader pausiert - die Server-TPS liegt bei <tps>"
+web-alert-locked: "<count> Chunkloader wegen Lag gesperrt"
+web-alert-warn: "<count> Chunkloader über der Warnschwelle"
 mradmin-summary:
   - "<gray>Chunkloader: <white><loaders></white> <dark_gray>(<white><active></white> aktiv)"
   - "<gray>Geladene Chunks: <white><chunks>"
@@ -496,6 +603,14 @@ gui-limit-permission: "<white>Permission"
 gui-limit-custom: "<light_purple>individuell"
 gui-limit-name: "<light_purple>Setzbar: <white><limit></white> <gray>Loader"
 gui-active-limit-name: "<aqua>Gleichzeitig aktiv: <white><limit></white> <gray>Loader"
+gui-dummy-limit-name: "<light_purple>Dummies: <white><limit></white>"
+gui-player-dummies: "<gray>Dummies: <white><dummies></white>/<white><dummy-limit>"
+gui-player-linked-second: "<gray>Zweit-Account von <white><main>"
+gui-player-linked-main: "<gray>Verknüpft mit: <white><seconds>"
+gui-unlink-name: "<red>Verknüpfung lösen"
+gui-unlink-lore:
+  - "<gray>Löst die Verknüpfung von <white><player></white>."
+  - "<gray>Die Chunkloader bleiben beim Haupt-Account."
 gui-limit-lore:
   - "<gray>Linksklick: <white>+1"
   - "<gray>Rechtsklick: <white>-1"

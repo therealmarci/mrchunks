@@ -5,6 +5,7 @@ import at.marcelr.mrchunks.Loader;
 import at.marcelr.mrchunks.MRChunks;
 import at.marcelr.mrchunks.Messages;
 import at.marcelr.mrchunks.Texts;
+import at.marcelr.mrchunks.dummy.Dummies;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -56,8 +57,8 @@ public final class InvitePickerMenu extends Menu {
         Map<UUID, Long> invited = plugin.loaders().members(owner, loader);
         List<Player> candidates = new ArrayList<>();
         for (Player online : Bukkit.getOnlinePlayers()) {
-            if (!online.getUniqueId().equals(owner) && !invited.containsKey(online.getUniqueId())
-                    && !AdminActions.isExempt(online) && viewer.canSee(online)) {
+            if (!plugin.loaders().sameGroup(online.getUniqueId(), owner) && !invited.containsKey(online.getUniqueId())
+                    && !AdminActions.isExempt(online) && !Dummies.isDummy(online) && viewer.canSee(online)) {
                 candidates.add(online);
             }
         }

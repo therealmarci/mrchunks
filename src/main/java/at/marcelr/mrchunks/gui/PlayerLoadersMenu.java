@@ -23,7 +23,7 @@ import static at.marcelr.mrchunks.Messages.tag;
 /**
  * One player's loaders plus player actions. Layout (6 rows):
  * <pre>
- *  [limit] . [delete all] . [head] . [ban1] [ban2] [ban3]   (or [unban] while banned)
+ *  [limit] [active limit] [delete all] [dummy limit] [head] [unlink] [ban1] [ban2] [ban3]   (or [unban] while banned)
  *  rows 1-4: the player's loaders (click: loader menu with admin actions)
  *  [«] . . . [back] . . . [»]
  * </pre>
@@ -56,11 +56,15 @@ public final class PlayerLoadersMenu extends Menu {
         LoaderManager loaders = plugin.loaders();
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetId);
         String name = AdminActions.name(target);
-        List<Loader> owned = loaders.byOwner(targetId);
+        // A linked second account shows the loaders of its main account (they share them).
+        List<Loader> owned = loaders.byOwner(loaders.main(targetId));
 
         // ---- the two caps: left +1, right -1, shift = reset
         limitButton(0, Material.EXPERIENCE_BOTTLE, "gui-limit-name", target, LoaderManager.LimitKind.PLACE);
         limitButton(1, Material.BEACON, "gui-active-limit-name", target, LoaderManager.LimitKind.ACTIVE);
+        if (plugin.dummies().enabled()) {
+            limitButton(3, Material.ARMOR_STAND, "gui-dummy-limit-name", target, LoaderManager.LimitKind.DUMMY);
+        }
 
         // ---- delete all
         TagResolver tags = TagResolver.resolver(tag("player", name), tag("placed", owned.size()));
@@ -68,6 +72,10 @@ public final class PlayerLoadersMenu extends Menu {
                 () -> actions.deleteAll(viewer, target), tags);
 
         set(4, PlayerIcons.head(plugin, target, false));
+        if (loaders.isLinked(targetId)) {
+            guarded(5, Material.IRON_CHAIN, "gui-unlink-name", "gui-unlink-lore", AdminActions.PERM_MANAGE,
+                    () -> actions.unlink(viewer, targetId), tags);
+        }
 
         // ---- ban / unban
         if (loaders.ban(targetId) != null) {

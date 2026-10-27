@@ -11,6 +11,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
+import java.util.UUID;
 
 import static at.marcelr.mrchunks.Messages.tag;
 
@@ -23,7 +24,9 @@ public final class PlayerIcons {
     public static ItemStack head(MRChunks plugin, OfflinePlayer target, boolean clickHint) {
         Messages messages = plugin.messages();
         LoaderManager loaders = plugin.loaders();
-        List<Loader> owned = loaders.byOwner(target.getUniqueId());
+        // Linked accounts: the loaders and limits of the main account.
+        UUID main = loaders.main(target.getUniqueId());
+        List<Loader> owned = loaders.byOwner(main);
         LoaderManager.Limit limit = loaders.limit(target);
 
         Component source = messages.get(switch (limit.source()) {
@@ -31,7 +34,7 @@ public final class PlayerIcons {
             case PERMISSION, UNLIMITED -> "gui-limit-permission";
             case DEFAULT -> "gui-limit-default";
         });
-        LoaderManager.Ban ban = loaders.ban(target.getUniqueId());
+        LoaderManager.Ban ban = loaders.groupBan(target.getUniqueId());
         Component status = ban != null
                 ? messages.get("gui-banned", tag("duration", Texts.banDuration(plugin, ban)), tag("reason", ban.reason()))
                 : messages.get(target.isOnline() ? "gui-online" : "gui-offline");
@@ -46,6 +49,16 @@ public final class PlayerIcons {
                         tag("limit-source", source),
                         tag("status", status)))
                 .glint(ban != null);
+        if (plugin.dummies().enabled()) {
+            item.lore(messages.item("gui-player-dummies", tag("dummies", loaders.dummyCount(main)),
+                    tag("dummy-limit", Texts.limit(loaders.limit(target, LoaderManager.LimitKind.DUMMY)))));
+        }
+        if (!main.equals(target.getUniqueId())) {
+            item.lore(messages.item("gui-player-linked-second", tag("main", LoaderManager.name(main))));
+        } else if (!loaders.secondaries(main).isEmpty()) {
+            item.lore(messages.item("gui-player-linked-main", tag("seconds", String.join(", ",
+                    loaders.secondaries(main).stream().map(LoaderManager::name).toList()))));
+        }
         if (clickHint) {
             item.lore(Component.empty()).lore(messages.item("gui-player-click"));
         }

@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Do not change - tells the plugin which texts need to be renewed on updates.
-lang-version: 10
+lang-version: 12
 
 # Discord log texts (Discord markdown). Placeholders: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. On/off and colour are set in config.yml.
@@ -35,6 +35,9 @@ discord:
   loader-lag-unlocked: "🔓 **{admin}** lifted the lag lock of **{name}** ({player})."
   server-paused: "⏸️ The server is lagging ({value} TPS) - all chunk loaders are paused ({count} chunks released)."
   server-resumed: "▶️ The server runs smoothly again ({value} TPS) - the chunk loaders load again (pause: {time})."
+  dummy-toggled: "🧍 The dummy on **{name}** of **{player}** is now **{state}** (changed by {admin})."
+  accounts-linked: "🔗 **{player}** is now linked to **{owner}** ({count} chunk loaders taken over, by {admin})."
+  accounts-unlinked: "⛓️ The link of **{player}** to **{owner}** was removed (by {admin})."
 
 # --- Chunk loader item ---------------------------------------------------------
 # Placeholders: <size> (e.g. 7), <chunks> (e.g. 49)
@@ -188,6 +191,44 @@ invite-label-duration: "Duration"
 invite-save: "<green>Invite"
 invite-cancel: "<red>Cancel"
 
+# --- Dummy players -------------------------------------------------------------
+# Placeholders: <name> (loader), <dummies> (dummies switched on), <dummy-limit>
+dummy-on: "<prefix><green>The dummy now sits on <white><name></white>. <gray>(<dummies>/<dummy-limit> dummies)"
+dummy-on-inactive: "<prefix><yellow>Dummy for <white><name></white> switched on - it appears as soon as the chunk loader is active. <gray>(<dummies>/<dummy-limit> dummies)"
+dummy-off: "<prefix><green>The dummy of <white><name></white> is gone. <gray>(<dummies>/<dummy-limit> dummies)"
+dummy-limit-reached: "<prefix><red>You already have <white><dummies>/<dummy-limit></white> dummies. <gray>Switch another one off first."
+dummy-disabled: "<prefix><red>Dummy players are switched off on this server."
+owner-notify-dummy: "<prefix><gray>The dummy on your chunk loader <white><name></white> was set to <white><state></white> by <white><admin></white>."
+dummy-limit-enforced: "<prefix><yellow><white><count></white> dummies of <white><player></white> were switched off because the new dummy limit is lower."
+dummy-limit-enforced-notify: "<prefix><yellow><white><count></white> of your dummies were switched off because your dummy limit was lowered."
+
+# --- Linked accounts -----------------------------------------------------------
+# Placeholders: <main> (main account), <second> (second account), <player>, <count> (chunk loaders taken over)
+links-disabled: "<prefix><red>Linked accounts are switched off on this server."
+link-request-sent: "<prefix><green>Request sent to <white><player></white>. <gray>It is valid for <seconds> seconds."
+link-request-received: "<prefix><yellow><white><main></white> wants to link your account with theirs.</yellow> <gray>You then share the chunk loaders and limit of <main>; your <count> chunk loaders go over to <main>. <accept> <decline> <dark_gray>(<seconds> s)"
+link-accept-label: "<green><u>[Accept]</u></green>"
+link-decline-label: "<red><u>[Decline]</u></red>"
+link-dialog-title: "Link your account with <main>?"
+link-dialog-text: "<white><main></white><gray> wants to link your account with theirs as a second account. You then share all chunk loaders, the limit of <main>, invites and dummies. Your <white><count></white> own chunk loaders go over to <main>. You can remove the link at any time under /chunkloader → Linked accounts."
+link-dialog-accept: "<green>Accept"
+link-dialog-decline: "<red>Decline"
+link-done: "<prefix><green><white><second></white> is now linked to <white><main></white>.</green> <gray>You share all chunk loaders (<count> taken over)."
+link-admin-done: "<prefix><green><white><second></white> is now linked to <white><main></white>."
+link-request-expired: "<prefix><gray>This request has expired."
+link-main-offline: "<prefix><red><white><player></white> is no longer online - the request has expired."
+link-declined: "<prefix><gray><white><player></white> declined your request."
+link-declined-self: "<prefix><gray>Request declined."
+link-self: "<prefix><red>You cannot link your account with itself."
+link-main-is-second: "<prefix><red>A second account cannot link further accounts - the main account does that."
+link-already-linked: "<prefix><red><white><player></white> is already linked with an account."
+link-full: "<prefix><red><white><max></white> second accounts are linked already."
+link-exempt: "<prefix><red>An account that is excluded from chunk loading cannot be linked."
+link-banned: "<prefix><red>A banned account cannot be linked."
+link-not-linked: "<prefix><gray><white><player></white> is not linked with any account."
+link-removed: "<prefix><green>The link of <white><second></white> to <white><main></white> is removed.</green> <gray>The chunk loaders stay with <main>."
+link-removed-notify: "<prefix><gray>The link of <white><second></white> to <white><main></white> was removed by <white><admin></white>. The chunk loaders stay with <main>."
+
 # --- Admin -------------------------------------------------------------------
 admin-usage: |-
   <prefix><gray>Admin commands:
@@ -196,11 +237,14 @@ admin-usage: |-
   <green>/mrchunks toggle <player> <no></green> <dark_gray>- <gray>Turn a chunk loader on/off
   <green>/mrchunks delete <player> <no></green> <dark_gray>- <gray>Delete a chunk loader
   <green>/mrchunks unlock <player> <no></green> <dark_gray>- <gray>Lift a lag lock
+  <green>/mrchunks dummy <player> <no></green> <dark_gray>- <gray>Dummy player on/off
   <green>/mrchunks lag</green> <dark_gray>- <gray>Conspicuous and locked chunk loaders
-  <green>/mrchunks limit <player> <place|active> <amount|reset></green> <dark_gray>- <gray>Placeable / simultaneously active loaders
+  <green>/mrchunks limit <player> <place|active|dummy> <amount|reset></green> <dark_gray>- <gray>Placeable / simultaneously active loaders / dummies
   <green>/mrchunks ban <player> [duration] [reason]</green> <dark_gray>- <gray>Ban (deletes all their loaders)
   <green>/mrchunks unban <player></green> <dark_gray>- <gray>Lift a ban
   <green>/mrchunks bans</green> <dark_gray>- <gray>All bans
+  <green>/mrchunks link <main-account> <second-account></green> <dark_gray>- <gray>Link accounts
+  <green>/mrchunks unlink <player></green> <dark_gray>- <gray>Remove a link
   <green>/mrchunks map [setup]</green> <dark_gray>- <gray>Web map status / set up squaremap again
   <green>/mrchunks discord [test]</green> <dark_gray>- <gray>Discord status / test message
   <green>/mrchunks reload</green> <dark_gray>- <gray>Reload the configuration
@@ -211,6 +255,7 @@ limit-reset: "<prefix><green><type> of <white><player></white> reset <gray>(now 
 limit-notify: "<prefix><green>Your <type> is now <white><limit></white>."
 limit-type-place: "limit (placeable loaders)"
 limit-type-active: "active limit (loaders active at once)"
+limit-type-dummy: "dummy limit (dummies switched on)"
 active-limit-enforced: "<prefix><yellow><white><count></white> chunk loader(s) of <white><player></white> were disabled because the new active limit is lower."
 active-limit-enforced-notify: "<prefix><yellow><white><count></white> of your chunk loaders were disabled because your active limit was lowered."
 ban-set: "<prefix><green><white><player></white> is banned <dark_gray>(<duration>, reason: <reason>)<green>. <white><count></white> chunk loader(s) deleted."
@@ -265,7 +310,7 @@ version-latest: "<prefix><green>You are running the latest version."
 version-outdated: "<prefix><gold>New version available: <white><latest></white> <gray>(installed: <current>) <download>"
 version-unknown: "<prefix><gray>Update status unknown: <reason>"
 version-checking: "<prefix><gray>Checking for updates ..."
-version-links: "<prefix><modrinth> <dark_gray>| <github>"
+version-links: "<prefix><website> <dark_gray>| <github>"
 update-download-label: "<aqua><u>[Download]</u></aqua>"
 update-join-notify: "<prefix><gold>An update for MRchunks is available: <white><latest></white> <gray>(installed: <current>) <download>"
 update-reason-disabled: "the update check is disabled"
@@ -409,6 +454,24 @@ gui-delete-confirm-name: "<dark_red><bold>Really delete?"
 gui-delete-confirm-lore:
   - "<red>Click again to delete."
 gui-teleport-name: "<aqua>Teleport there"
+# Dummy button in a chunk loader's menu. Placeholders: <dummies> <dummy-limit>
+gui-dummy-on-name: "<light_purple>Switch dummy on"
+gui-dummy-on-lore:
+  - "<gray>A dummy player sits down on the block"
+  - "<gray>and counts as a player nearby: mobs stay"
+  - "<gray>active, farms run as if you were there."
+  - ""
+  - "<gray>Your dummies: <white><dummies>/<dummy-limit>"
+gui-dummy-off-name: "<light_purple>Switch dummy off"
+gui-dummy-off-lore:
+  - "<green>● The dummy sits on the block."
+  - ""
+  - "<gray>Your dummies: <white><dummies>/<dummy-limit>"
+gui-dummy-waiting-lore:
+  - "<yellow>● Switched on - it appears as soon as"
+  - "<yellow>  the chunk loader is active."
+  - ""
+  - "<gray>Your dummies: <white><dummies>/<dummy-limit>"
 
 # Own chunk loaders (/chunkloader)
 gui-title-mine: "<dark_gray>My chunk loaders <gray>(<placed>/<limit>)"
@@ -436,6 +499,43 @@ gui-map-lore:
   - ""
   - "<yellow>Click: link in chat"
 players-only-menu: "<prefix><red>/chunkloader opens a menu and only works in game. <gray>For the console: /mrchunks"
+
+# Linked accounts (/chunkloader → Linked accounts)
+gui-links-name: "<aqua>Linked accounts <gray>(<count>)"
+gui-links-lore:
+  - "<gray>Link a second account: you share"
+  - "<gray>chunk loaders and limit."
+gui-title-links: "<dark_gray>Linked accounts"
+gui-links-info-name: "<aqua>Linked accounts"
+gui-links-info-lore:
+  - "<gray>Linked accounts share everything:"
+  - "<gray>chunk loaders, the main account's limit,"
+  - "<gray>invites and dummies."
+  - ""
+  - "<gray>The other account has to be online and"
+  - "<gray>agree. At most <white><max></white> second account(s)."
+gui-links-unlinked-lore:
+  - "<gray>Not linked yet."
+gui-links-main-lore:
+  - "<green>Main account"
+  - "<gray>Its limit applies to all linked accounts."
+gui-links-second-lore:
+  - "<gray>Second account"
+gui-links-remove: "<red>» Click to remove the link"
+gui-links-remove-confirm: "<dark_red><bold>Click again to remove the link"
+gui-links-add-name: "<green>Link an account <gray>(<count>/<max>)"
+gui-links-add-lore:
+  - "<gray>Pick a player who is online right now."
+  - "<gray>They get a request and have to agree."
+gui-title-link-pick: "<dark_gray>Link an account"
+gui-link-pick-lore:
+  - "<gray>Own chunk loaders: <white><count></white> <dark_gray>(go over to you)"
+  - ""
+  - "<green>» Click to send a request"
+gui-link-nobody: "<gray>Nobody to link is online"
+gui-link-nobody-lore:
+  - "<gray>The other account has to be online"
+  - "<gray>and must not be linked yet."
 
 # Admin menu
 gui-title-admin: "<dark_gray>MRchunks <gray>» <dark_green>Overview"
@@ -469,6 +569,13 @@ gui-player-lore:
   - "<gray>Limit: <limit-source>"
   - "<gray>Status: <status>"
 # Summary on the MRchunks button in MRadmin's admin compass. Placeholders: <loaders> <active> <chunks> <bans>
+# Ticket in MRadmin when a chunk loader is locked because of lag (subject) or the lock is lifted (note).
+report-lock-subject: "<name> locked"
+report-lock-lifted: "The lock was lifted by <admin>. The chunk loader is still off and can be switched on again."
+# Hints on the start page of MRadmin's web interface (plain text). Placeholders: <tps>, <count>
+web-alert-paused: "Chunk loaders paused - the server TPS is at <tps>"
+web-alert-locked: "<count> chunk loader(s) locked because of lag"
+web-alert-warn: "<count> chunk loader(s) above the warning limit"
 mradmin-summary:
   - "<gray>Chunk loaders: <white><loaders></white> <dark_gray>(<white><active></white> active)"
   - "<gray>Loaded chunks: <white><chunks>"
@@ -496,6 +603,14 @@ gui-limit-permission: "<white>permission"
 gui-limit-custom: "<light_purple>custom"
 gui-limit-name: "<light_purple>Placeable: <white><limit></white> <gray>loaders"
 gui-active-limit-name: "<aqua>Active at once: <white><limit></white> <gray>loaders"
+gui-dummy-limit-name: "<light_purple>Dummies: <white><limit></white>"
+gui-player-dummies: "<gray>Dummies: <white><dummies></white>/<white><dummy-limit>"
+gui-player-linked-second: "<gray>Second account of <white><main>"
+gui-player-linked-main: "<gray>Linked with: <white><seconds>"
+gui-unlink-name: "<red>Remove link"
+gui-unlink-lore:
+  - "<gray>Removes the link of <white><player></white>."
+  - "<gray>The chunk loaders stay with the main account."
 gui-limit-lore:
   - "<gray>Left-click: <white>+1"
   - "<gray>Right-click: <white>-1"

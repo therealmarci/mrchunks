@@ -50,6 +50,9 @@ public final class UpdateChecker {
     private final String currentVersion;
     private final String modrinthProject;
     private final String githubRepository;
+    /** Pages on the website (empty in builds without website info). */
+    private final String downloadPage;
+    private final String docsPage;
 
     private volatile State state = State.DISABLED;
     private volatile String latestVersion;
@@ -77,6 +80,11 @@ public final class UpdateChecker {
         this.minecraft = mc.isBlank() || mc.contains("$") ? Versions.minecraft(currentVersion) : mc;
         this.modrinthProject = info.getProperty("modrinthProjectId", "mrchunks");
         this.githubRepository = info.getProperty("githubRepository", "");
+        String website = info.getProperty("website", "");
+        String slug = info.getProperty("websiteSlug", modrinthProject);
+        boolean hasWebsite = !website.isBlank() && !website.contains("$");
+        this.downloadPage = hasWebsite ? website + "/download/" + slug + "/" : "";
+        this.docsPage = hasWebsite ? website + "/docs/" + slug + "/" : "";
     }
 
     public void start() {
@@ -155,7 +163,7 @@ public final class UpdateChecker {
     }
 
     public Component downloadLink() {
-        String url = downloadUrl == null ? modrinthPage() : downloadUrl;
+        String url = !downloadPage.isEmpty() ? downloadPage : downloadUrl == null ? modrinthPage() : downloadUrl;
         return plugin.messages().get("update-download-label").clickEvent(ClickEvent.openUrl(url));
     }
 
@@ -165,6 +173,11 @@ public final class UpdateChecker {
 
     public String githubPage() {
         return "https://github.com/" + githubRepository;
+    }
+
+    /** Guide on the website (falls back to the GitHub page). */
+    public String websitePage() {
+        return docsPage.isEmpty() ? githubPage() : docsPage;
     }
 
     public State state() {
@@ -348,7 +361,7 @@ public final class UpdateChecker {
         log.warning(" A new version of MRchunks is available!");
         log.warning(" Installed: " + Versions.full(minecraft, currentVersion())
                 + "   |   New: " + Versions.full(minecraft, Versions.plugin(release.version())));
-        log.warning(" Download: " + release.url());
+        log.warning(" Download: " + (downloadPage.isEmpty() ? release.url() : downloadPage));
         log.warning("==========================================================");
         Bukkit.getScheduler().runTask(plugin, () -> {
             for (Player player : Bukkit.getOnlinePlayers()) {

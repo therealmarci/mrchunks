@@ -6,7 +6,6 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.SkullMeta;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,20 +27,12 @@ final class Items {
     }
 
     static Items head(Player owner) {
-        ItemStack head = new ItemStack(Material.PLAYER_HEAD);
-        head.editMeta(SkullMeta.class, meta -> meta.setPlayerProfile(owner.getPlayerProfile()));
-        return new Items(head);
+        return new Items(Heads.of(owner));
     }
 
-    /** Head of a player who may be offline (the skin only shows if the server has seen them before). */
+    /** Head of a player who may be offline (skin looked up once and cached, see {@link Heads}). */
     static Items head(OfflinePlayer owner) {
-        Player online = owner.getPlayer();
-        if (online != null) {
-            return head(online);
-        }
-        ItemStack head = new ItemStack(Material.PLAYER_HEAD);
-        head.editMeta(SkullMeta.class, meta -> meta.setOwningPlayer(owner));
-        return new Items(head);
+        return new Items(Heads.of(owner));
     }
 
     static ItemStack filler() {
