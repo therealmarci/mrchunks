@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Do not change - tells the plugin which texts need to be renewed on updates.
-lang-version: 11
+lang-version: 12
 
 # Discord log texts (Discord markdown). Placeholders: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. On/off and colour are set in config.yml.
@@ -310,7 +310,7 @@ version-latest: "<prefix><green>You are running the latest version."
 version-outdated: "<prefix><gold>New version available: <white><latest></white> <gray>(installed: <current>) <download>"
 version-unknown: "<prefix><gray>Update status unknown: <reason>"
 version-checking: "<prefix><gray>Checking for updates ..."
-version-links: "<prefix><modrinth> <dark_gray>| <github>"
+version-links: "<prefix><website> <dark_gray>| <github>"
 update-download-label: "<aqua><u>[Download]</u></aqua>"
 update-join-notify: "<prefix><gold>An update for MRchunks is available: <white><latest></white> <gray>(installed: <current>) <download>"
 update-reason-disabled: "the update check is disabled"

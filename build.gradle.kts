@@ -18,6 +18,8 @@ version = "mc$mcVersion-v$pluginVersion"
 
 val modrinthProjectId = providers.gradleProperty("modrinthProjectId").get()
 val githubRepository = providers.gradleProperty("githubRepository").get()
+val website = providers.gradleProperty("website").get()
+val websiteSlug = providers.gradleProperty("websiteSlug").get()
 val supportedGameVersions = providers.gradleProperty("supportedGameVersions").get()
 val isPrerelease = pluginVersion.let { it.startsWith("0.") || it.contains("-") }
 
@@ -70,6 +72,8 @@ tasks.processResources {
         "mcVersion" to mcVersion,
         "modrinthProjectId" to modrinthProjectId,
         "githubRepository" to githubRepository,
+        "website" to website,
+        "websiteSlug" to websiteSlug,
     )
     inputs.properties(props)
     filteringCharset = "UTF-8"

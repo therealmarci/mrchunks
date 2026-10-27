@@ -287,7 +287,8 @@ public final class MRChunksCommand implements TabExecutor {
         Runnable links = () -> {
             sender.sendMessage(Component.empty());
             messages.send(sender, "version-links",
-                    tag("modrinth", link("Modrinth", updates.modrinthPage())),
+                    tag("website", link("Website", updates.websitePage())),
+                    tag("modrinth", link("Website", updates.websitePage())),
                     tag("github", link("GitHub", updates.githubPage())));
         };
         if (plugin.settings().update().enabled()) {

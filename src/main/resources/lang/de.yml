@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Nicht ändern - damit erkennt das Plugin bei Updates, welche Texte erneuert werden müssen.
-lang-version: 11
+lang-version: 12
 
 # Texte der Discord-Logs (Markdown wie in Discord). Platzhalter: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. An/aus und Farbe stehen in der config.yml.
@@ -310,7 +310,7 @@ version-latest: "<prefix><green>Du nutzt die aktuellste Version."
 version-outdated: "<prefix><gold>Neue Version verfügbar: <white><latest></white> <gray>(installiert: <current>) <download>"
 version-unknown: "<prefix><gray>Update-Status unbekannt: <reason>"
 version-checking: "<prefix><gray>Suche nach Updates ..."
-version-links: "<prefix><modrinth> <dark_gray>| <github>"
+version-links: "<prefix><website> <dark_gray>| <github>"
 update-download-label: "<aqua><u>[Download]</u></aqua>"
 update-join-notify: "<prefix><gold>Für MRchunks gibt es ein Update: <white><latest></white> <gray>(installiert: <current>) <download>"
 update-reason-disabled: "Update-Check ist deaktiviert"

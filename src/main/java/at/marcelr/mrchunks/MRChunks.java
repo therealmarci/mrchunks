@@ -25,23 +25,25 @@ public final class MRChunks extends JavaPlugin {
     private FileConfiguration config;
     private Settings settings;
     /** lang-version 2: version display with MC version; 3: loaders by name/number; 4: squaremap.address; 5: merged admin commands; 6: shorter window titles; 7: lag protection (admin usage); 8: /chunkloader is only the menu (invite notice); 9: get/return as two buttons; 11: dummies and linked accounts (admin usage). */
-    private final Messages messages = new Messages(11, Map.of(
-            2, Set.of("version", "gui-info-name"),
-            3, Set.of("discord.loader-placed", "discord.loader-deleted", "discord.loader-toggled",
+    private final Messages messages = new Messages(12, Map.ofEntries(
+            Map.entry(2, Set.of("version", "gui-info-name")),
+            Map.entry(3, Set.of("discord.loader-placed", "discord.loader-deleted", "discord.loader-toggled",
                     "discord.loader-restored", "discord.loader-removed-missing", "discord.admin-delete",
                     "map-hover-tooltip", "map-click-tooltip", "loader-not-found", "usage", "placed", "placed-inactive",
                     "toggled", "deleted", "delete-confirm", "owner-notify-toggled", "owner-notify-deleted",
                     "border-shown", "teleported", "admin-usage", "list-entry", "gui-loader-name", "gui-loader-lore",
-                    "gui-title-loader"),
-            4, Set.of("map-url-unknown"),
-            5, Set.of("admin-usage", "gui-invite-lore"),
-            6, Set.of("gui-title-loader", "gui-title-mine", "gui-title-player"),
-            7, Set.of("admin-usage"),
-            8, Set.of("invite-notify"),
-            9, Set.of("gui-items-lore", "gui-mine-empty-lore"),
+                    "gui-title-loader")),
+            Map.entry(4, Set.of("map-url-unknown")),
+            Map.entry(5, Set.of("admin-usage", "gui-invite-lore")),
+            Map.entry(6, Set.of("gui-title-loader", "gui-title-mine", "gui-title-player")),
+            Map.entry(7, Set.of("admin-usage")),
+            Map.entry(8, Set.of("invite-notify")),
+            Map.entry(9, Set.of("gui-items-lore", "gui-mine-empty-lore")),
             // The ticket shows the location itself - no second "Location" line in the lock details.
-            10, Set.of("lock-details"),
-            11, Set.of("admin-usage")));
+            Map.entry(10, Set.of("lock-details")),
+            Map.entry(11, Set.of("admin-usage")),
+            // 12: "Website | GitHub" in /mrchunks version.
+            Map.entry(12, Set.of("version-links"))));
     private final DiscordWebhook discord = new DiscordWebhook(this);
     private final AdminActions adminActions = new AdminActions(this);
     private LoaderManager loaders;

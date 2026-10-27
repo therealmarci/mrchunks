@@ -4,7 +4,7 @@ main: at.marcelr.mrchunks.MRChunks
 api-version: '${mcVersion}'
 softdepend: [squaremap, MRadmin]
 author: _therealmarci
-website: https://github.com/${githubRepository}
+website: ${website}/docs/${websiteSlug}/
 description: Chunkloader-Blöcke mit Limits, Menüs, Admin-GUI, squaremap-Anbindung und Discord-Logs.
 
 commands:
