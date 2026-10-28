@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Do not change - tells the plugin which texts need to be renewed on updates.
-lang-version: 15
+lang-version: 16
 
 # Discord log texts (Discord markdown). Placeholders: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. On/off and colour are set in config.yml.
@@ -777,7 +777,7 @@ self-scope-all: "all loaders"
 self-permanent: "permanent"
 self-uninvite: "Remove"
 self-shared: "Shared with you"
-self-size-hint: "You change the size of a loader in game: right-click the block → Size."
+self-size-hint: "You change the size of a loader in game: right-click the block → Settings → Size."
 self-map: "Map of your chunk loaders"
 self-map-open: "Open the big map"
 self-err-not-found: "This chunk loader does not exist anymore."

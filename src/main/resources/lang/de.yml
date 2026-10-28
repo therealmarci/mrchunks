@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Nicht ändern - damit erkennt das Plugin bei Updates, welche Texte erneuert werden müssen.
-lang-version: 15
+lang-version: 16
 
 # Texte der Discord-Logs (Markdown wie in Discord). Platzhalter: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. An/aus und Farbe stehen in der config.yml.
@@ -777,7 +777,7 @@ self-scope-all: "alle Loader"
 self-permanent: "dauerhaft"
 self-uninvite: "Entfernen"
 self-shared: "Mit dir geteilt"
-self-size-hint: "Die Größe eines Loaders änderst du im Spiel: Rechtsklick auf den Block → Größe."
+self-size-hint: "Die Größe eines Loaders änderst du im Spiel: Rechtsklick auf den Block → Einstellungen → Größe."
 self-map: "Karte deiner Chunkloader"
 self-map-open: "Große Karte öffnen"
 self-err-not-found: "Diesen Chunkloader gibt es nicht mehr."
