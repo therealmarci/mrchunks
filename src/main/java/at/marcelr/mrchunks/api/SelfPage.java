@@ -114,10 +114,10 @@ final class SelfPage {
         }
         blocks.add(new SelfBlock.Cards(m.plain("self-table"), cards, m.plain("self-empty")));
 
-        // Invites for all loaders right under the own loaders; those for one loader are in its opened card.
+        // Invites for all loaders right under the own loaders (one tile: invite on top, list below); those for one
+        // loader are in its opened card.
         if (plugin.settings().invites().enabled() && viewer.has(INVITE) && ban == null) {
-            blocks.add(members(plugin, owner, null));
-            blocks.add(inviteForm(plugin, null));
+            blocks.add(invites(plugin, owner, null));
         }
         List<Loader> shared = loaders.sharedWith(viewer.player());
         if (!shared.isEmpty()) {
@@ -167,8 +167,7 @@ final class SelfPage {
             details.add(new SelfBlock.Text(m.plain("self-dummy-square-hint"), "info"));
         }
         if (actions && plugin.settings().invites().enabled() && viewer.has(INVITE)) {
-            details.add(members(plugin, loader.owner(), loader));
-            details.add(inviteForm(plugin, loader));
+            details.add(invites(plugin, loader.owner(), loader));
         }
         if (!mapUrl.isEmpty()) {
             details.add(new SelfBlock.Embed(m.plain("self-card-map"), mapAt(mapUrl, loader), 320, m.plain("self-map-open")));
@@ -282,18 +281,19 @@ final class SelfPage {
     }
 
     /**
-     * Invited players with "remove": {@code loader} null = those for all loaders (under "Your chunk loaders"),
-     * otherwise those for this one loader (in its opened card).
+     * Invites as one tile: "invite a player" on top, the invited players with "remove" below. {@code loader} null =
+     * for all loaders (under "Your chunk loaders"), otherwise for this one loader (in its opened card).
      */
-    private static SelfBlock.People members(MRChunks plugin, UUID owner, Loader loader) {
+    private static SelfBlock.Group invites(MRChunks plugin, UUID owner, Loader loader) {
         Messages m = plugin.messages();
         List<SelfBlock.Person> people = new ArrayList<>();
         String id = loader == null ? "all" : String.valueOf(loader.id());
         plugin.loaders().members(owner, loader).forEach((member, until) -> people.add(person(plugin, member, until, id)));
-        return loader == null
-                ? new SelfBlock.People(m.plain("self-members"), m.plain("self-members-text"), people, m.plain("self-members-empty"))
-                : new SelfBlock.People(m.plain("self-members-loader"), m.plain("self-members-loader-text"), people,
-                m.plain("self-members-loader-empty"));
+        SelfBlock.People list = new SelfBlock.People(m.plain("self-members-list", "count", people.size()), "", people,
+                m.plain(loader == null ? "self-members-empty" : "self-members-loader-empty"));
+        return new SelfBlock.Group(m.plain(loader == null ? "self-members" : "self-members-loader"),
+                m.plain(loader == null ? "self-members-text" : "self-members-loader-text"),
+                List.of(inviteForm(plugin, loader), list));
     }
 
     private static SelfBlock.Person person(MRChunks plugin, UUID member, long until, String id) {
@@ -313,8 +313,7 @@ final class SelfPage {
         for (long duration : plugin.settings().invites().durations()) {
             durations.add(new SelfBlock.Option(String.valueOf(duration), Texts.duration(plugin, duration)));
         }
-        return new SelfBlock.Form(m.plain(loader == null ? "self-invite-title" : "self-invite-loader-title"),
-                m.plain(loader == null ? "self-invite-text" : "self-invite-loader-text"), List.of(
+        return new SelfBlock.Form(m.plain("self-invite-title"), m.plain("self-invite-text"), List.of(
                 new SelfBlock.Field("player", m.plain("self-invite-player"), "text", "", List.of(), 16),
                 new SelfBlock.Field("duration", m.plain("self-invite-duration"), "select", durations.getFirst().value(),
                         durations, 0)),
