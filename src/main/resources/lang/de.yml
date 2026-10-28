@@ -424,6 +424,10 @@ gui-border-lore:
 gui-border-hide-name: "<aqua>Grenze ausblenden"
 gui-border-hide-lore:
   - "<gray>Blendet die angezeigte Grenze aus."
+gui-settings-name: "<aqua>Einstellungen"
+gui-settings-lore:
+  - "<gray>Größe, Block, Name und Löschen."
+gui-title-settings: "<dark_gray>Einstellungen » <dark_green><name>"
 gui-members-name: "<aqua>Mitglieder <gray>(<count>)"
 gui-members-lore:
   - "<gray>Spieler einladen, die diesen"

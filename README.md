@@ -44,13 +44,13 @@
 ## So funktioniert's (für Spieler)
 1. **`/chunkloader`** (oder `/cl`) öffnet dein Menü. Unten rechts holt **Chunkloader holen** einen Loader ins Inventar (Linksklick 1, Shift bis zu 64 - höchstens 30 Loader insgesamt). Dort siehst du auch dein **Budget**. **Chunkloader zurückgeben** daneben nimmt Items wieder zurück.
 2. **Block platzieren** - ab sofort bleiben die `7×7` Chunks rundherum geladen. Reicht dein freies Budget nicht mehr für 7×7, wird der Loader so groß, wie es noch geht.
-3. **Rechtsklick** auf den Block öffnet sein Menü: Infos, **Größe**, umbenennen, Mitglieder, **Grenze anzeigen**, **Block ändern**, an/aus, Dummy, löschen. **Sneak + Rechtsklick** verhält sich normal, du kannst also weiter Blöcke daran bauen.
+3. **Rechtsklick** auf den Block öffnet sein Menü: oben die Infos, darunter **Mitglieder**, **an/aus**, **Grenze anzeigen** (Enderperle), **Dummy** und **Einstellungen**. In den Einstellungen liegen **Größe**, **Block ändern**, **Umbenennen** und **Löschen**. **Sneak + Rechtsklick** verhält sich normal, du kannst also weiter Blöcke daran bauen.
 4. **Löschen** geht nur über das Menü (zweimal klicken).
 
 ### Größe und Chunk-Budget
 Jeder aktive Loader kostet so viele Chunks aus deinem Budget, wie er groß ist: 7×7 kostet 49, 3×3 kostet 9, 3×15 kostet 45. **Ausgeschaltete Loader kosten nichts.** Mit dem Standard-Budget von 147 Chunks kannst du z.B. drei 7×7-Loader betreiben - oder sechzehn 3×3-Loader.
 
-Im Menü eines Loaders öffnet **Größe** die Einstellung:
+Im Menü eines Loaders öffnet **Einstellungen → Größe** die Einstellung:
 - **Pfeile Norden, Süden, Westen, Osten:** Linksklick +1 Chunk in diese Richtung, Rechtsklick −1. So wird der Bereich zum Rechteck, und der Block muss nicht in der Mitte stehen - z.B. am Rand einer langen Farm.
 - **Mitte:** alle vier Richtungen auf einmal.
 - Oben steht, wie viel Budget du nutzt und wie viel frei ist. **Grenze anzeigen** zeigt den Rand und folgt jeder Änderung.
@@ -382,10 +382,10 @@ Die Gruppe hat über `*` auch `mrchunks.exempt`. Setz `mrchunks.exempt` für die
 Solche Befehle umgehen den Schutz. MRchunks prüft deshalb regelmäßig und beim Laden des Chunks und stellt den Block wieder her (`loaders.restore-missing-blocks`).
 
 **Ein Spieler kann seinen Loader nicht einschalten oder vergrößern.**
-Sein Chunk-Budget ist voll. Im Menü **Größe** steht, wie viel er nutzt und wie viel frei ist. Er kann einen anderen Loader ausschalten oder verkleinern - oder ein Admin erhöht sein Budget (`/mrchunks limit <spieler> budget <n>` oder `mrchunks.budget.<n>`).
+Sein Chunk-Budget ist voll. Im Menü **Einstellungen → Größe** steht, wie viel er nutzt und wie viel frei ist. Er kann einen anderen Loader ausschalten oder verkleinern - oder ein Admin erhöht sein Budget (`/mrchunks limit <spieler> budget <n>` oder `mrchunks.budget.<n>`).
 
 **Der Dummy-Knopf ist grau / der Dummy setzt sich nicht.**
-Ein Dummy braucht einen quadratischen Loader mit dem Block in der Mitte, mindestens 5×5. Im Menü **Größe** die Mitte anklicken (alle Richtungen gleichmäßig).
+Ein Dummy braucht einen quadratischen Loader mit dem Block in der Mitte, mindestens 5×5. Im Menü **Einstellungen → Größe** die Mitte anklicken (alle Richtungen gleichmäßig).
 
 **Was passiert, wenn ein Chunkloader-Item verloren geht?**
 Nichts Schlimmes - gezählt werden nur **gesetzte** Loader. Ein neues Item holst du dir im Menü unter **Chunkloader holen**. Normale Smaragdblöcke sind übrigens keine Chunkloader, nur Items aus dem Menü.

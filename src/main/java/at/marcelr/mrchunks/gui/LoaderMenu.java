@@ -20,23 +20,20 @@ import java.util.List;
 import static at.marcelr.mrchunks.Messages.tag;
 
 /**
- * Menu of one loader (right-click on the block, or from a list). Layout (3 rows):
+ * Menu of one loader (right-click on the block, or from a list). Layout (3 rows), symmetric around the middle:
  * <pre>
  *  . . . . [info] . . . .
- *  [toggle] [members] [dummy] [size] [border] . [block] [rename] [delete]   (dummy only with dummies.enabled,
- *                                                                          block only with item.block-choices)
+ *  . [members] . [toggle] [border] [dummy] . [settings] .   (members only with invites, dummy only with dummies.enabled)
  *  [back] . . . [close] . . . .          (with mrchunks.admin.teleport: [back] . . [close] . [teleport] . . .)
  * </pre>
- * Toggle needs ownership, an invite or mrchunks.admin.manage; rename, invites and delete only ownership or the admin
- * permission. Deleting needs a second click to confirm.
+ * Size, block, name and delete are in {@link LoaderSettingsMenu}. Toggle needs ownership, an invite or
+ * mrchunks.admin.manage; invites and the dummy only ownership or the admin permission.
  */
 public final class LoaderMenu extends Menu {
 
     private final int loaderId;
     /** What "back" does (reopen the list it came from, or return to e.g. MRadmin); null = no back button. */
     private final Runnable back;
-    /** Delete is armed until this time (ms) after the first click. */
-    private long confirmUntil;
 
     public LoaderMenu(MRChunks plugin, Player viewer, int loaderId, Menu parent) {
         this(plugin, viewer, loaderId, parent == null ? null : (Runnable) parent::open);
@@ -59,13 +56,7 @@ public final class LoaderMenu extends Menu {
         Loader loader = plugin.loaders().byId(loaderId);
         if (loader == null) {
             // Deleted meanwhile (by an admin, a ban, ...): leave on the next tick, not while drawing.
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                if (back != null) {
-                    back.run();
-                } else {
-                    viewer.closeInventory();
-                }
-            });
+            Bukkit.getScheduler().runTask(plugin, this::leave);
             return;
         }
         Messages messages = plugin.messages();
@@ -90,28 +81,18 @@ public final class LoaderMenu extends Menu {
         LagLock lock = plugin.loaders().lagLock(loader);
         TagResolver lockTags = lock == null ? tags : TagResolver.resolver(tags, plugin.lag().tags(loader, lock));
         if (lock != null && viewer.hasPermission(AdminActions.PERM_MANAGE)) {
-            button(9, Material.IRON_DOOR, "gui-unlock-name", "gui-unlock-lore", true,
+            button(12, Material.IRON_DOOR, "gui-unlock-name", "gui-unlock-lore", true,
                     () -> actions.unlock(viewer, loader), lockTags);
         } else if (lock != null) {
-            set(9, Items.of(Material.REDSTONE_BLOCK).name(messages.item("gui-locked-name", lockTags))
+            set(12, Items.of(Material.REDSTONE_BLOCK).name(messages.item("gui-locked-name", lockTags))
                     .lore(messages.lore("gui-locked-lore", lockTags)).build());
         } else if (loader.active()) {
-            button(9, Material.RED_DYE, "gui-toggle-off-name", "gui-toggle-off-lore", toggle,
+            button(12, Material.RED_DYE, "gui-toggle-off-name", "gui-toggle-off-lore", toggle,
                     () -> actions.toggle(viewer, loader), tags);
         } else {
-            button(9, Material.LIME_DYE, "gui-toggle-on-name", "gui-toggle-on-lore", toggle,
+            button(12, Material.LIME_DYE, "gui-toggle-on-name", "gui-toggle-on-lore", toggle,
                     () -> actions.toggle(viewer, loader), tags);
         }
-
-        if (manage && !plugin.settings().item().blockChoices().isEmpty()) {
-            Material current = plugin.loaders().blockOf(loader);
-            button(15, current, "gui-block-name", "gui-block-lore", actions.canChangeBlock(viewer, loader),
-                    () -> new BlockMenu(plugin, viewer, loader.id(), this).open(),
-                    TagResolver.resolver(tags, tag("block", Component.translatable(current))));
-        }
-
-        button(16, Material.NAME_TAG, "gui-rename-name", "gui-rename-lore", manage,
-                () -> RenameDialog.open(plugin, viewer, loader, back), tags);
 
         if (plugin.settings().invites().enabled() && AdminActions.canManageInvites(viewer, loader.owner())) {
             int count = plugin.loaders().members(loader.owner(), loader).size();
@@ -120,48 +101,29 @@ public final class LoaderMenu extends Menu {
                     TagResolver.resolver(tags, tag("count", count)));
         }
 
-        if (plugin.dummies().enabled()) {
-            dummyButton(loader, manage, tags);
-        }
-
-        // Everyone who can open the menu sees the size; changing it is checked in the size menu.
-        set(12, Items.of(Material.MAP).name(messages.item("gui-size-name", tags))
-                .lore(messages.lore(AdminActions.canResize(viewer, loader) ? "gui-size-lore" : "gui-size-view-lore", tags))
-                .build(), click -> {
-            clickSound();
-            new SizeMenu(plugin, viewer, loader.id(), this).open();
-        });
-
         if (plugin.border().isShowing(viewer, loader)) {
-            button(13, Material.SPYGLASS, "gui-border-hide-name", "gui-border-hide-lore", true, () -> {
+            button(13, Material.ENDER_EYE, "gui-border-hide-name", "gui-border-hide-lore", true, () -> {
                 plugin.border().hide(viewer);
                 messages.send(viewer, "border-hidden", tags);
             }, tags);
         } else {
-            button(13, Material.ENDER_EYE, "gui-border-name", "gui-border-lore", true, () -> {
+            button(13, Material.ENDER_PEARL, "gui-border-name", "gui-border-lore", true, () -> {
                 viewer.closeInventory();
                 plugin.border().show(viewer, loader);
                 messages.send(viewer, "border-shown", tags);
             }, tags);
         }
 
-        boolean armed = System.currentTimeMillis() < confirmUntil;
-        button(17, armed ? Material.TNT_MINECART : Material.TNT,
-                armed ? "gui-delete-confirm-name" : "gui-delete-name",
-                armed ? "gui-delete-confirm-lore" : "gui-delete-lore", manage, () -> {
-                    if (System.currentTimeMillis() < confirmUntil) {
-                        actions.delete(viewer, loader);
-                        if (back != null) {
-                            back.run();
-                        } else {
-                            viewer.closeInventory();
-                        }
-                    } else {
-                        confirmUntil = System.currentTimeMillis() + plugin.settings().gui().confirmSeconds() * 1000L;
-                        sound(Sound.BLOCK_NOTE_BLOCK_BASS);
-                        messages.send(viewer, "delete-confirm", tags);
-                    }
-                }, tags);
+        if (plugin.dummies().enabled()) {
+            dummyButton(loader, manage, tags);
+        }
+
+        // Size, block, name and delete live in the settings; everyone who can open this menu may look at them.
+        set(16, Items.of(Material.COMPARATOR).name(messages.item("gui-settings-name", tags))
+                .lore(messages.lore("gui-settings-lore", tags)).build(), click -> {
+            clickSound();
+            new LoaderSettingsMenu(plugin, viewer, loader.id(), this, this::leave).open();
+        });
 
         if (back != null) {
             set(18, Items.of(Material.ARROW).name(messages.item("gui-back")).build(), click -> {
@@ -169,7 +131,7 @@ public final class LoaderMenu extends Menu {
                 back.run();
             });
         }
-        // Admins with teleport: close moves one to the left, the middle stays glass, teleport on the right.
+        // Admins with teleport: close one to the left of the middle, teleport one to the right.
         boolean teleport = viewer.hasPermission(AdminActions.PERM_TELEPORT);
         set(teleport ? 21 : 22, Items.of(Material.BARRIER).name(messages.item("gui-close")).build(),
                 click -> viewer.closeInventory());
@@ -182,6 +144,15 @@ public final class LoaderMenu extends Menu {
 
         for (int row = 0; row < 3; row++) {
             fillRow(row);
+        }
+    }
+
+    /** Back to where the menu came from, or close it (after the loader is gone). */
+    private void leave() {
+        if (back != null) {
+            back.run();
+        } else {
+            viewer.closeInventory();
         }
     }
 
@@ -200,7 +171,7 @@ public final class LoaderMenu extends Menu {
         } else {
             lore = "gui-dummy-waiting-lore";
         }
-        button(11, loader.dummy() ? Material.ARMOR_STAND : Material.LEATHER_HELMET,
+        button(14, loader.dummy() ? Material.ARMOR_STAND : Material.LEATHER_HELMET,
                 loader.dummy() ? "gui-dummy-off-name" : "gui-dummy-on-name", lore, manage,
                 () -> plugin.adminActions().toggleDummy(viewer, loader), all);
     }

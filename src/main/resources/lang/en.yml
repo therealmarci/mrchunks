@@ -424,6 +424,10 @@ gui-border-lore:
 gui-border-hide-name: "<aqua>Hide border"
 gui-border-hide-lore:
   - "<gray>Hides the border that is shown."
+gui-settings-name: "<aqua>Settings"
+gui-settings-lore:
+  - "<gray>Size, block, name and delete."
+gui-title-settings: "<dark_gray>Settings » <dark_green><name>"
 gui-members-name: "<aqua>Members <gray>(<count>)"
 gui-members-lore:
   - "<gray>Invite players who may switch"
