@@ -124,7 +124,7 @@ Spieler brauchen keine Befehle außer `/chunkloader` - alles läuft über Menüs
 | `/mrchunks map [setup]` | Status der Webkarte · squaremap neu einrichten | `mrchunks.admin.map` |
 | `/mrchunks discord [test]` | Discord-Status · Testnachricht | `mrchunks.admin.discord` |
 | `/mrchunks reload` | Config und Sprachdatei neu laden | `mrchunks.admin.reload` |
-| `/mrchunks version` | Version und Update-Status | alle |
+| `/mrchunks version` | Version und Update-Status | `mrchunks.version` (in `mrchunks.player`) |
 
 Owner dürfen ihre eigenen Loader auch mit `toggle` und `delete` steuern.
 

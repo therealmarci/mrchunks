@@ -67,7 +67,14 @@ public final class MRChunksCommand implements TabExecutor {
             return true;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "version", "ver" -> version(sender);
+            case "version", "ver" -> {
+                // For players too (in mrchunks.player).
+                if (sender.hasPermission("mrchunks.version")) {
+                    version(sender);
+                } else {
+                    messages().send(sender, "no-permission");
+                }
+            }
             case "gui", "menu" -> {
                 if (!(sender instanceof Player player)) {
                     messages().send(sender, "players-only");
@@ -366,7 +373,9 @@ public final class MRChunksCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         List<String> options = new ArrayList<>();
         if (args.length == 1) {
-            options.add("version");
+            if (sender.hasPermission("mrchunks.version")) {
+                options.add("version");
+            }
             addIf(sender, PERM_GUI, options, "gui");
             addIf(sender, AdminActions.PERM_TELEPORT, options, "tp");
             addIf(sender, AdminActions.PERM_TOGGLE, options, "toggle");

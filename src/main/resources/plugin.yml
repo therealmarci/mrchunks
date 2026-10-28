@@ -22,9 +22,10 @@ permissions:
   # the team - each group contains the one below. The single permissions further down stay usable on their own;
   # exempt and the limits (limit.*, active.*, dummies.*) are in no group on purpose.
   mrchunks.player:
-    description: "Player: get, place and manage your own chunk loaders, web map, view other loaders, invite, link accounts, choose the block."
+    description: "Player: get, place and manage your own chunk loaders, web map, view other loaders, invite, link accounts, choose the block; /mrchunks version."
     default: op
     children:
+      mrchunks.version: true
       mrchunks.use: true
       mrchunks.map: true
       mrchunks.view: true
@@ -60,6 +61,9 @@ permissions:
       mrchunks.admin.update: true
 
   # ------------------------------------------------------------------ Single permissions
+  mrchunks.version:
+    description: /mrchunks version - version, update status and links.
+    default: op
   mrchunks.use:
     description: Get chunk loaders (/chunkloader), place them and manage your own.
     default: op

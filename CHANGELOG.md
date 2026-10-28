@@ -20,6 +20,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 ### Entfernt
 - **Paket `mrchunks.admin`:** ersetzt durch `mrchunks.groups.admin`.
 
+### Behoben & geändert
+- **`/mrchunks version` nur noch mit Permission:** `mrchunks.version` (in `mrchunks.player`) - bisher durfte das jeder.
+
 ## [0.7.0] - 2026-10-27
 
 ### Neu
