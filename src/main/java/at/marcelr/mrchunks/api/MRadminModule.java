@@ -365,6 +365,25 @@ final class MRadminModule implements AdminModule, WebModule {
         return Map.of(LOCK_KIND, messages.server(() -> messages.plain("report-lock-category")));
     }
 
+    // ------------------------------------------- since MRadmin API 4 (1.3.0)
+
+    /** The player's own page (/web): permissions MRadmin checks beforehand, also while the player is offline. */
+    @Override
+    public Set<String> selfPermissions() {
+        return SelfPage.PERMISSIONS;
+    }
+
+    @Override
+    public List<at.marcelr.mradmin.api.SelfArea> selfAreas(at.marcelr.mradmin.api.SelfViewer viewer) {
+        return SelfPage.areas(plugin, viewer);
+    }
+
+    @Override
+    public @Nullable String selfAction(at.marcelr.mradmin.api.SelfViewer viewer, String area, String action,
+                                       Map<String, String> args) {
+        return SelfPage.AREA.equals(area) ? SelfPage.action(plugin, viewer, action, args) : "?";
+    }
+
     /** Server pause, locked loaders, loaders over the warning limit. */
     @Override
     public List<WebAlert> alerts() {

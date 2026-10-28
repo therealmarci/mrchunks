@@ -104,6 +104,9 @@ Hast du einen Zweit-Account (z.B. zum AFK-Farmen), verknüpf ihn mit deinem Haup
 - **Admins** verknüpfen und lösen Accounts auch ohne Zustimmung: mit `/mrchunks link <haupt> <zweit>` bzw. `/mrchunks unlink <spieler>` oder in der MRadmin-Weboberfläche auf der Spielerseite (`mrchunks.admin.link`).
 - Erlaubt ist standardmäßig ein Zweit-Account (`linked-accounts.max-accounts`). Eine Sperre gilt für alle verknüpften Accounts.
 
+### Im Browser (mit MRadmin)
+Ist MRadmin installiert und die Spielerseite eingeschaltet, gibt `/web` im Spiel einen Link zu deiner eigenen Seite. Dort siehst du unter **Chunkloader** dein Budget, alle deine Loader mit Status und Größe und eine Karte. Du kannst sie ein- und ausschalten, umbenennen, Dummies schalten, löschen und Mitspieler einladen oder wieder entfernen - nur die **Größe** änderst du im Spiel. Die Seite kannst du als Lesezeichen speichern.
+
 ### Dummy-Spieler
 Ein Chunkloader hält Chunks geladen - für den Server steht dort aber **kein Spieler**. Mobs sind deshalb fast inaktiv, und es spawnt nichts. Ein **Dummy** ist ein künstlicher Spieler, der auf dem Loader sitzt und als Spieler in der Nähe zählt.
 
@@ -362,6 +365,7 @@ MRchunks läuft **allein**. Zusammen mit anderen MRtechnology-Plugins kann es me
 | Funktion | Braucht |
 |---|---|
 | MRchunks im Dashboard, Spieler-Menü und Serverzustand von MRadmin, Seite **Chunkloader** in der Weboberfläche | MRadmin |
+| Eigene Chunkloader im Browser verwalten (`/web`, Spielerseite) | MRadmin |
 | Automatisches Ticket für den Owner bei einer Lag-Sperre | MRadmin |
 | In der Arena-Welt von MRpvp lassen sich keine Loader setzen | MRadmin + MRpvp |
 | Webkarte | squaremap |

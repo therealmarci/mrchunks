@@ -233,6 +233,25 @@ public final class Messages {
         }
     }
 
+    /**
+     * Runs {@code action} with the texts of one language ("de", "en" ...) - e.g. the language a player chose on their
+     * page in MRadmin's web interface. Unknown codes get English.
+     */
+    public <T> T in(String code, Supplier<T> action) {
+        YamlConfiguration target = languages.getOrDefault(code, english);
+        YamlConfiguration previous = CURRENT.get();
+        CURRENT.set(target);
+        try {
+            return action.get();
+        } finally {
+            if (previous == null) {
+                CURRENT.remove();
+            } else {
+                CURRENT.set(previous);
+            }
+        }
+    }
+
     /** Runs {@code action} once per recipient, each time in the recipient's language (see {@link #as}). */
     public void each(Iterable<? extends CommandSender> recipients, Consumer<CommandSender> action) {
         for (CommandSender recipient : recipients) {
