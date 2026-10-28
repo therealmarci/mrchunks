@@ -30,11 +30,11 @@ import java.util.UUID;
  *  chunks                           number of chunks the loaders keep loaded (cheap, MRadmin asks every second)
  *  loaders                          all loaders with status
  *  loader  {id}                     one loader with every measured value, lock, members
- *  action  {id, action, admin}      toggle | unlock | delete | dummy  -> null or an error key
- *  player  {uuid}                   one player: loaders, limits (with source), ban, invites, loaders shared with them,
+ *  action  {id, action, admin}      toggle | unlock | delete | dummy | resize {direction, delta}  -> null or an error key
+ *  player  {uuid}                   one player: loaders, budget and dummy limit (with source), ban, invites, loaders shared with them,
  *                                   linked accounts (main, secondAccounts), dummies
  *  flags                            uuid -> marks for MRadmin's player list (chunks-locked, chunks-warn, chunks-banned)
- *  playerAction {uuid, action, admin, kind?, value?, reason?}   limit (kind place|active|dummy) | ban | unban
+ *  playerAction {uuid, action, admin, kind?, value?, reason?}   limit (kind budget|dummy) | ban | unban
  *                                   | deleteAll | unlink | link {other, role}  -> null or an error key
  * </pre>
  */
@@ -92,10 +92,14 @@ final class WebData {
         m.put("dummyLimit", limit(loaders, target, LoaderManager.LimitKind.DUMMY));
         m.put("defaultDummyLimit", plugin.settings().dummies().defaultLimit());
         m.put("active", loaders.activeCount(main));
-        m.put("limit", limit(loaders, target, LoaderManager.LimitKind.PLACE));
-        m.put("activeLimit", limit(loaders, target, LoaderManager.LimitKind.ACTIVE));
-        m.put("defaultLimit", plugin.settings().loaders().defaultLimit());
-        m.put("defaultActiveLimit", plugin.settings().loaders().defaultActiveLimit());
+        m.put("maxLoaders", loaders.maxLoaders());
+        m.put("budget", limit(loaders, target, LoaderManager.LimitKind.BUDGET));
+        m.put("budgetUsed", loaders.usedBudget(main));
+        m.put("defaultBudget", plugin.settings().loaders().defaultBudget());
+        // For MRadmin before the chunk budget (place and active limit): the fixed maximum, active without a limit.
+        m.put("limit", Map.of("value", loaders.maxLoaders(), "source", "default"));
+        m.put("activeLimit", Map.of("value", -1, "source", "unlimited"));
+        m.put("defaultLimit", loaders.maxLoaders());
         // Permissions (limits by permission, exempt) are only known while the player is online.
         Player online = target.getPlayer();
         m.put("online", online != null);
@@ -151,7 +155,7 @@ final class WebData {
     }
 
     /**
-     * Player actions: limit {kind place|active, value number or "" = back to default/permission}, ban {value = duration
+     * Player actions: limit {kind budget|dummy, value number or "" = back to default/permission}, ban {value = duration
      * in ms from gui.ban-durations, reason}, unban, deleteAll, unlink, link {other = player name, role second|main}. @return null or an error key
      */
     private static String playerAction(MRChunks plugin, Map<?, ?> args) {
@@ -165,8 +169,7 @@ final class WebData {
         return switch (String.valueOf(args.get("action"))) {
             case "limit" -> {
                 LoaderManager.LimitKind kind = switch (String.valueOf(args.get("kind"))) {
-                    case "place" -> LoaderManager.LimitKind.PLACE;
-                    case "active" -> LoaderManager.LimitKind.ACTIVE;
+                    case "budget" -> LoaderManager.LimitKind.BUDGET;
                     case "dummy" -> LoaderManager.LimitKind.DUMMY;
                     default -> null;
                 };
@@ -179,7 +182,7 @@ final class WebData {
                 } catch (NumberFormatException e) {
                     yield "invalid-limit";
                 }
-                if (limit != null && (limit < 0 || limit > 1000)) {
+                if (limit != null && (limit < 0 || limit > (kind == LoaderManager.LimitKind.BUDGET ? 100_000 : 1000))) {
                     yield "invalid-limit";
                 }
                 yield actions.webSetLimit(admin, target, kind, limit);
@@ -254,7 +257,9 @@ final class WebData {
         result.put("warn", all.stream().filter(l -> LoaderStatus.of(plugin, l) == LoaderStatus.WARN).count());
         result.put("chunks", loaders.loadedChunkCount());
         result.put("owners", all.stream().map(Loader::owner).distinct().count());
-        result.put("size", plugin.settings().loaders().size());
+        result.put("size", plugin.settings().loaders().defaultSize());
+        result.put("defaultBudget", plugin.settings().loaders().defaultBudget());
+        result.put("maxSize", plugin.settings().loaders().maxReach() * 2 + 1);
         result.put("lagProtection", plugin.settings().lag().enabled());
         result.put("paused", loaders.paused());
         result.put("dummiesEnabled", plugin.dummies().enabled());
@@ -289,6 +294,14 @@ final class WebData {
         m.put("y", loader.y());
         m.put("z", loader.z());
         m.put("active", loader.active());
+        m.put("width", loader.width());
+        m.put("length", loader.length());
+        m.put("chunks", loader.area());
+        Map<String, Object> reach = new LinkedHashMap<>();
+        for (Loader.Direction direction : Loader.Direction.values()) {
+            reach.put(direction.name().toLowerCase(Locale.ROOT), loader.reach(direction));
+        }
+        m.put("reach", reach);
         m.put("dummy", loader.dummy());
         m.put("dummyPresent", plugin.dummies().dummyOf(loader) != null);
         m.put("status", LoaderStatus.of(plugin, loader).name().toLowerCase(Locale.ROOT));
@@ -302,18 +315,29 @@ final class WebData {
         if (a != null) {
             Metric worst = a.worst();
             m.put("worst", Map.of("metric", messages.plain("lag-metric-" + worst.key()), "value", a.value(worst),
-                    "warn", plugin.settings().lag().limits().warn(worst)));
+                    "warn", plugin.settings().lag().limitsFor(loader.area()).warn(worst)));
         }
         return m;
     }
 
+    /** Metrics with the loader's own share of the limits; pool = all active loaders of the owner together. */
     private static Map<String, Object> detail(MRChunks plugin, Loader loader) {
         Map<String, Object> m = summary(plugin, loader);
         m.put("dummiesEnabled", plugin.dummies().enabled());
+        m.put("dummyFits", at.marcelr.mrchunks.dummy.Dummies.fits(loader));
+        m.put("maxReach", plugin.settings().loaders().maxReach());
+        OfflinePlayer owner = Bukkit.getOfflinePlayer(loader.owner());
+        LoaderManager.Limit budget = plugin.loaders().budget(owner);
+        m.put("budget", budget.value() == Integer.MAX_VALUE ? -1 : budget.value());
+        m.put("budgetUsed", plugin.loaders().usedBudget(loader.owner()));
         Messages messages = plugin.messages();
+        Activity pool = plugin.settings().lag().enabled() ? plugin.lag().pool(loader.owner()) : null;
+        if (pool != null) {
+            m.put("pool", Map.of("warnRatio", pool.warnRatio(), "lockRatio", pool.lockRatio(), "chunks", pool.totalChunks()));
+        }
         Activity a = plugin.settings().lag().enabled() ? plugin.lag().activity(loader) : null;
         if (a != null) {
-            LagLimits limits = plugin.settings().lag().limits();
+            LagLimits limits = plugin.settings().lag().limitsFor(loader.area());
             List<Map<String, Object>> metrics = new ArrayList<>();
             for (Metric metric : Metric.values()) {
                 if (limits.warn(metric) > 0 || limits.lock(metric) > 0) {
@@ -350,6 +374,20 @@ final class WebData {
             case "unlock" -> plugin.adminActions().webUnlock(admin, loader);
             case "delete" -> plugin.adminActions().webDelete(admin, loader);
             case "dummy" -> plugin.adminActions().webToggleDummy(admin, loader);
+            case "resize" -> {
+                // direction north|south|west|east or all, delta +1 / -1
+                String raw = String.valueOf(args.get("direction")).toUpperCase(Locale.ROOT);
+                Loader.Direction direction = null;
+                if (!raw.equals("ALL")) {
+                    try {
+                        direction = Loader.Direction.valueOf(raw);
+                    } catch (IllegalArgumentException e) {
+                        yield "unknown-action";
+                    }
+                }
+                int delta = String.valueOf(args.get("delta")).startsWith("-") ? -1 : 1;
+                yield plugin.adminActions().webResize(admin, loader, direction, delta);
+            }
             default -> "unknown-action";
         };
     }

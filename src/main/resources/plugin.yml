@@ -5,7 +5,7 @@ api-version: '${mcVersion}'
 softdepend: [squaremap, MRadmin]
 author: _therealmarci
 website: ${website}/docs/${websiteSlug}/
-description: Chunk loader blocks with limits, menus, admin GUI, squaremap integration and Discord logs.
+description: Chunk loader blocks with a chunk budget and free sizes, menus, admin GUI, squaremap integration and Discord logs.
 
 commands:
   chunkloader:
@@ -20,13 +20,14 @@ permissions:
   # ------------------------------------------------------------------ Groups
   # The same in every MRtechnology plugin: <plugin>.player for players, <plugin>.groups.support / staff / admin for
   # the team - each group contains the one below. The single permissions further down stay usable on their own;
-  # exempt and the limits (limit.*, active.*, dummies.*) are in no group on purpose.
+  # exempt and the limits (budget.*, dummies.*) are in no group on purpose.
   mrchunks.player:
-    description: "Player: get, place and manage your own chunk loaders, web map, view other loaders, invite, link accounts, choose the block; /mrchunks version."
+    description: "Player: get, place and manage your own chunk loaders, change their size, web map, view other loaders, invite, link accounts, choose the block; /mrchunks version."
     default: op
     children:
       mrchunks.version: true
       mrchunks.use: true
+      mrchunks.resize: true
       mrchunks.map: true
       mrchunks.view: true
       mrchunks.invite: true
@@ -48,11 +49,12 @@ permissions:
       mrchunks.admin.invites: true
       mrchunks.admin.link: true
   mrchunks.groups.admin:
-    description: "Group admin: everything of MRchunks - delete, rename, dummies, lift lag locks, limits, bans, web map, Discord, reload, update notice."
+    description: "Group admin: everything of MRchunks - delete, rename, resize, dummies, lift lag locks, budget and limits, bans, web map, Discord, reload, update notice."
     default: op
     children:
       mrchunks.groups.staff: true
       mrchunks.admin.manage: true
+      mrchunks.admin.resize: true
       mrchunks.admin.limit: true
       mrchunks.admin.ban: true
       mrchunks.admin.map: true
@@ -77,7 +79,10 @@ permissions:
     description: Invite other players to switch your own chunk loaders on and off.
     default: op
   mrchunks.link:
-    description: Link another account (e.g. a second account) with your own - both share chunk loaders and limit.
+    description: Link another account (e.g. a second account) with your own - both share chunk loaders and budget.
+    default: op
+  mrchunks.resize:
+    description: Change the size of your own chunk loaders (loader menu -> Size), within your chunk budget.
     default: op
   mrchunks.block:
     description: Choose the block your chunk loaders stand as in the world (loader menu, item.block-choices).
@@ -85,11 +90,8 @@ permissions:
   mrchunks.exempt:
     description: Completely excludes from chunk loading (e.g. second accounts) - no loaders, no invites. Existing loaders are deleted. Warning, "*" in LuckPerms includes this too!
     default: false
-  mrchunks.limit.unlimited:
-    description: Any number of chunk loaders. Fixed limits via mrchunks.limit.<number>, e.g. mrchunks.limit.10.
-    default: false
-  mrchunks.active.unlimited:
-    description: Any number of chunk loaders active at the same time. Fixed limits via mrchunks.active.<number>, e.g. mrchunks.active.3.
+  mrchunks.budget.unlimited:
+    description: Unlimited chunk budget. A fixed budget (chunks all active loaders may keep loaded together) via mrchunks.budget.<number>, e.g. mrchunks.budget.300.
     default: false
   mrchunks.dummies.unlimited:
     description: Any number of dummy players. Fixed limits via mrchunks.dummies.<number>, e.g. mrchunks.dummies.2.
@@ -98,7 +100,7 @@ permissions:
     description: /mrchunks gui - open the admin menu (actions in it need their own permission).
     default: op
   mrchunks.admin.toggle:
-    description: Switch other players' chunk loaders on and off (also beyond their active limit).
+    description: Switch other players' chunk loaders on and off (within the owner's chunk budget).
     default: op
   mrchunks.admin.invites:
     description: Manage the invites of other players' chunk loaders.
@@ -107,17 +109,21 @@ permissions:
     description: Link and unlink other players' accounts (/mrchunks link, unlink).
     default: op
   mrchunks.admin.manage:
-    description: Delete and rename other players' chunk loaders, choose their block, toggle dummies, lift lag locks - and everything of toggle, invites and link.
+    description: Delete and rename other players' chunk loaders, change their size, choose their block, toggle dummies, lift lag locks - and everything of toggle, invites and link.
     default: op
     children:
       mrchunks.admin.toggle: true
       mrchunks.admin.invites: true
       mrchunks.admin.link: true
+      mrchunks.admin.resize: true
+  mrchunks.admin.resize:
+    description: Change the size of other players' chunk loaders (within the owner's chunk budget).
+    default: op
   mrchunks.admin.teleport:
     description: Teleport to chunk loaders.
     default: op
   mrchunks.admin.limit:
-    description: Grant individual limits (/mrchunks limit <player> <place|active|dummy> <number>).
+    description: Set a player's chunk budget and dummy limit (/mrchunks limit <player> <budget|dummy> <number>).
     default: op
   mrchunks.admin.ban:
     description: Ban and unban players from chunk loaders.

@@ -49,14 +49,12 @@ public final class LoaderManager {
     private final Map<UUID, Map<Long, Integer>> coverage = new HashMap<>();
     /** world -> chunks MRchunks force-loaded itself (load-method: forceload), so it never unforces others' chunks */
     private final Map<UUID, Set<Long>> forcedByUs = new HashMap<>();
-    /** radius and method the current tickets were created with (they must be removed the same way) */
-    private int appliedRadius;
+    /** method the current tickets were created with (they must be removed the same way) */
     private Settings.LoadMethod appliedMethod;
     /** Server pause (see {@link at.marcelr.mrchunks.lag.ServerPause}): no tickets at all, loaders keep their state. */
     private boolean paused;
 
-    private final Map<UUID, Integer> limitOverrides = new HashMap<>();
-    private final Map<UUID, Integer> activeOverrides = new HashMap<>();
+    private final Map<UUID, Integer> budgetOverrides = new HashMap<>();
     private final Map<UUID, Integer> dummyOverrides = new HashMap<>();
     /**
      * Limits from permissions, remembered from the last time the player was online: permissions are unknown while
@@ -157,30 +155,31 @@ public final class LoaderManager {
         return number;
     }
 
-    /**
-     * Loaders whose area overlaps the area a loader at chunk {@code cx}/{@code cz} would have (same world).
-     * Two areas overlap if the centres are at most 2 * radius chunks apart on both axes.
-     */
-    public List<Loader> overlapping(World world, int cx, int cz, Loader except) {
-        int reach = plugin.settings().loaders().radius() * 2;
+    /** Loaders whose area shares a chunk with the given rectangle of chunks (same world, {@code except} left out). */
+    public List<Loader> overlapping(UUID world, int minX, int minZ, int maxX, int maxZ, Loader except) {
         List<Loader> result = new ArrayList<>();
         for (Loader loader : loaders.values()) {
-            if (loader != except && loader.worldId().equals(world.getUID())
-                    && Math.abs(loader.chunkX() - cx) <= reach && Math.abs(loader.chunkZ() - cz) <= reach) {
+            if (loader != except && loader.worldId().equals(world) && loader.minChunkX() <= maxX
+                    && minX <= loader.maxChunkX() && loader.minChunkZ() <= maxZ && minZ <= loader.maxChunkZ()) {
                 result.add(loader);
             }
         }
         return result;
     }
 
-    /** How many chunks of the area around {@code cx}/{@code cz} are also covered by one of {@code others}. */
-    public int sharedChunks(int cx, int cz, Collection<Loader> others) {
-        int r = plugin.settings().loaders().radius();
+    /** Loaders whose area overlaps the area of {@code loader}. */
+    public List<Loader> overlapping(Loader loader) {
+        return overlapping(loader.worldId(), loader.minChunkX(), loader.minChunkZ(), loader.maxChunkX(),
+                loader.maxChunkZ(), loader);
+    }
+
+    /** How many chunks of the loader's area are also covered by one of {@code others}. */
+    public int sharedChunks(Loader loader, Collection<Loader> others) {
         int shared = 0;
-        for (int x = cx - r; x <= cx + r; x++) {
-            for (int z = cz - r; z <= cz + r; z++) {
+        for (int x = loader.minChunkX(); x <= loader.maxChunkX(); x++) {
+            for (int z = loader.minChunkZ(); z <= loader.maxChunkZ(); z++) {
                 for (Loader other : others) {
-                    if (Math.abs(other.chunkX() - x) <= r && Math.abs(other.chunkZ() - z) <= r) {
+                    if (other.covers(x, z)) {
                         shared++;
                         break;
                     }
@@ -212,8 +211,7 @@ public final class LoaderManager {
     public Set<UUID> knownPlayers() {
         Set<UUID> players = new HashSet<>();
         loaders.values().forEach(l -> players.add(l.owner()));
-        players.addAll(limitOverrides.keySet());
-        players.addAll(activeOverrides.keySet());
+        players.addAll(budgetOverrides.keySet());
         players.addAll(dummyOverrides.keySet());
         players.addAll(activeBans().keySet());
         players.addAll(links.keySet());
@@ -238,10 +236,14 @@ public final class LoaderManager {
 
     // --------------------------------------------------------- create/delete
 
-    /** @param active false if the owner already has as many active loaders as allowed */
-    public Loader create(UUID owner, Block block, boolean active) {
+    /**
+     * @param reach  the same reach in every direction (a centred square)
+     * @param active false if the owner's budget has no room for it
+     */
+    public Loader create(UUID owner, Block block, int reach, boolean active) {
         Loader loader = new Loader(nextId++, owner, block.getWorld().getUID(), block.getWorld().getName(),
                 block.getX(), block.getY(), block.getZ(), System.currentTimeMillis(), nextNumber(owner), null, active);
+        loader.setReach(reach, reach, reach, reach);
         loaders.put(loader.id(), loader);
         index(loader);
         if (active) {
@@ -295,6 +297,25 @@ public final class LoaderManager {
         syncDummy(loader);
         plugin.maps().refreshSoon();
         plugin.border().loaderChanged(loader);
+    }
+
+    /**
+     * Changes the area of the loader; an active loader moves its chunk tickets right away. Checks (budget, maximum,
+     * overlap, dummy) are up to the caller ({@link AdminActions#resize}).
+     */
+    public void resize(Loader loader, int north, int south, int west, int east) {
+        if (loader.active()) {
+            uncover(loader);
+        }
+        loader.setReach(north, south, west, east);
+        if (loader.active()) {
+            cover(loader);
+        }
+        save();
+        syncDummy(loader);
+        plugin.maps().refreshSoon();
+        plugin.border().loaderChanged(loader);
+        plugin.lag().areaChanged();
     }
 
     // -------------------------------------------------------------- blocks
@@ -443,7 +464,6 @@ public final class LoaderManager {
 
     /** Adds tickets for all active loaders of all loaded worlds (on enable / after reload). */
     public void applyAll() {
-        appliedRadius = plugin.settings().loaders().radius();
         appliedMethod = plugin.settings().loaders().loadMethod();
         for (World world : Bukkit.getWorlds()) {
             applyWorld(world);
@@ -483,9 +503,8 @@ public final class LoaderManager {
             return; // applied later by applyWorld when the world loads, or by applyAll when the pause ends
         }
         Map<Long, Integer> chunks = coverage.computeIfAbsent(world.getUID(), k -> new HashMap<>());
-        int r = appliedRadius;
-        for (int cx = loader.chunkX() - r; cx <= loader.chunkX() + r; cx++) {
-            for (int cz = loader.chunkZ() - r; cz <= loader.chunkZ() + r; cz++) {
+        for (int cx = loader.minChunkX(); cx <= loader.maxChunkX(); cx++) {
+            for (int cz = loader.minChunkZ(); cz <= loader.maxChunkZ(); cz++) {
                 if (chunks.merge(Loader.chunkKey(cx, cz), 1, Integer::sum) == 1) {
                     addTicket(world, cx, cz);
                 }
@@ -499,9 +518,8 @@ public final class LoaderManager {
         if (chunks == null) {
             return;
         }
-        int r = appliedRadius;
-        for (int cx = loader.chunkX() - r; cx <= loader.chunkX() + r; cx++) {
-            for (int cz = loader.chunkZ() - r; cz <= loader.chunkZ() + r; cz++) {
+        for (int cx = loader.minChunkX(); cx <= loader.maxChunkX(); cx++) {
+            for (int cz = loader.minChunkZ(); cz <= loader.maxChunkZ(); cz++) {
                 long key = Loader.chunkKey(cx, cz);
                 Integer count = chunks.get(key);
                 if (count == null) {
@@ -584,12 +602,12 @@ public final class LoaderManager {
     // -------------------------------------------------------------- limits
 
     /**
-     * The caps per player: how many loaders may be placed, how many of them may be active at once, and on how many a
-     * dummy player may sit. Linked accounts share the caps of their main account.
+     * The caps per player that admins and permissions can raise: the chunk budget (chunks all active loaders together
+     * may keep loaded) and on how many loaders a dummy player may sit. Linked accounts share the caps of their main
+     * account. How many loaders may be placed is the same for everyone (loaders.max-loaders).
      */
     public enum LimitKind {
-        PLACE("mrchunks.limit.", "mrchunks.limit.unlimited"),
-        ACTIVE("mrchunks.active.", "mrchunks.active.unlimited"),
+        BUDGET("mrchunks.budget.", "mrchunks.budget.unlimited"),
         DUMMY("mrchunks.dummies.", "mrchunks.dummies.unlimited");
 
         final String permPrefix;
@@ -617,16 +635,14 @@ public final class LoaderManager {
 
     private Map<UUID, Integer> overrides(LimitKind kind) {
         return switch (kind) {
-            case PLACE -> limitOverrides;
-            case ACTIVE -> activeOverrides;
+            case BUDGET -> budgetOverrides;
             case DUMMY -> dummyOverrides;
         };
     }
 
     private int defaultLimit(LimitKind kind) {
         return switch (kind) {
-            case PLACE -> plugin.settings().loaders().defaultLimit();
-            case ACTIVE -> plugin.settings().loaders().defaultActiveLimit();
+            case BUDGET -> plugin.settings().loaders().defaultBudget();
             case DUMMY -> plugin.settings().dummies().defaultLimit();
         };
     }
@@ -637,14 +653,14 @@ public final class LoaderManager {
     public record Limit(int value, LimitSource source) {
     }
 
-    /** How many loaders the player may place. */
-    public Limit limit(OfflinePlayer player) {
-        return limit(player, LimitKind.PLACE);
+    /** How many loaders a player may place - the same for everyone. */
+    public int maxLoaders() {
+        return plugin.settings().loaders().maxLoaders();
     }
 
-    /** How many loaders of the player may be active at the same time. */
-    public Limit activeLimit(OfflinePlayer player) {
-        return limit(player, LimitKind.ACTIVE);
+    /** How many chunks the player's active loaders may keep loaded together. */
+    public Limit budget(OfflinePlayer player) {
+        return limit(player, LimitKind.BUDGET);
     }
 
     /**
@@ -710,28 +726,48 @@ public final class LoaderManager {
         return count;
     }
 
-    /** True if one more of the player's loaders (of their main account, if linked) may be activated. */
-    public boolean canActivate(OfflinePlayer player) {
-        return activeCount(main(player.getUniqueId())) < activeLimit(player).value();
+    /** Chunks the owner's active loaders cost together (overlapping chunks count for every loader). */
+    public int usedBudget(UUID owner) {
+        int used = 0;
+        for (Loader loader : loaders.values()) {
+            if (loader.active() && loader.owner().equals(owner)) {
+                used += loader.area();
+            }
+        }
+        return used;
+    }
+
+    /** Chunks of the player's budget (of their main account, if linked) not used by active loaders yet. */
+    public long freeBudget(OfflinePlayer player) {
+        int budget = budget(player).value();
+        return budget == Integer.MAX_VALUE ? Long.MAX_VALUE : (long) budget - usedBudget(main(player.getUniqueId()));
+    }
+
+    /** True if the player's budget has room for {@code chunks} more chunks. */
+    public boolean fitsBudget(OfflinePlayer player, long chunks) {
+        return chunks <= freeBudget(player);
     }
 
     /**
-     * Deactivates the newest active loaders until the player is within their active limit.
+     * Switches off the newest active loaders until the player is within their budget again.
      * @return the deactivated loaders
      */
-    public List<Loader> enforceActiveLimit(OfflinePlayer player) {
-        int limit = activeLimit(player).value();
+    public List<Loader> enforceBudget(OfflinePlayer player) {
+        int budget = budget(player).value();
         List<Loader> active = new ArrayList<>();
+        int used = 0;
         for (Loader loader : byOwner(main(player.getUniqueId()))) {
             if (loader.active()) {
                 active.add(loader);
+                used += loader.area();
             }
         }
         List<Loader> deactivated = new ArrayList<>();
         // byOwner keeps creation order: keep the oldest ones running
-        for (int i = active.size() - 1; i >= 0 && active.size() - deactivated.size() > limit; i--) {
+        for (int i = active.size() - 1; i >= 0 && used > budget; i--) {
             setActive(active.get(i), false);
             deactivated.add(active.get(i));
+            used -= active.get(i).area();
         }
         return deactivated;
     }
@@ -964,8 +1000,7 @@ public final class LoaderManager {
         loaders.clear();
         byPosition.clear();
         byChunk.clear();
-        limitOverrides.clear();
-        activeOverrides.clear();
+        budgetOverrides.clear();
         dummyOverrides.clear();
         knownLimits.clear();
         links.clear();
@@ -979,6 +1014,9 @@ public final class LoaderManager {
         }
         YamlConfiguration data = YamlConfiguration.loadConfiguration(dataFile);
         nextId = Math.max(1, data.getInt("next-id", 1));
+        // Loaders from before per-loader sizes keep the size they had (loaders.radius, carried over as default-reach).
+        int defaultReach = plugin.settings().loaders().defaultReach();
+        boolean migrated = false;
 
         ConfigurationSection loaderSection = data.getConfigurationSection("loaders");
         if (loaderSection != null) {
@@ -1004,12 +1042,24 @@ public final class LoaderManager {
                 loader.setDummy(s.getBoolean("dummy", false));
                 String block = s.getString("block");
                 loader.setBlock(block == null ? null : Material.matchMaterial(block));
+                if (!s.contains("reach")) {
+                    migrated = true;
+                }
+                loader.setReach(reach(s, "north", defaultReach), reach(s, "south", defaultReach),
+                        reach(s, "west", defaultReach), reach(s, "east", defaultReach));
                 loaders.put(id, loader);
                 nextId = Math.max(nextId, id + 1);
             }
         }
-        readLimits(data.getConfigurationSection("limits"), limitOverrides);
-        readLimits(data.getConfigurationSection("active-limits"), activeOverrides);
+        readLimits(data.getConfigurationSection("budgets"), budgetOverrides);
+        if (!data.contains("budgets") && data.contains("active-limits")) {
+            // Before the budget: individual active limits (loaders at once) become as many default-size loaders' worth.
+            Map<UUID, Integer> active = new HashMap<>();
+            readLimits(data.getConfigurationSection("active-limits"), active);
+            int area = plugin.settings().loaders().defaultArea();
+            active.forEach((uuid, limit) -> budgetOverrides.put(uuid, (int) Math.min(Integer.MAX_VALUE - 1L, (long) limit * area)));
+            migrated = true;
+        }
         readLimits(data.getConfigurationSection("dummy-limits"), dummyOverrides);
         for (LimitKind kind : LimitKind.values()) {
             Map<UUID, Integer> known = new HashMap<>();
@@ -1059,6 +1109,15 @@ public final class LoaderManager {
         // Only now (limits and bans are read), because it may save.
         assignMissingNumbers();
         loaders.values().forEach(this::index);
+        if (migrated) {
+            // Store the sizes right away, so a later change of loaders.default-reach does not resize these loaders.
+            save();
+            plugin.getLogger().info("data.yml: chunk loaders got their own size and the chunk budget (from the old radius and active limits).");
+        }
+    }
+
+    private static int reach(ConfigurationSection loader, String direction, int fallback) {
+        return Math.clamp(loader.getInt("reach." + direction, fallback), 0, 32);
     }
 
     private static void readLimits(ConfigurationSection section, Map<UUID, Integer> into) {
@@ -1155,9 +1214,13 @@ public final class LoaderManager {
             if (loader.block() != null) {
                 data.set(p + "block", loader.block().name());
             }
+            for (Loader.Direction direction : Loader.Direction.values()) {
+                data.set(p + "reach." + direction.name().toLowerCase(Locale.ROOT), loader.reach(direction));
+            }
         }
-        limitOverrides.forEach((uuid, limit) -> data.set("limits." + uuid, limit));
-        activeOverrides.forEach((uuid, limit) -> data.set("active-limits." + uuid, limit));
+        // Always written (also empty), so the old active limits are only converted once.
+        data.createSection("budgets");
+        budgetOverrides.forEach((uuid, limit) -> data.set("budgets." + uuid, limit));
         dummyOverrides.forEach((uuid, limit) -> data.set("dummy-limits." + uuid, limit));
         knownLimits.forEach((kind, known) -> known.forEach((uuid, limit) ->
                 data.set("known-limits." + kind.name().toLowerCase(Locale.ROOT) + "." + uuid, limit)));

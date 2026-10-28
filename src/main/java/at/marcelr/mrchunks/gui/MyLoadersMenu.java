@@ -5,7 +5,6 @@ import at.marcelr.mrchunks.Loader;
 import at.marcelr.mrchunks.LoaderManager;
 import at.marcelr.mrchunks.MRChunks;
 import at.marcelr.mrchunks.Messages;
-import at.marcelr.mrchunks.Texts;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -44,9 +43,7 @@ public final class MyLoadersMenu extends Menu {
     public MyLoadersMenu(MRChunks plugin, Player viewer) {
         super(plugin, viewer, 6, plugin.messages().get("gui-title-mine",
                 tag("placed", plugin.loaders().count(AdminActions.accountOf(viewer))),
-                tag("limit", Texts.limit(plugin.loaders().limit(viewer))),
-                tag("active", plugin.loaders().activeCount(AdminActions.accountOf(viewer))),
-                tag("active-limit", Texts.limit(plugin.loaders().activeLimit(viewer)))));
+                tag("limit", plugin.loaders().maxLoaders())));
     }
 
     @Override
@@ -115,15 +112,15 @@ public final class MyLoadersMenu extends Menu {
     private void items() {
         Messages messages = plugin.messages();
         LoaderManager loaders = plugin.loaders();
-        LoaderManager.Limit limit = loaders.limit(viewer);
+        int limit = loaders.maxLoaders();
         int placed = loaders.count(AdminActions.accountOf(viewer));
         int held = plugin.loaderItem().count(viewer);
-        String free = limit.value() == Integer.MAX_VALUE ? Texts.limit(limit)
-                : String.valueOf(Math.max(0, (long) limit.value() - placed - held));
+        String free = String.valueOf(Math.max(0, (long) limit - placed - held));
         var tags = new net.kyori.adventure.text.minimessage.tag.resolver.TagResolver[]{
-                tag("held", held), tag("placed", placed), tag("limit", Texts.limit(limit)), tag("free", free)};
+                tag("held", held), tag("placed", placed), tag("limit", limit), tag("free", free)};
         set(GET, Items.of(plugin.settings().item().material()).name(messages.item("gui-items-name"))
-                .lore(messages.lore("gui-items-lore", tags)).glint(true).build(), click -> {
+                .lore(messages.lore("gui-items-lore", tags))
+                .lore(messages.lore("gui-items-budget", plugin.adminActions().budgetTags(viewer))).glint(true).build(), click -> {
             if (click == ClickType.LEFT || click == ClickType.SHIFT_LEFT) {
                 plugin.adminActions().give(viewer, click == ClickType.SHIFT_LEFT ? STACK : 1);
                 sound(Sound.ENTITY_ITEM_PICKUP);

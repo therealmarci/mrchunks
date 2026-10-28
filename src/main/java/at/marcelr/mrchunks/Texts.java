@@ -30,9 +30,11 @@ public final class Texts {
         return format.withZone(ZoneId.systemDefault()).format(Instant.ofEpochMilli(millis));
     }
 
-    /** name, number, player (owner), world, x, y, z, cx, cz, size, chunks, created, state */
+    /**
+     * name, number, player (owner), world, x, y, z, cx, cz, width, length, chunks (area), created, state;
+     * size is the width (older texts wrote "size x size").
+     */
     public static TagResolver loader(MRChunks plugin, Loader loader) {
-        Settings.LoaderSettings settings = plugin.settings().loaders();
         Messages messages = plugin.messages();
         return TagResolver.resolver(
                 lazy("name", () -> name(plugin, loader)),
@@ -44,8 +46,10 @@ public final class Texts {
                 tag("z", loader.z()),
                 tag("cx", loader.chunkX()),
                 tag("cz", loader.chunkZ()),
-                tag("size", settings.size()),
-                tag("chunks", settings.chunkCount()),
+                tag("width", loader.width()),
+                tag("length", loader.length()),
+                tag("size", loader.width()),
+                tag("chunks", loader.area()),
                 lazy("created", () -> date(messages, loader.created())),
                 lazy("state", () -> messages.get(loader.active() ? "gui-state-active" : "gui-state-inactive")));
     }

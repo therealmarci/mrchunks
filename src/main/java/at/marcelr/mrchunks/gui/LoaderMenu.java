@@ -23,8 +23,8 @@ import static at.marcelr.mrchunks.Messages.tag;
  * Menu of one loader (right-click on the block, or from a list). Layout (3 rows):
  * <pre>
  *  . . . . [info] . . . .
- *  [toggle] [members] [dummy] . [border] . [block] [rename] [delete]   (dummy only with dummies.enabled,
- *                                                                     block only with item.block-choices)
+ *  [toggle] [members] [dummy] [size] [border] . [block] [rename] [delete]   (dummy only with dummies.enabled,
+ *                                                                          block only with item.block-choices)
  *  [back] . . . [close] . . . .          (with mrchunks.admin.teleport: [back] . . [close] . [teleport] . . .)
  * </pre>
  * Toggle needs ownership, an invite or mrchunks.admin.manage; rename, invites and delete only ownership or the admin
@@ -124,6 +124,14 @@ public final class LoaderMenu extends Menu {
             dummyButton(loader, manage, tags);
         }
 
+        // Everyone who can open the menu sees the size; changing it is checked in the size menu.
+        set(12, Items.of(Material.MAP).name(messages.item("gui-size-name", tags))
+                .lore(messages.lore(AdminActions.canResize(viewer, loader) ? "gui-size-lore" : "gui-size-view-lore", tags))
+                .build(), click -> {
+            clickSound();
+            new SizeMenu(plugin, viewer, loader.id(), this).open();
+        });
+
         if (plugin.border().isShowing(viewer, loader)) {
             button(13, Material.SPYGLASS, "gui-border-hide-name", "gui-border-hide-lore", true, () -> {
                 plugin.border().hide(viewer);
@@ -182,7 +190,10 @@ public final class LoaderMenu extends Menu {
         TagResolver all = TagResolver.resolver(tags,
                 plugin.adminActions().dummyTags(Bukkit.getOfflinePlayer(loader.owner())));
         String lore;
-        if (!loader.dummy()) {
+        if (!at.marcelr.mrchunks.dummy.Dummies.fits(loader)) {
+            // Only on a centred square of at least 5x5 (otherwise the dummy simulates chunks outside the area).
+            lore = loader.dummy() ? "gui-dummy-square-waiting-lore" : "gui-dummy-square-lore";
+        } else if (!loader.dummy()) {
             lore = "gui-dummy-on-lore";
         } else if (plugin.dummies().dummyOf(loader) != null) {
             lore = "gui-dummy-off-lore";

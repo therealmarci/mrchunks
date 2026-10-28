@@ -14,7 +14,18 @@ public record LagLimits(Map<Metric, Double> warn, Map<Metric, Double> lock) {
         return lock.getOrDefault(metric, 0.0);
     }
 
-    /** Defaults for a 7x7 area; deliberately generous - farms are fine, runaway machines are not. */
+    /** All limits times {@code factor} (0 stays 0 = not checked). */
+    public LagLimits scaled(double factor) {
+        Map<Metric, Double> w = new EnumMap<>(Metric.class);
+        Map<Metric, Double> l = new EnumMap<>(Metric.class);
+        for (Metric metric : Metric.values()) {
+            w.put(metric, warn(metric) * factor);
+            l.put(metric, lock(metric) * factor);
+        }
+        return new LagLimits(w, l);
+    }
+
+    /** Defaults for a 7x7 area (49 chunks, see lag-protection.limits-per-chunks); deliberately generous - farms are fine, runaway machines are not. */
     public static LagLimits defaults() {
         Map<Metric, Double> warn = new EnumMap<>(Metric.class);
         Map<Metric, Double> lock = new EnumMap<>(Metric.class);

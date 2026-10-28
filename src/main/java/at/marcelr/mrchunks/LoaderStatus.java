@@ -1,6 +1,5 @@
 package at.marcelr.mrchunks;
 
-import at.marcelr.mrchunks.lag.Activity;
 import org.bukkit.Material;
 
 /**
@@ -35,8 +34,7 @@ public enum LoaderStatus {
         if (plugin.loaders().paused()) {
             return PAUSED;
         }
-        Activity activity = plugin.settings().lag().enabled() ? plugin.lag().activity(loader) : null;
-        return activity != null && activity.conspicuous() ? WARN : OK;
+        return plugin.settings().lag().enabled() && plugin.lag().conspicuous(loader) ? WARN : OK;
     }
 
     public Material material(MRChunks plugin) {

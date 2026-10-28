@@ -27,7 +27,7 @@ public final class PlayerIcons {
         // Linked accounts: the loaders and limits of the main account.
         UUID main = loaders.main(target.getUniqueId());
         List<Loader> owned = loaders.byOwner(main);
-        LoaderManager.Limit limit = loaders.limit(target);
+        LoaderManager.Limit limit = loaders.budget(target);
 
         Component source = messages.get(switch (limit.source()) {
             case CUSTOM -> "gui-limit-custom";
@@ -43,9 +43,10 @@ public final class PlayerIcons {
                 .name(messages.item("gui-player-name", tag("player", AdminActions.name(target))))
                 .lore(messages.lore("gui-player-lore",
                         tag("placed", owned.size()),
+                        tag("limit", loaders.maxLoaders()),
                         tag("active", owned.stream().filter(Loader::active).count()),
-                        tag("limit", Texts.limit(limit)),
-                        tag("active-limit", Texts.limit(loaders.activeLimit(target))),
+                        tag("used", loaders.usedBudget(main)),
+                        tag("budget", Texts.limit(limit)),
                         tag("limit-source", source),
                         tag("status", status)))
                 .glint(ban != null);

@@ -58,7 +58,15 @@ public record Settings(
      * times a lock limit on (0 = off) the server state does not matter. Durations in ms.
      */
     public record LagSettings(boolean enabled, int sampleSeconds, int lockAfterSamples, boolean onlyWhenServerLags,
-                              double serverLagMspt, double forceLockMultiplier, LagLimits limits) {
+                              double serverLagMspt, double forceLockMultiplier, LagLimits limits, int limitsPerChunks) {
+
+        /**
+         * The limits for an area of {@code chunks} chunks: the configured ones apply to {@code limitsPerChunks}
+         * chunks and grow and shrink with the area, so the same budget always allows the same load.
+         */
+        public LagLimits limitsFor(int chunks) {
+            return limits.scaled((double) chunks / limitsPerChunks);
+        }
     }
 
     /** Marker for a permanent ban. */
@@ -69,17 +77,23 @@ public record Settings(
     /** What happens when a new loader's area overlaps existing ones (loaders.overlap). */
     public enum OverlapMode { ALLOW, WARN, DENY_OWN, DENY_ALL }
 
-    public record LoaderSettings(int radius, int defaultLimit, int defaultActiveLimit, Set<String> disabledWorlds,
-                                 LoadMethod loadMethod, OverlapMode overlap,
+    /**
+     * @param defaultBudget chunks a player may keep loaded with all their active loaders together
+     * @param defaultReach  reach of a new loader in every direction (3 = 7x7)
+     * @param maxReach      highest reach per direction a loader can be enlarged to
+     * @param maxLoaders    loaders a player may place (the same for everyone)
+     */
+    public record LoaderSettings(int defaultBudget, int defaultReach, int maxReach, int maxLoaders,
+                                 Set<String> disabledWorlds, LoadMethod loadMethod, OverlapMode overlap,
                                  boolean restoreMissingBlocks, int checkIntervalSeconds) {
 
-        /** Edge length of the loaded square in chunks, e.g. 7 for radius 3. */
-        public int size() {
-            return radius * 2 + 1;
+        /** Edge length of a new loader's square in chunks, e.g. 7 for reach 3. */
+        public int defaultSize() {
+            return defaultReach * 2 + 1;
         }
 
-        public int chunkCount() {
-            return size() * size();
+        public int defaultArea() {
+            return defaultSize() * defaultSize();
         }
     }
 
@@ -122,10 +136,12 @@ public record Settings(
 
     /** Texts (item, map, ban reason) come from the language file, everything else from config.yml. */
     public static Settings from(FileConfiguration c, Messages texts, Logger log) {
+        int maxReach = Math.clamp(c.getInt("loaders.max-reach", 7), 0, 32);
         LoaderSettings loaders = new LoaderSettings(
-                Math.clamp(c.getInt("loaders.radius", 3), 0, 10),
-                Math.max(0, c.getInt("loaders.default-limit", 3)),
-                Math.max(0, c.getInt("loaders.default-active-limit", 3)),
+                Math.max(0, c.getInt("loaders.default-budget", 147)),
+                Math.clamp(c.getInt("loaders.default-reach", 3), 0, maxReach),
+                maxReach,
+                Math.clamp(c.getInt("loaders.max-loaders", 30), 0, 1000),
                 c.getStringList("loaders.disabled-worlds").stream()
                         .map(s -> s.toLowerCase(Locale.ROOT)).collect(Collectors.toUnmodifiableSet()),
                 parseEnum(c.getString("loaders.load-method"), LoadMethod.TICKET, "loaders.load-method", log),
@@ -246,7 +262,8 @@ public record Settings(
                 c.getBoolean("lag-protection.only-when-server-lags", true),
                 Math.clamp(c.getDouble("lag-protection.server-lag-mspt", 40), 1, 1000),
                 forceLockMultiplier(c.getDouble("lag-protection.force-lock-multiplier", 2), log),
-                new LagLimits(Map.copyOf(warn), Map.copyOf(lock)));
+                new LagLimits(Map.copyOf(warn), Map.copyOf(lock)),
+                Math.clamp(c.getInt("lag-protection.limits-per-chunks", 49), 1, 10_000));
 
         double below = Math.clamp(c.getDouble("server-pause.below-tps", 15), 1, 19.9);
         double resume = Math.clamp(c.getDouble("server-pause.resume-tps", 18), 1, 20);

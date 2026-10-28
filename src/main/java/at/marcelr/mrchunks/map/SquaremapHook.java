@@ -155,7 +155,6 @@ final class SquaremapHook {
             api.iconRegistry().register(ICON, icon()); // lost on /squaremap reload
         }
         Settings.SquaremapSettings settings = plugin.settings().squaremap();
-        int radius = plugin.settings().loaders().radius();
         for (World world : Bukkit.getWorlds()) {
             MapWorld mapWorld = api.getWorldIfEnabled(BukkitAdapter.worldIdentifier(world)).orElse(null);
             if (mapWorld == null) {
@@ -180,17 +179,17 @@ final class SquaremapHook {
                 if (!loader.worldId().equals(world.getUID()) || (!loader.active() && !settings.showInactive())) {
                     continue;
                 }
-                addMarkers(layer, loader, radius, settings);
+                addMarkers(layer, loader, settings);
             }
         }
     }
 
-    private void addMarkers(SimpleLayerProvider layer, Loader loader, int radius, Settings.SquaremapSettings settings) {
+    private void addMarkers(SimpleLayerProvider layer, Loader loader, Settings.SquaremapSettings settings) {
         // The area covers whole chunks; squaremap uses block coordinates.
-        int minX = (loader.chunkX() - radius) << 4;
-        int minZ = (loader.chunkZ() - radius) << 4;
-        int maxX = (loader.chunkX() + radius + 1) << 4;
-        int maxZ = (loader.chunkZ() + radius + 1) << 4;
+        int minX = loader.minChunkX() << 4;
+        int minZ = loader.minChunkZ() << 4;
+        int maxX = (loader.maxChunkX() + 1) << 4;
+        int maxZ = (loader.maxChunkZ() + 1) << 4;
         boolean paused = loader.active() && plugin.loaders().paused();
         Color color = paused ? settings.pausedColor() : loader.active() ? colorOf(loader, settings) : settings.inactiveColor();
         MarkerOptions options = MarkerOptions.builder()
@@ -257,7 +256,6 @@ final class SquaremapHook {
     }
 
     private String fill(String template, Loader loader) {
-        Settings.LoaderSettings loaders = plugin.settings().loaders();
         return template
                 .replace("{name}", html(Texts.name(plugin, loader)))
                 .replace("{number}", String.valueOf(loader.number()))
@@ -267,8 +265,10 @@ final class SquaremapHook {
                 .replace("{x}", String.valueOf(loader.x()))
                 .replace("{y}", String.valueOf(loader.y()))
                 .replace("{z}", String.valueOf(loader.z()))
-                .replace("{size}", String.valueOf(loaders.size()))
-                .replace("{chunks}", String.valueOf(loaders.chunkCount()))
+                .replace("{width}", String.valueOf(loader.width()))
+                .replace("{length}", String.valueOf(loader.length()))
+                .replace("{size}", String.valueOf(loader.width()))
+                .replace("{chunks}", String.valueOf(loader.area()))
                 .replace("{state}", html(loader.active() && plugin.loaders().paused()
                         ? plugin.messages().plain("state-paused") : Texts.state(plugin, loader.active())));
     }

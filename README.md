@@ -1,6 +1,6 @@
 # MRchunks
 
-**Chunkloader für Survival-Server:** Ein Block, und deine Farm läuft weiter - auch wenn du offline bist. Mit fairen Limits, Einladungen für Mitspieler, Lag-Schutz und einer Webkarte.
+**Chunkloader für Survival-Server:** Ein Block, und deine Farm läuft weiter - auch wenn du offline bist. Mit einem Chunk-Budget, das jeder selbst auf seine Loader verteilt, Einladungen für Mitspieler, Lag-Schutz und einer Webkarte.
 
 **[⬇ Download](https://mrtechnology.marcelr.at/download/mrchunks/)** · **[📖 Anleitung online](https://mrtechnology.marcelr.at/docs/mrchunks/)** · **[🐞 Fehler melden](https://mrtechnology.marcelr.at/report/mrchunks/)**
 
@@ -12,11 +12,11 @@
 | Status | Vorabversion (0.x) - Config, Befehle und Permissions können sich bis 1.0.0 noch ändern |
 
 ## Was kann MRchunks?
-- **Chunkloader-Blöcke:** Einmal platziert, bleibt ein **7×7-Chunk-Bereich** dauerhaft geladen - in allen Dimensionen, auch wenn der Spieler offline ist.
-- **Faire Limits:** wie viele Loader ein Spieler **setzen** darf und wie viele davon **gleichzeitig aktiv** sind - aus der Config, per Permission oder per Admin-Befehl.
+- **Chunkloader-Blöcke:** Einmal platziert, bleibt der Bereich drumherum dauerhaft geladen - in allen Dimensionen, auch wenn der Spieler offline ist.
+- **Größe frei wählbar:** Jeder Spieler hat ein **Chunk-Budget** (Standard 147 Chunks = drei 7×7-Loader) und stellt die Größe jedes Loaders selbst ein - auch als Rechteck, z.B. 3×15 für eine lange Farm. Wenige große oder viele kleine Loader, wie jeder will. Mehr Budget per Permission oder Admin-Befehl.
 - **Mitspieler einladen:** Farm-Partner dürfen deine Loader an- und ausschalten.
 - **Dummy-Spieler** (optional): ein künstlicher Spieler auf dem Loader, damit Mobs aktiv bleiben und Farmen wie mit einem echten Spieler daneben laufen.
-- **Zweit-Accounts verknüpfen:** Haupt- und AFK-Account teilen sich Loader und Limit.
+- **Zweit-Accounts verknüpfen:** Haupt- und AFK-Account teilen sich Loader und Budget.
 - **Unzerstörbar:** kein Abbauen, keine Explosionen, Kolben, Wither oder Endermen.
 - **Lag-Schutz:** Loader, die den Server ausbremsen, werden erkannt und gesperrt. Laggt der ganze Server, pausieren alle Loader automatisch.
 - **Webkarte** mit echtem Gelände über squaremap, automatisch eingerichtet.
@@ -29,20 +29,33 @@
    ```text
    /lp group default permission set mrchunks.player true
    ```
-4. Fertig. Jeder Spieler darf standardmäßig 3 Loader setzen und alle 3 gleichzeitig nutzen. Anpassen in der Config, dann `/mrchunks reload`.
+4. Fertig. Jeder Spieler hat standardmäßig **147 Chunks** Budget (drei 7×7-Loader) und darf bis zu 30 Loader setzen. Anpassen in der Config, dann `/mrchunks reload`.
 
 > [!WARNING]
 > Gruppen mit `*` oder `mrchunks.*` bekommen in LuckPerms auch `mrchunks.exempt` - und deren Loader werden **gelöscht**. Setz dort ausdrücklich `/lp group admin permission set mrchunks.exempt false`. Mehr unter [Permissions](#permissions).
 
 **Update:** Die alte JAR durch die neue ersetzen und den Server neu starten. Die Config wird automatisch angepasst: Deine Werte bleiben, neue Optionen kommen dazu, und die alte Datei wird als `config.v<N>.backup.yml` gesichert.
 
+> [!WARNING]
+> **Update auf das Chunk-Budget:** Die Limits `mrchunks.limit.<n>`, `mrchunks.active.<n>` (und `.unlimited`) gibt es nicht mehr - stattdessen `mrchunks.budget.<n>`. Vorhandene Loader behalten ihre Größe, und niemand verliert etwas: Das Budget wird beim Update aus dem alten Aktiv-Limit berechnet (3 aktive 7×7-Loader = 147 Chunks), auch für Admin-Limits. **Permissions musst du selbst umstellen**, z.B. `/lp group vip permission unset mrchunks.active.5` und `/lp group vip permission set mrchunks.budget.245 true` (5 × 49). Details unter [Chunk-Budget](#chunk-budget).
+
 ---
 
 ## So funktioniert's (für Spieler)
-1. **`/chunkloader`** (oder `/cl`) öffnet dein Menü. Unten rechts holt **Chunkloader holen** einen Loader ins Inventar (Linksklick 1, Shift bis zu 64 - so viele, wie dein Limit erlaubt). **Chunkloader zurückgeben** daneben nimmt Items wieder zurück.
-2. **Block platzieren** - ab sofort bleiben die `7×7` Chunks rundherum geladen.
-3. **Rechtsklick** auf den Block öffnet sein Menü: Infos, umbenennen, Mitglieder, **Grenze anzeigen**, **Block ändern**, an/aus, Dummy, löschen. **Sneak + Rechtsklick** verhält sich normal, du kannst also weiter Blöcke daran bauen.
-4. **Löschen** geht nur über das Menü (zweimal klicken). Danach ist dein Limit wieder frei.
+1. **`/chunkloader`** (oder `/cl`) öffnet dein Menü. Unten rechts holt **Chunkloader holen** einen Loader ins Inventar (Linksklick 1, Shift bis zu 64 - höchstens 30 Loader insgesamt). Dort siehst du auch dein **Budget**. **Chunkloader zurückgeben** daneben nimmt Items wieder zurück.
+2. **Block platzieren** - ab sofort bleiben die `7×7` Chunks rundherum geladen. Reicht dein freies Budget nicht mehr für 7×7, wird der Loader so groß, wie es noch geht.
+3. **Rechtsklick** auf den Block öffnet sein Menü: Infos, **Größe**, umbenennen, Mitglieder, **Grenze anzeigen**, **Block ändern**, an/aus, Dummy, löschen. **Sneak + Rechtsklick** verhält sich normal, du kannst also weiter Blöcke daran bauen.
+4. **Löschen** geht nur über das Menü (zweimal klicken).
+
+### Größe und Chunk-Budget
+Jeder aktive Loader kostet so viele Chunks aus deinem Budget, wie er groß ist: 7×7 kostet 49, 3×3 kostet 9, 3×15 kostet 45. **Ausgeschaltete Loader kosten nichts.** Mit dem Standard-Budget von 147 Chunks kannst du z.B. drei 7×7-Loader betreiben - oder sechzehn 3×3-Loader.
+
+Im Menü eines Loaders öffnet **Größe** die Einstellung:
+- **Pfeile Norden, Süden, Westen, Osten:** Linksklick +1 Chunk in diese Richtung, Rechtsklick −1. So wird der Bereich zum Rechteck, und der Block muss nicht in der Mitte stehen - z.B. am Rand einer langen Farm.
+- **Mitte:** alle vier Richtungen auf einmal.
+- Oben steht, wie viel Budget du nutzt und wie viel frei ist. **Grenze anzeigen** zeigt den Rand und folgt jeder Änderung.
+- Vergrößern geht nur mit genug freiem Budget und bis zur Höchstgröße des Servers (Standard 15×15). Ist dein Budget voll, schalte einen anderen Loader aus oder verkleinere einen.
+- Die Größe ändern darfst nur du (`mrchunks.resize`) - Eingeladene nicht.
 
 Die Menüleiste in `/chunkloader` von links nach rechts:
 
@@ -80,12 +93,12 @@ Lade Farm-Partner ein, damit sie deine Loader **an- und ausschalten** können, a
 - **Alle Loader** (auch künftige): `/chunkloader` → **Mitglieder für alle Loader**.
 - Dauer mit der Uhr wählen (1 Tag, 7 Tage, 30 Tage oder dauerhaft), dann auf einen Kopf klicken. Für Offline-Spieler gibt es **Namen eingeben**.
 - Eingeladene finden die Loader unter **Mit mir geteilt**. Umbenennen, löschen und einladen darfst nur du.
-- Einladungen zählen bei niemandem zum Limit. Schaltet ein Eingeladener einen Loader an, gilt **dein** Aktiv-Limit.
+- Einladungen zählen bei niemandem zum Limit. Schaltet ein Eingeladener einen Loader an, kostet das **dein** Budget.
 
 ### Zweit-Accounts verknüpfen
 Hast du einen Zweit-Account (z.B. zum AFK-Farmen), verknüpf ihn mit deinem Haupt-Account. Danach verhalten sich beide wie ein Spieler:
 - Beide sehen und verwalten **dieselben Loader**. Was der Zweit-Account setzt, gehört dem Haupt-Account.
-- Es gilt **ein gemeinsames Limit** - das des Haupt-Accounts.
+- Es gilt **ein gemeinsames Budget** - das des Haupt-Accounts.
 - **Verknüpfen:** `/chunkloader` → **Verknüpfte Accounts** → **Account verknüpfen**. Der andere Account muss online sein und zustimmen.
 - **Lösen** kann jeder der beiden jederzeit im selben Menü. Die Loader bleiben beim Haupt-Account.
 - **Admins** verknüpfen und lösen Accounts auch ohne Zustimmung: mit `/mrchunks link <haupt> <zweit>` bzw. `/mrchunks unlink <spieler>` oder in der MRadmin-Weboberfläche auf der Spielerseite (`mrchunks.admin.link`).
@@ -98,6 +111,7 @@ Ein Chunkloader hält Chunks geladen - für den Server steht dort aber **kein Sp
 - **Aussehen:** dein Skin, Name `[D<nr>]<dein Name>`, sitzend.
 - **Sonst kein Spieler:** unverwundbar, von Mobs ignoriert, nicht in der Tab-Liste und nicht in der Spielerzahl. MRsleep, MRadmin und MRpvp ignorieren ihn.
 - **Limit:** standardmäßig 1 pro Spieler, mehr per Permission oder Admin-Befehl.
+- **Nur auf quadratischen Loadern ab 5×5, Block in der Mitte:** Ein Dummy simuliert wie ein Spieler ein Quadrat um sich herum. Bei einem Rechteck oder einem kleineren Loader würde er Chunks außerhalb des Bereichs simulieren, die dein Budget gar nicht bezahlt. Sitzt ein Dummy auf dem Loader, lässt sich die Größe deshalb nur gleichmäßig in alle Richtungen ändern.
 
 > [!NOTE]
 > Dummies sind **standardmäßig ausgeschaltet** (`dummies.enabled: false`). Ein Dummy kostet so viel Leistung wie ein echter Spieler an dieser Stelle. Er nutzt Server-Interna von Paper: Passt die MRchunks-Version nicht genau zur Server-Version, bleiben Dummies aus (Hinweis in der Konsole) - alles andere funktioniert normal.
@@ -118,7 +132,7 @@ Spieler brauchen keine Befehle außer `/chunkloader` - alles läuft über Menüs
 | `/mrchunks dummy <spieler> <nr>` | Dummy eines Loaders an/aus (auch über das Limit hinaus) | `mrchunks.admin.manage` |
 | `/mrchunks link <haupt> <zweit>` | Accounts ohne Zustimmung verknüpfen | `mrchunks.admin.link` |
 | `/mrchunks unlink <spieler>` | Verknüpfung lösen | `mrchunks.admin.link` |
-| `/mrchunks limit <spieler> <place\|active\|dummy> <anzahl\|reset>` | Limit eines Spielers setzen (siehe [Limits](#limits)) | `mrchunks.admin.limit` |
+| `/mrchunks limit <spieler> <budget\|dummy> <anzahl\|reset>` | Chunk-Budget oder Dummy-Limit eines Spielers setzen (siehe [Chunk-Budget](#chunk-budget)) | `mrchunks.admin.limit` |
 | `/mrchunks ban <spieler> [dauer\|permanent] [grund]` | Sperren: löscht alle Loader und verhindert neue | `mrchunks.admin.ban` |
 | `/mrchunks unban <spieler>` · `bans` | Sperre aufheben · alle Sperren anzeigen | `mrchunks.admin.ban` |
 | `/mrchunks map [setup]` | Status der Webkarte · squaremap neu einrichten | `mrchunks.admin.map` |
@@ -130,8 +144,8 @@ Owner dürfen ihre eigenen Loader auch mit `toggle` und `delete` steuern.
 
 ### Admin-Menü
 `/mrchunks gui` zeigt oben eine Übersicht (Loader, aktive Loader, geladene Chunks, Sperren) und darunter alle Spieler mit Loadern als Köpfe.
-- **Klick auf einen Kopf:** Limits mit Links-/Rechtsklick ändern (+1/−1, Shift = zurücksetzen), alle Loader löschen, sperren oder entsperren - und darunter alle Loader des Spielers.
-- **Klick auf einen Loader:** an/aus, umbenennen, Grenze anzeigen, hinteleportieren, löschen.
+- **Klick auf einen Kopf:** Budget mit Links-/Rechtsklick ändern (±10 Chunks, Shift = zurücksetzen), Dummy-Limit (±1), alle Loader löschen, sperren oder entsperren - und darunter alle Loader des Spielers.
+- **Klick auf einen Loader:** an/aus, Größe, umbenennen, Grenze anzeigen, hinteleportieren, löschen.
 
 Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Permission.
 
@@ -142,17 +156,17 @@ Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Perm
 
 | Permission | Standard | Wofür |
 |---|---|---|
-| `mrchunks.player` | OP | **Alle Spieler-Rechte** auf einmal (`use`, `map`, `view`, `invite`, `link`, `block`) - am besten der Default-Gruppe geben |
+| `mrchunks.player` | OP | **Alle Spieler-Rechte** auf einmal (`use`, `resize`, `map`, `view`, `invite`, `link`, `block`) - am besten der Default-Gruppe geben |
 | `mrchunks.use` | OP | Chunkloader holen, setzen und die eigenen verwalten |
+| `mrchunks.resize` | OP | Größe der eigenen Loader ändern (im Rahmen des Budgets) |
 | `mrchunks.map` | OP | Knopf **Webkarte** |
 | `mrchunks.view` | OP | Menü **fremder** Loader ansehen (nur ansehen und Grenze anzeigen) |
 | `mrchunks.invite` | OP | Mitspieler zu eigenen Loadern einladen |
 | `mrchunks.link` | OP | Zweit-Account verknüpfen |
 | `mrchunks.block` | OP | Block der eigenen Loader in der Welt ändern (Auswahl aus `item.block-choices`) |
-| `mrchunks.limit.<anzahl>` | – | So viele Loader **setzen**, z.B. `mrchunks.limit.15` |
-| `mrchunks.active.<anzahl>` | – | So viele **gleichzeitig aktiv**, z.B. `mrchunks.active.3` |
+| `mrchunks.budget.<anzahl>` | – | Chunk-Budget, z.B. `mrchunks.budget.300` |
 | `mrchunks.dummies.<anzahl>` | – | So viele Dummy-Spieler, z.B. `mrchunks.dummies.2` |
-| `mrchunks.limit.unlimited` · `active.unlimited` · `dummies.unlimited` | niemand | Ohne Begrenzung |
+| `mrchunks.budget.unlimited` · `dummies.unlimited` | niemand | Ohne Begrenzung |
 | `mrchunks.exempt` | niemand | **Komplett ausgeschlossen:** keine Loader, keine Einladungen - vorhandene Loader werden beim Betreten **gelöscht** |
 
 **Team-Gruppen** - in allen MRtechnology-Plugins gleich aufgebaut, jede enthält die darunter (und `mrchunks.player`):
@@ -161,7 +175,7 @@ Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Perm
 |---|---|---|
 | `mrchunks.groups.support` | OP | Admin-Menü (alle Loader und ihren Status sehen), zu Loadern teleportieren |
 | `mrchunks.groups.staff` | OP | Support + fremde Loader an/aus schalten, ihre Einladungen verwalten, Accounts verknüpfen und lösen |
-| `mrchunks.groups.admin` | OP | Alles: Staff + löschen, umbenennen, Dummies, Lag-Sperren aufheben, Limits, Sperren, Webkarte, Discord, Reload, Update-Hinweis |
+| `mrchunks.groups.admin` | OP | Alles: Staff + löschen, umbenennen, Größe fremder Loader ändern, Dummies, Lag-Sperren aufheben, Budget und Dummy-Limit, Sperren, Webkarte, Discord, Reload, Update-Hinweis |
 
 ```text
 /lp group supporter permission set mrchunks.groups.support true
@@ -174,12 +188,13 @@ Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Perm
 | Permission | Standard | Wofür |
 |---|---|---|
 | `mrchunks.admin.gui` | OP | Admin-Menü öffnen (Aktionen darin brauchen ihre eigene Permission) |
-| `mrchunks.admin.toggle` | OP | **Fremde** Loader an/aus schalten (auch über das Aktiv-Limit hinaus) |
+| `mrchunks.admin.toggle` | OP | **Fremde** Loader an/aus schalten (im Rahmen des Budgets des Owners) |
 | `mrchunks.admin.invites` | OP | Einladungen **fremder** Loader verwalten |
 | `mrchunks.admin.link` | OP | Accounts anderer verknüpfen und lösen |
-| `mrchunks.admin.manage` | OP | **Fremde** Loader löschen, umbenennen, Block wählen, Dummies, Lag-Sperren aufheben (enthält `toggle`, `invites`, `link`) |
+| `mrchunks.admin.manage` | OP | **Fremde** Loader löschen, umbenennen, Größe ändern, Block wählen, Dummies, Lag-Sperren aufheben (enthält `toggle`, `invites`, `link`, `resize`) |
+| `mrchunks.admin.resize` | OP | Größe **fremder** Loader ändern (im Spiel und in der MRadmin-Weboberfläche, im Rahmen des Budgets des Owners) |
 | `mrchunks.admin.teleport` | OP | Zu Loadern teleportieren |
-| `mrchunks.admin.limit` | OP | Limits vergeben |
+| `mrchunks.admin.limit` | OP | Chunk-Budget und Dummy-Limit eines Spielers festlegen |
 | `mrchunks.admin.ban` | OP | Spieler sperren und entsperren |
 | `mrchunks.admin.map` | OP | `/mrchunks map` |
 | `mrchunks.admin.discord` | OP | `/mrchunks discord` |
@@ -191,7 +206,7 @@ Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Perm
 > ```text
 > /lp group admin permission set mrchunks.exempt false
 > ```
-> Sollen die Limits trotzdem gelten, auch `mrchunks.limit.unlimited` und `mrchunks.active.unlimited` auf `false` setzen.
+> Soll das Budget trotzdem gelten, auch `mrchunks.budget.unlimited` auf `false` setzen.
 
 <details>
 <summary>LuckPerms-Beispiele</summary>
@@ -200,9 +215,8 @@ Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Perm
 # Alle Spieler dürfen Chunkloader nutzen
 /lp group default permission set mrchunks.player true
 
-# VIPs: 15 Loader setzen, davon 3 gleichzeitig aktiv
-/lp group vip permission set mrchunks.limit.15 true
-/lp group vip permission set mrchunks.active.3 true
+# VIPs: 300 Chunks Budget (z.B. sechs 7x7-Loader)
+/lp group vip permission set mrchunks.budget.300 true
 
 # Moderatoren: wie Staff (Loader an/aus, Einladungen, Accounts), dazu sperren - aber nichts löschen
 /lp group mod permission set mrchunks.groups.staff true
@@ -216,27 +230,29 @@ Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Perm
 ```
 </details>
 
-## Limits
-Jeder Spieler hat **zwei Limits** - wie viele Loader er **setzen** darf und wie viele davon **gleichzeitig aktiv** sein dürfen:
+## Chunk-Budget
+Jeder Spieler hat ein **Budget in Chunks**: So viele Chunks dürfen alle seine **aktiven** Loader zusammen geladen halten. Wie er es aufteilt - wenige große oder viele kleine Loader, Quadrate oder Rechtecke -, entscheidet er selbst im Menü **Größe**.
 
-| | Setzen | Gleichzeitig aktiv |
-|---|---|---|
-| Standard (Config) | `loaders.default-limit` (3) | `loaders.default-active-limit` (3) |
-| Per Permission | `mrchunks.limit.<n>` | `mrchunks.active.<n>` |
-| Unbegrenzt | `mrchunks.limit.unlimited` | `mrchunks.active.unlimited` |
-| Per Admin | `/mrchunks limit <spieler> place <n\|reset>` | `/mrchunks limit <spieler> active <n\|reset>` |
+| | Chunk-Budget |
+|---|---|
+| Standard (Config) | `loaders.default-budget` (147 = drei 7×7-Loader) |
+| Per Permission | `mrchunks.budget.<n>` |
+| Unbegrenzt | `mrchunks.budget.unlimited` |
+| Per Admin | `/mrchunks limit <spieler> budget <n\|reset>`, Admin-Menü oder MRadmin-Weboberfläche |
 
-**Beispiel:** 15 Loader setzen, davon 3 gleichzeitig nutzen → `/mrchunks limit Steve place 15` und `/mrchunks limit Steve active 3`.
-
-- Ist beim Setzen kein Aktiv-Platz mehr frei, wird der Loader gesetzt, bleibt aber **aus**. Zum Einschalten muss zuerst ein anderer aus.
-- Senkt ein Admin das Aktiv-Limit, werden überzählige Loader sofort ausgeschaltet (die zuletzt gesetzten zuerst) und der Owner informiert.
-- **Reihenfolge:** Ein Admin-Limit hat Vorrang, danach zählt die höchste Permission-Zahl, mindestens aber der Standard aus der Config.
-- **Dummies** haben ein drittes Limit nach demselben Muster (`dummies.default-limit`, `mrchunks.dummies.<n>`, `/mrchunks limit <spieler> dummy <n>`).
+- **Kosten:** Ein aktiver Loader kostet Breite × Länge, also 49 für 7×7. Ausgeschaltete Loader kosten nichts. Überlappende Chunks zählen für jeden Loader voll.
+- **Neue Loader** sind `loaders.default-reach` groß (3 = 7×7). Reicht das freie Budget nicht, bekommen sie das größte Quadrat, das noch passt; ist gar nichts mehr frei, werden sie gesetzt, bleiben aber **aus**.
+- **Höchstgröße:** `loaders.max-reach` Chunks pro Richtung (Standard 7 = bis 15×15).
+- **Wie viele Loader** jemand setzen darf, ist für alle gleich: `loaders.max-loaders` (Standard 30).
+- **Niemand überschreitet das Budget** - auch das Team nicht beim Einschalten oder Vergrößern fremder Loader. Admins erhöhen stattdessen das Budget.
+- Senkt ein Admin das Budget, werden überzählige Loader sofort ausgeschaltet (die zuletzt gesetzten zuerst) und der Owner informiert.
+- **Reihenfolge:** Ein Admin-Wert hat Vorrang, danach zählt die höchste Permission-Zahl, mindestens aber der Standard aus der Config.
+- **Dummies** haben ein eigenes Limit nach demselben Muster (`dummies.default-limit`, `mrchunks.dummies.<n>`, `/mrchunks limit <spieler> dummy <n>`).
 
 ## Lag-Schutz
-MRchunks misst alle 30 Sekunden, was im Bereich jedes **aktiven** Loaders passiert:
+MRchunks misst alle 30 Sekunden, was im Bereich jedes **aktiven** Loaders passiert. Die Grenzen gelten **pro 49 Chunks** (ein 7×7-Loader) und wachsen mit der Fläche - und **alle aktiven Loader eines Spielers teilen sich eine gemeinsame Grenze**: Gezählt wird die Summe aller seiner Loader gegen die Grenzen aller seiner Chunks zusammen. So bringt es nichts, dasselbe Budget auf viele kleine Loader zu verteilen, und eine dichte kleine Farm ist kein Problem, solange die anderen Loader des Spielers ruhig sind.
 
-| Messwert | Was gezählt wird | Warnung | Sperre |
+| Messwert | Was gezählt wird | Warnung (pro 49 Chunks) | Sperre (pro 49 Chunks) |
 |---|---|---|---|
 | `entities` | Mobs, Tiere, Loren, Items … | 300 | 800 |
 | `items` | Items am Boden | 200 | 1000 |
@@ -245,11 +261,13 @@ MRchunks misst alle 30 Sekunden, was im Bereich jedes **aktiven** Loaders passie
 | `pistons` | Kolben-Bewegungen pro Sekunde | 40 | 150 |
 | `spawns` | neue Mobs und Items pro Sekunde | 20 | 80 |
 
-- **Über „Warnung“:** Der Loader taucht in `/mrchunks lag` auf (und in MRadmin), dazu ein Discord-Log. Sonst passiert nichts.
-- **Über „Sperre“:** Gesperrt wird erst, wenn der Wert **mehrere Messungen hintereinander** darüber liegt (Standard 3, also 1,5 Minuten) **und der Server dabei laggt**. Eine große Farm, mit der der Server gut zurechtkommt, wird nicht gesperrt. Beim Doppelten der Sperrgrenze wird auch ohne Server-Lag gesperrt.
+**Beispiel:** Wer 147 Chunks aktiv hat, darf zusammen 3 × 800 = 2400 Entities haben, bevor gesperrt wird - egal ob in drei 7×7-Loadern oder in sechzehn 3×3-Loadern.
+
+- **Über „Warnung“:** Der auffälligste Loader des Spielers taucht in `/mrchunks lag` auf (und in MRadmin), dazu ein Discord-Log. Sonst passiert nichts.
+- **Über „Sperre“:** Gesperrt wird erst, wenn die Summe **mehrere Messungen hintereinander** darüber liegt (Standard 3, also 1,5 Minuten) **und der Server dabei laggt**. Dann wird der Loader gesperrt, der am weitesten über seinem Anteil liegt. Eine große Farm, mit der der Server gut zurechtkommt, wird nicht gesperrt. Beim Doppelten der Sperrgrenze wird auch ohne Server-Lag gesperrt.
 - **Gesperrt heißt:** Der Loader ist aus und kann nur von Admins entsperrt werden (Menü oder `/mrchunks unlock`). Der Owner wird informiert, mit MRadmin bekommt er automatisch ein **Ticket** mit allen Details.
-- Das Menü jedes aktiven Loaders zeigt die letzte Messung - so können Spieler ihre Farm selbst einschätzen.
-- Alle Grenzen stehen unter `lag-protection.limits`. `0` schaltet eine Messung ab.
+- Das Menü jedes aktiven Loaders zeigt die letzte Messung mit dem Anteil dieses Loaders an den Grenzen und wie ausgelastet alle Loader des Spielers zusammen sind - so können Spieler ihre Farm selbst einschätzen.
+- Alle Grenzen stehen unter `lag-protection.limits`, für wie viele Chunks sie gelten unter `lag-protection.limits-per-chunks` (49). `0` schaltet eine Messung ab.
 
 Die Standardwerte sind bewusst großzügig: Normale Farmen bleiben weit darunter, außer Kontrolle geratene Maschinen nicht.
 
@@ -266,7 +284,7 @@ Alles steht in `plugins/MRchunks/config.yml`. Jede Option ist in der Datei komme
 
 | Abschnitt | Die wichtigsten Einstellungen |
 |---|---|
-| `loaders` | `radius` (3 = 7×7 Chunks), `default-limit`, `default-active-limit`, `overlap`, `load-method` |
+| `loaders` | `default-budget` (147 Chunks), `default-reach` (3 = neue Loader 7×7), `max-reach` (7 = höchstens 15×15), `max-loaders` (30), `overlap`, `load-method` |
 | `invites` | an/aus, Dauer-Auswahl, höchstens so viele Mitglieder |
 | `linked-accounts` | an/aus, wie viele Zweit-Accounts |
 | `dummies` | an/aus (Standard aus), Limit, Skin, sitzend |
@@ -275,7 +293,7 @@ Alles steht in `plugins/MRchunks/config.yml`. Jede Option ist in der Datei komme
 | `squaremap` | Adresse der Webkarte, Farben, Raster |
 | `discord` · `update-checker` · `gui` | Logs, Update-Hinweise, Menüs |
 
-**Überschneidende Loader** (`loaders.overlap`): `allow` erlaubt einfach, `warn` (Standard) erlaubt mit Hinweis und zeigt die Grenze, `deny-own` verbietet Überschneidungen mit eigenen Loadern, `deny-all` mit allen. Jeder Chunk wird ohnehin nur **einmal** geladen gehalten.
+**Überschneidende Loader** (`loaders.overlap`): `allow` erlaubt einfach, `warn` (Standard) erlaubt mit Hinweis und zeigt die Grenze, `deny-own` verbietet Überschneidungen mit eigenen Loadern, `deny-all` mit allen - beim Setzen und beim Vergrößern. Jeder Chunk wird ohnehin nur **einmal** geladen gehalten, im Budget zählt er aber für jeden Loader.
 
 ### Sprache & Texte
 - **Jeder Spieler bekommt seine Sprache:** Mit `language: auto` (Standard) richtet sich MRchunks nach der Sprache, die der Spieler in Minecraft eingestellt hat - Deutsch (auch Österreich und Schweiz) bekommt Deutsch, Englisch bekommt Englisch. Für Sprachen ohne eigene Datei gilt `fallback-language` (Standard Englisch). Mit `language: de` oder `en` bekommen alle dieselbe Sprache.
@@ -353,6 +371,12 @@ Die Gruppe hat über `*` auch `mrchunks.exempt`. Setz `mrchunks.exempt` für die
 
 **Ein Loader-Block ist trotzdem verschwunden (z.B. durch `/fill` oder WorldEdit).**
 Solche Befehle umgehen den Schutz. MRchunks prüft deshalb regelmäßig und beim Laden des Chunks und stellt den Block wieder her (`loaders.restore-missing-blocks`).
+
+**Ein Spieler kann seinen Loader nicht einschalten oder vergrößern.**
+Sein Chunk-Budget ist voll. Im Menü **Größe** steht, wie viel er nutzt und wie viel frei ist. Er kann einen anderen Loader ausschalten oder verkleinern - oder ein Admin erhöht sein Budget (`/mrchunks limit <spieler> budget <n>` oder `mrchunks.budget.<n>`).
+
+**Der Dummy-Knopf ist grau / der Dummy setzt sich nicht.**
+Ein Dummy braucht einen quadratischen Loader mit dem Block in der Mitte, mindestens 5×5. Im Menü **Größe** die Mitte anklicken (alle Richtungen gleichmäßig).
 
 **Was passiert, wenn ein Chunkloader-Item verloren geht?**
 Nichts Schlimmes - gezählt werden nur **gesetzte** Loader. Ein neues Item holst du dir im Menü unter **Chunkloader holen**. Normale Smaragdblöcke sind übrigens keine Chunkloader, nur Items aus dem Menü.

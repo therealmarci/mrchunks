@@ -9,6 +9,28 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+> [!WARNING]
+> **Chunk-Budget statt fester Limits:** Die Permissions `mrchunks.limit.<n>`, `mrchunks.limit.unlimited`, `mrchunks.active.<n>` und `mrchunks.active.unlimited` gibt es nicht mehr, ebenso `/mrchunks limit <spieler> place|active`. Stattdessen gibt es ein Chunk-Budget: `mrchunks.budget.<n>`, `mrchunks.budget.unlimited` und `/mrchunks limit <spieler> budget <n>`. **Bitte die LuckPerms-Gruppen umstellen**, z.B. `/lp group vip permission unset mrchunks.active.5` und `/lp group vip permission set mrchunks.budget.245 true` (5 aktive 7×7-Loader × 49 Chunks). Config und gespeicherte Admin-Limits werden automatisch umgerechnet, vorhandene Loader behalten ihre Größe - niemand verliert etwas.
+
+### Neu
+- **Chunk-Budget:** Jeder Spieler hat ein Budget in Chunks, das alle seine **aktiven** Loader zusammen nutzen dürfen (`loaders.default-budget`, Standard 147 = drei 7×7-Loader; mehr per `mrchunks.budget.<n>`, `mrchunks.budget.unlimited` oder `/mrchunks limit <spieler> budget <n>`). Ein Loader kostet Breite × Länge, ausgeschaltete kosten nichts, überlappende Chunks zählen für jeden Loader. So baut jeder, wie er will: wenige große oder viele kleine Loader.
+- **Größe pro Loader, auch als Rechteck:** Im Menü eines Loaders öffnet **Größe** die Einstellung: pro Richtung (Norden, Süden, Westen, Osten) Linksklick +1 Chunk, Rechtsklick −1, in der Mitte alle Richtungen auf einmal. Der Block muss nicht in der Mitte stehen, z.B. 3×15 am Rand einer langen Farm. Permission `mrchunks.resize` (in `mrchunks.player`) für die eigenen Loader, `mrchunks.admin.resize` (in `mrchunks.groups.admin` und `mrchunks.admin.manage`) für fremde. Höchstgröße `loaders.max-reach` (Standard 7 = 15×15). Die Grenze-Anzeige folgt jeder Änderung.
+- **Neue Loader passen sich dem Budget an:** Sie sind `loaders.default-reach` groß (Standard 3 = 7×7). Reicht das freie Budget nicht, bekommen sie das größte Quadrat, das noch passt; nur ohne freies Budget werden sie ausgeschaltet gesetzt.
+- **Höchstzahl an Loadern:** `loaders.max-loaders` (Standard 30) - für alle gleich.
+- **Budget im Menü:** `/chunkloader` zeigt beim Knopf **Chunkloader holen** das genutzte und freie Budget, das Admin-Menü zeigt es bei jedem Spieler und ändert es in 10er-Schritten.
+- **MRadmin-Weboberfläche:** Größe und Budget werden angezeigt, Admins mit `mrchunks.admin.resize` ändern die Größe direkt auf der Seite eines Loaders.
+- **Discord:** neues Ereignis `loader-resized`, wenn sich die Größe eines Loaders ändert.
+
+### Entfernt
+- **Setz- und Aktiv-Limit:** `loaders.radius`, `loaders.default-limit` und `loaders.default-active-limit` fallen weg. Stattdessen gelten `loaders.default-budget`, `loaders.default-reach`, `loaders.max-reach` und `loaders.max-loaders` (beim Update automatisch aus den alten Werten übernommen, config-version 12).
+- **Permissions `mrchunks.limit.*` und `mrchunks.active.*`:** ersetzt durch `mrchunks.budget.*`.
+
+### Behoben & geändert
+- **Lag-Schutz wächst mit der Größe und gilt pro Spieler:** Die Grenzen in `lag-protection.limits` gelten jetzt für `lag-protection.limits-per-chunks` Chunks (Standard 49 = ein 7×7-Loader) und werden auf die Fläche umgerechnet. Alle aktiven Loader eines Spielers teilen sich eine gemeinsame Grenze: Gezählt wird ihre Summe gegen die Grenzen all ihrer Chunks. Viele kleine Loader bringen also nicht mehr Spielraum als wenige große, und eine dichte kleine Farm ist kein Problem, solange die anderen Loader des Spielers ruhig sind. Gesperrt wird der Loader, der am weitesten über seinem Anteil liegt. Das Menü eines Loaders zeigt zusätzlich, wie ausgelastet alle Loader des Spielers zusammen sind.
+- **Dummies nur auf quadratischen Loadern ab 5×5:** Ein Dummy simuliert ein Quadrat um sich herum. Er sitzt deshalb nur auf Loadern mit dem Block in der Mitte und mindestens 5×5 Chunks, sonst würde er Chunks außerhalb des bezahlten Bereichs simulieren. Mit Dummy ändert sich die Größe nur gleichmäßig. Seine Simulationsdistanz richtet sich nach der Größe seines Loaders.
+- **Niemand überschreitet das Budget:** Auch das Team (`mrchunks.admin.toggle`) schaltet fremde Loader nur noch im Rahmen des Budgets des Owners ein - bisher durfte es über das Aktiv-Limit hinaus. Admins erhöhen stattdessen das Budget.
+- **Platzhalter:** In Texten gibt es `<width>`, `<length>` und `<chunks>` (Fläche) pro Loader, auf der Webkarte `{width}`, `{length}`, `{chunks}`. `<size>` bzw. `{size}` ist jetzt die Breite. Die mitgelieferten Texte sind angepasst (lang-version 13).
+
 ## [0.8.0] - 2026-10-28
 
 > [!WARNING]

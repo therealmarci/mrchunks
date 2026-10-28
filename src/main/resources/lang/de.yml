@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Nicht ändern - damit erkennt das Plugin bei Updates, welche Texte erneuert werden müssen.
-lang-version: 12
+lang-version: 13
 
 # Texte der Discord-Logs (Markdown wie in Discord). Platzhalter: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. An/aus und Farbe stehen in der config.yml.
@@ -20,6 +20,7 @@ discord:
   loader-deleted: "🗑️ **{player}** hat **{name}** gelöscht ({world} {x}, {y}, {z})."
   loader-toggled: "🔁 **{name}** von **{player}** ist jetzt **{state}** (geändert von {admin})."
   loader-renamed: "✏️ **{old}** von **{player}** heißt jetzt **{name}** (geändert von {admin})."
+  loader-resized: "📐 **{name}** von **{player}** ist jetzt **{size}** Chunks groß (vorher {old}, geändert von {admin})."
   loader-restored: "🧱 Der Block von **{name}** ({player}, {world} {x}, {y}, {z}) fehlte und wurde wiederhergestellt."
   loader-removed-missing: "❔ **{name}** von **{player}** wurde gelöscht, weil sein Block fehlte."
   admin-delete: "🛠️ **{admin}** hat **{name}** von **{player}** gelöscht."
@@ -40,10 +41,10 @@ discord:
   accounts-unlinked: "⛓️ Die Verknüpfung von **{player}** mit **{owner}** wurde gelöst (durch {admin})."
 
 # --- Chunkloader-Item ----------------------------------------------------------
-# Platzhalter: <size> (z.B. 7), <chunks> (z.B. 49)
+# Platzhalter: <size> (Größe neuer Loader, z.B. 7), <chunks> (z.B. 49)
 item-name: "<green><bold>Chunkloader"
 item-lore:
-  - "<gray>Hält <white><size>x<size> Chunks</white> um sich geladen."
+  - "<gray>Hält <white><size>x<size> Chunks</white> um sich geladen <dark_gray>(Größe im Menü)."
   - "<gray>Einfach platzieren - fertig."
   - ""
   - "<dark_gray>Rechtsklick auf den Block: Menü"
@@ -56,9 +57,9 @@ map-dimension-nether: "Nether"
 map-dimension-end: "End"
 # Name der Ebene in der Ebenen-Auswahl der Karte.
 map-layer-name: "Chunkloader"
-# Texte auf der Karte (HTML erlaubt). Platzhalter: {name} {number} {player} {world} {x} {y} {z} {size} {chunks} {state}
+# Texte auf der Karte (HTML erlaubt). Platzhalter: {name} {number} {player} {world} {x} {y} {z} {width} {length} {chunks} {state}
 map-hover-tooltip: "{name} - {player}"
-map-click-tooltip: "<b>{name}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br>Bereich: {size}x{size} Chunks<br>Status: {state}"
+map-click-tooltip: "<b>{name}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br>Bereich: {width}x{length} Chunks<br>Status: {state}"
 # Name des Chunkrasters im Ebenen-Menü der Karte.
 map-grid-label: "Chunkraster"
 
@@ -110,15 +111,16 @@ map-link-label: "<aqua><u><url></u></aqua>"
 map-unavailable: "<prefix><gray>Für diesen Server gibt es gerade keine öffentliche Webkarte."
 
 # --- Setzen / Block ----------------------------------------------------------
-placed: "<prefix><green><white><name></white> gesetzt - <white><chunks></white> Chunks bleiben jetzt geladen. <gray>(<placed>/<limit> gesetzt, <active>/<active-limit> aktiv)"
-placed-inactive: "<prefix><yellow><white><name></white> gesetzt, aber <white>deaktiviert</white>: Du hast schon <white><active>/<active-limit></white> aktive Chunkloader. <gray>Schalte im Menü einen anderen aus, um diesen zu aktivieren."
+placed: "<prefix><green><white><name></white> gesetzt - <white><width>x<length></white> Chunks bleiben jetzt geladen. <gray>(<placed>/<limit> gesetzt, Budget <used>/<budget> Chunks)"
+placed-smaller: "<prefix><green><white><name></white> gesetzt - <yellow>nur <white><width>x<length></white> Chunks</yellow>, mehr gibt dein Budget gerade nicht her. <gray>(Budget <used>/<budget>, Größe im Menü des Loaders)"
+placed-inactive: "<prefix><yellow><white><name></white> gesetzt, aber <white>deaktiviert</white>: Dein Chunk-Budget ist aufgebraucht <gray>(<used>/<budget>). Schalte einen anderen Loader aus oder verkleinere einen, um diesen zu aktivieren."
 # loaders.overlap: Platzhalter <loaders> (Liste aus overlap-entry-own/-other), <shared> (doppelt abgedeckte Chunks)
 place-overlap-warning: "<prefix><yellow>Hinweis: Der Bereich von <white><name></white> überschneidet sich mit <white><loaders></white> - <white><shared></white> Chunks werden doppelt abgedeckt. <gray>Die Grenze wird angezeigt."
 place-overlap-denied-own: "<prefix><red>Hier kannst du keinen Chunkloader setzen: Der Bereich würde sich mit deinem <white><name></white> überschneiden."
 place-overlap-denied: "<prefix><red>Hier kannst du keinen Chunkloader setzen: Der Bereich würde sich mit <white><name></white> von <white><player></white> überschneiden."
 overlap-entry-own: "<name>"
 overlap-entry-other: "<name> (<player>)"
-active-limit-reached: "<prefix><red>Du hast schon <white><active>/<active-limit></white> aktive Chunkloader. <gray>Deaktiviere zuerst einen anderen."
+budget-exceeded: "<prefix><red><white><name></white> braucht <white><chunks></white> Chunks, frei sind nur <white><free></white> <gray>(Budget <used>/<budget>). Schalte einen anderen Loader aus oder verkleinere einen."
 place-limit: "<prefix><red>Du hast dein Limit von <white><limit></white> Chunkloadern erreicht."
 place-world-disabled: "<prefix><red>In dieser Welt sind keine Chunkloader erlaubt."
 break-denied: "<prefix><red>Chunkloader sind unzerstörbar. <gray>Rechtsklick auf den Block öffnet das Menü zum Löschen."
@@ -151,6 +153,7 @@ lock-details:
   - "Server: <tps> TPS, <mspt> ms pro Tick"
   - "Gemessen im ganzen Bereich des Loaders:"
 lock-details-metric: "- <metric>: <value> (Warnung <warn>, Sperre <lock>)"
+lock-details-pool: "- Alle aktiven Chunkloader von <player> zusammen (<chunks> Chunks): <percent> % der Sperrgrenze"
 pause-started: "<prefix><yellow>⏸ Der Server laggt <gray>(<white><tps></white> TPS)</gray> - alle Chunkloader sind pausiert.</yellow> <gray>Sie laden automatisch wieder, sobald der Server sich erholt hat (ab <resume> TPS)."
 pause-ended: "<prefix><green>▶ Der Server läuft wieder flüssig <gray>(<white><tps></white> TPS)</gray> - die Chunkloader laden wieder.</green> <dark_gray>(Pause: <time>)"
 pause-toggle-hint: "<prefix><yellow>⏸ Alle Chunkloader sind gerade pausiert, weil der Server laggt.</yellow> <gray>Er lädt automatisch, sobald der Server wieder flüssig läuft."
@@ -241,7 +244,7 @@ admin-usage: |-
   <green>/mrchunks unlock <spieler> <nr></green> <dark_gray>- <gray>Lag-Sperre aufheben
   <green>/mrchunks dummy <spieler> <nr></green> <dark_gray>- <gray>Dummy-Spieler an/aus
   <green>/mrchunks lag</green> <dark_gray>- <gray>Auffällige und gesperrte Chunkloader
-  <green>/mrchunks limit <spieler> <place|active|dummy> <anzahl|reset></green> <dark_gray>- <gray>Setzbare, gleichzeitig aktive Loader bzw. Dummies
+  <green>/mrchunks limit <spieler> <budget|dummy> <anzahl|reset></green> <dark_gray>- <gray>Chunk-Budget bzw. Dummies
   <green>/mrchunks ban <spieler> [dauer] [grund]</green> <dark_gray>- <gray>Sperren (löscht alle seine Loader)
   <green>/mrchunks unban <spieler></green> <dark_gray>- <gray>Sperre aufheben
   <green>/mrchunks bans</green> <dark_gray>- <gray>Alle Sperren
@@ -255,11 +258,10 @@ reloaded: "<prefix><green>Konfiguration neu geladen."
 limit-set: "<prefix><green><type> von <white><player></white> ist jetzt <white><limit></white>."
 limit-reset: "<prefix><green><type> von <white><player></white> zurückgesetzt <gray>(gilt jetzt: <limit>)."
 limit-notify: "<prefix><green>Dein <type> ist jetzt <white><limit></white>."
-limit-type-place: "Limit (setzbare Loader)"
-limit-type-active: "Aktiv-Limit (gleichzeitig aktive Loader)"
+limit-type-budget: "Chunk-Budget"
 limit-type-dummy: "Dummy-Limit (eingeschaltete Dummies)"
-active-limit-enforced: "<prefix><yellow><white><count></white> Chunkloader von <white><player></white> wurden deaktiviert, weil das neue Aktiv-Limit niedriger ist."
-active-limit-enforced-notify: "<prefix><yellow><white><count></white> deiner Chunkloader wurden deaktiviert, weil dein Aktiv-Limit gesenkt wurde."
+budget-enforced: "<prefix><yellow><white><count></white> Chunkloader von <white><player></white> wurden deaktiviert, weil das neue Budget niedriger ist."
+budget-enforced-notify: "<prefix><yellow><white><count></white> deiner Chunkloader wurden deaktiviert, weil dein Chunk-Budget gesenkt wurde."
 ban-set: "<prefix><green><white><player></white> ist gesperrt <dark_gray>(<duration>, Grund: <reason>)<green>. <white><count></white> Chunkloader gelöscht."
 ban-notify: "<prefix><red>Du wurdest für Chunkloader gesperrt <dark_gray>(<duration>, Grund: <reason>)<red>. Deine Chunkloader wurden gelöscht."
 unban-set: "<prefix><green>Sperre von <white><player></white> aufgehoben."
@@ -337,7 +339,7 @@ gui-loader-lore:
   - "<dark_gray>Nr. <number> · Owner: <gray><player>"
   - "<gray>Welt: <white><world>"
   - "<gray>Position: <white><x> <y> <z>"
-  - "<gray>Chunks: <white><size>x<size></white> <dark_gray>(Mitte <cx>, <cz>)"
+  - "<gray>Größe: <white><width>x<length></white> Chunks <dark_gray>(Block in Chunk <cx>, <cz>)"
   - "<gray>Status: <state>"
   - "<gray>Gesetzt: <white><created>"
 gui-loader-locked:
@@ -367,8 +369,8 @@ gui-toggle-off-lore:
   - "<gray>geladen gehalten. Der Block bleibt."
 gui-toggle-on-name: "<green>Aktivieren"
 gui-toggle-on-lore:
-  - "<gray>Hält die <white><size>x<size></white> Chunks"
-  - "<gray>wieder geladen."
+  - "<gray>Hält die <white><width>x<length></white> Chunks"
+  - "<gray>wieder geladen <dark_gray>(kostet <chunks> vom Budget)."
 gui-locked-name: "<red><bold>Gesperrt wegen Lag"
 gui-locked-lore:
   - "<gray>Seit <white><time></white>: <metric> <white><value></white>"
@@ -391,6 +393,7 @@ gui-activity-locked-unknown: "<gray>Aktivität: <white>noch keine neue Messung <
 gui-activity-measured: "<dark_gray>Gemessen vor <ago>, <loaded>/<total> Chunks geladen"
 gui-activity-stale: "<dark_gray>Bereich nicht geladen - für eine neue Messung in die Nähe gehen"
 gui-activity-partial: "<dark_gray>Nur ein Teil des Bereichs ist geladen - die Werte können niedriger sein"
+gui-activity-pool: "<dark_gray>Alle aktiven Loader des Owners (<chunks> Chunks) zusammen: <white><percent> %</white> der Warngrenze"
 gui-rename-name: "<aqua>Umbenennen"
 gui-rename-lore:
   - "<gray>Gib dem Chunkloader einen eigenen Namen."
@@ -577,8 +580,8 @@ gui-reload-name: "<aqua>Konfiguration neu laden"
 gui-player-name: "<white><player>"
 gui-player-lore:
   - "<gray>Gesetzt: <white><placed></white>/<white><limit></white>"
-  - "<gray>Aktiv: <white><active></white>/<white><active-limit></white>"
-  - "<gray>Limit: <limit-source>"
+  - "<gray>Aktiv: <white><active></white> <dark_gray>| <gray>Budget: <white><used>/<budget></white> Chunks"
+  - "<gray>Budget aus: <limit-source>"
   - "<gray>Status: <status>"
 # Zusammenfassung auf dem MRchunks-Knopf im Admin-Kompass von MRadmin. Platzhalter: <loaders> <active> <chunks> <bans>
 # Ticket in MRadmin, wenn ein Chunkloader wegen Lag gesperrt wird (Betreff) bzw. die Sperre aufgehoben wird (Notiz).
@@ -613,8 +616,7 @@ gui-banned: "<red>gesperrt, <duration> <dark_gray>(<reason>)"
 gui-limit-default: "<white>Standard"
 gui-limit-permission: "<white>Permission"
 gui-limit-custom: "<light_purple>individuell"
-gui-limit-name: "<light_purple>Setzbar: <white><limit></white> <gray>Loader"
-gui-active-limit-name: "<aqua>Gleichzeitig aktiv: <white><limit></white> <gray>Loader"
+gui-budget-name: "<light_purple>Budget: <white><limit></white> <gray>Chunks <dark_gray>(<used> genutzt)"
 gui-dummy-limit-name: "<light_purple>Dummies: <white><limit></white>"
 gui-player-dummies: "<gray>Dummies: <white><dummies></white>/<white><dummy-limit>"
 gui-player-linked-second: "<gray>Zweit-Account von <white><main>"
@@ -624,8 +626,8 @@ gui-unlink-lore:
   - "<gray>Löst die Verknüpfung von <white><player></white>."
   - "<gray>Die Chunkloader bleiben beim Haupt-Account."
 gui-limit-lore:
-  - "<gray>Linksklick: <white>+1"
-  - "<gray>Rechtsklick: <white>-1"
+  - "<gray>Linksklick: <white>+<step>"
+  - "<gray>Rechtsklick: <white>-<step>"
   - "<gray>Shift-Klick: <white>zurücksetzen"
 gui-ban-name: "<red>Sperren: <white><time>"
 gui-ban-lore:
@@ -636,3 +638,68 @@ gui-delete-all-name: "<red>Alle Chunkloader löschen"
 gui-delete-all-lore:
   - "<gray>Löscht alle <white><placed></white> Chunkloader"
   - "<gray>von <white><player></white> (ohne Sperre)."
+
+# --- Größe und Chunk-Budget -----------------------------------------------------
+# Platzhalter wie bei Chunkloadern (<name>, <width>, <length>, <chunks> ...), dazu <used> <budget> <free> (Budget des
+# Owners in Chunks), <max> (größte Kantenlänge), <cost> (was die Vergrößerung kostet), <reach> (Chunks in eine Richtung)
+gui-items-budget:
+  - "<gray>Budget: <white><used>/<budget></white> Chunks <dark_gray>| <gray>frei: <white><free>"
+gui-size-name: "<aqua>Größe: <white><width>x<length></white> <gray>Chunks"
+gui-size-lore:
+  - "<gray>Kostet <white><chunks></white> Chunks vom Budget,"
+  - "<gray>solange der Loader an ist."
+  - ""
+  - "<yellow>» Klicken zum Ändern"
+gui-size-view-lore:
+  - "<gray>Kostet <white><chunks></white> Chunks vom Budget,"
+  - "<gray>solange der Loader an ist."
+  - ""
+  - "<yellow>» Klicken zum Ansehen"
+gui-title-size: "<dark_gray>Größe » <dark_green><name>"
+gui-size-budget-name: "<green>Budget: <white><used>/<budget></white> <gray>Chunks"
+gui-size-budget-lore:
+  - "<gray>Noch frei: <white><free></white> Chunks"
+  - "<gray>Dieser Loader: <white><width>x<length></white> = <white><chunks></white> Chunks"
+  - "<dark_gray>Ausgeschaltete Loader kosten nichts."
+  - "<dark_gray>Höchstens <max>x<max> Chunks pro Loader."
+gui-size-north: "<green>⬆ Norden: <white><reach></white> <gray>Chunks"
+gui-size-south: "<green>⬇ Süden: <white><reach></white> <gray>Chunks"
+gui-size-west: "<green>⬅ Westen: <white><reach></white> <gray>Chunks"
+gui-size-east: "<green>➡ Osten: <white><reach></white> <gray>Chunks"
+gui-size-direction-lore:
+  - "<gray>So viele Chunks lädt der Loader in diese"
+  - "<gray>Richtung über seinen eigenen Chunk hinaus."
+  - ""
+  - "<yellow>Linksklick: <white>+1"
+  - "<yellow>Rechtsklick: <white>-1"
+gui-size-dummy-even: "<light_purple>Mit Dummy nur gleichmäßig (Mitte)"
+gui-size-all-name: "<aqua><width>x<length> <gray>Chunks <dark_gray>(<chunks>)"
+gui-size-all-lore:
+  - "<gray>Alle vier Richtungen auf einmal."
+  - ""
+  - "<yellow>Linksklick: <white>überall +1"
+  - "<yellow>Rechtsklick: <white>überall -1"
+gui-size-border-lore:
+  - "<gray>Zeigt den Rand im Spiel -"
+  - "<gray>er folgt jeder Änderung der Größe."
+resize-min: "<prefix><red>Kleiner geht nicht - in diese Richtung lädt <white><name></white> nur noch seinen eigenen Chunk."
+resize-max: "<prefix><red>Größer geht nicht - höchstens <white><max>x<max></white> Chunks pro Chunkloader."
+resize-dummy: "<prefix><red>Auf <white><name></white> sitzt ein Dummy: Die Größe geht nur gleichmäßig in alle Richtungen und bleibt mindestens 5x5. <gray>Schalte den Dummy aus, um frei zu ändern."
+resize-budget: "<prefix><red>Dafür reicht dein Chunk-Budget nicht: Die Vergrößerung kostet <white><cost></white> Chunks, frei sind <white><free></white> <gray>(<used>/<budget>). Schalte einen anderen Loader aus oder verkleinere einen."
+resize-overlap-own: "<prefix><red>So würde der Bereich deinen Chunkloader <white><name></white> überlappen - das ist auf diesem Server nicht erlaubt."
+resize-overlap: "<prefix><red>So würde der Bereich den Chunkloader <white><name></white> von <white><player></white> überlappen - das ist auf diesem Server nicht erlaubt."
+owner-notify-resized: "<prefix><gray>Dein Chunkloader <white><name></white> wurde von <white><admin></white> auf <white><width>x<length></white> Chunks geändert."
+dummy-needs-square: "<prefix><red>Ein Dummy geht nur bei einem quadratischen Chunkloader mit dem Block in der Mitte, mindestens 5x5 <gray>(<white><name></white> ist <width>x<length>). Ändere die Größe im Menü gleichmäßig."
+gui-dummy-square-lore:
+  - "<gray>Ein Dummy braucht einen <white>quadratischen</white>"
+  - "<gray>Loader mit dem Block in der Mitte,"
+  - "<gray>mindestens <white>5x5</white> - stell die Größe"
+  - "<gray>gleichmäßig ein."
+  - ""
+  - "<gray>Deine Dummies: <white><dummies>/<dummy-limit>"
+gui-dummy-square-waiting-lore:
+  - "<yellow>● Eingeschaltet, sitzt aber nicht: Der"
+  - "<yellow>  Loader muss quadratisch sein (Block in"
+  - "<yellow>  der Mitte) und mindestens 5x5 groß."
+  - ""
+  - "<gray>Deine Dummies: <white><dummies>/<dummy-limit>"

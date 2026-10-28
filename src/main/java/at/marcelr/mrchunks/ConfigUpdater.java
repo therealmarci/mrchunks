@@ -22,7 +22,7 @@ import java.util.logging.Level;
  */
 public final class ConfigUpdater {
 
-    public static final int CURRENT_VERSION = 11;
+    public static final int CURRENT_VERSION = 12;
     public static final String BOM = "\uFEFF";
     /** Texts whose content changed with new features; the new default replaces the old value. */
     private static final Set<String> REPLACED_KEYS = Set.of();
@@ -78,6 +78,17 @@ public final class ConfigUpdater {
                     template.set("server-language", old);
                 }
                 template.set("language", "auto");
+            }
+            // v12: chunk budget instead of fixed limits. Existing loaders keep their size (old radius = default-reach),
+            // nobody gets less: the budget is the old active limit in loaders of the old size, and the lag limits keep
+            // applying to the old area.
+            if (version < 12 && existing.contains("loaders.radius")) {
+                int radius = Math.clamp(existing.getInt("loaders.radius", 3), 0, 10);
+                int area = (2 * radius + 1) * (2 * radius + 1);
+                template.set("loaders.default-reach", radius);
+                template.set("loaders.max-reach", Math.max(radius, template.getInt("loaders.max-reach", 7)));
+                template.set("loaders.default-budget", Math.max(0, existing.getInt("loaders.default-active-limit", 3)) * area);
+                template.set("lag-protection.limits-per-chunks", area);
             }
             template.set("config-version", CURRENT_VERSION);
             // Keep long messages on one line instead of folding them.

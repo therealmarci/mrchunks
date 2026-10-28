@@ -16,7 +16,7 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 11
+config-version: 12
 
 # Language of the texts (chat, menus, items). The texts are in plugins/MRchunks/lang/<language>.yml.
 #   auto = every player gets the language set in their Minecraft client:
@@ -38,20 +38,24 @@ server-language: en
 #   1) CHUNK LOADERS
 # ------------------------------------------------------------------------------
 loaders:
-  # How many chunks in each direction around the loader stay loaded.
-  # 3 = 7x7 chunks (49 chunks), 2 = 5x5, 1 = 3x3.
-  radius: 3
+  # Chunk budget: how many chunks each player may keep loaded with all their ACTIVE chunk loaders together.
+  # Every player sets the size of their loaders themselves (loader menu -> Size), as rectangles. A loader costs its
+  # area while it is active (7x7 = 49, 3x3 = 9, 5x11 = 55) - so a few big or many small loaders, as the player likes.
+  # Switched-off loaders cost nothing. Chunks where loaders overlap count for every loader.
+  # 147 = three 7x7 loaders. More via the permission "mrchunks.budget.<number>" (e.g. mrchunks.budget.300),
+  # "mrchunks.budget.unlimited" or the admin command /mrchunks limit <player> budget <number>.
+  default-budget: 147
 
-  # How many chunk loaders each player may PLACE.
-  # More via the permission "mrchunks.limit.<number>" (e.g. mrchunks.limit.15)
-  # or the admin command /mrchunks limit <player> place <number>.
-  default-limit: 3
+  # Size of a new loader: how many chunks in each direction around the loader's own chunk.
+  # 3 = 7x7 chunks, 2 = 5x5, 1 = 3x3, 0 = only its own chunk. If the free budget is too small, the new loader gets
+  # the largest square that still fits; with no budget left at all it is placed switched off.
+  default-reach: 3
 
-  # How many of them may be ACTIVE AT THE SAME TIME (actually loading chunks).
-  # Further placed loaders stay switched off until another one is switched off.
-  # Example: default-limit 15 and default-active-limit 3 = place 15 loaders, use 3 of them at the same time.
-  # More via the permission "mrchunks.active.<number>" or /mrchunks limit <player> active <number>.
-  default-active-limit: 3
+  # Largest reach per direction a loader can be set to (7 = up to 15 chunks wide and long).
+  max-reach: 7
+
+  # How many chunk loaders each player may place (the same for everyone; switched-off ones count too).
+  max-loaders: 30
 
   # Worlds in which no chunk loaders can be placed (name, case does not matter).
   # Chunk loaders work in all dimensions (overworld, Nether, End).
@@ -86,7 +90,7 @@ loaders:
 # Invites: owners can invite other players to switch their chunk loaders on and off - for one loader
 # (loader menu -> Members) or for all of them (/chunkloader -> Members for all loaders).
 # Invited players may only switch on/off, not rename or delete. This counts towards nobody's limit,
-# the owner's active limit still applies. Invited players find the loaders under /chunkloader -> Shared with me.
+# the owner's budget still applies. Invited players find the loaders under /chunkloader -> Shared with me.
 invites:
   enabled: true
   # Choice of durations in the invite dialog ("permanent" = forever).
@@ -96,7 +100,7 @@ invites:
 
 # Linked accounts (e.g. a second account for AFK farming): under /chunkloader -> Linked accounts a player links
 # another account with their own, the other one has to agree (both have to be online).
-# Afterwards both share everything like a single player: the same chunk loaders, the limit (the one of the main
+# Afterwards both share everything like a single player: the same chunk loaders, the budget (the one of the main
 # account, i.e. the player who linked), invites and dummies. Chunk loaders the second account already had
 # go to the main account. A ban applies to all linked accounts.
 # Either of the two can remove the link at any time (the chunk loaders stay with the main account), and so can
@@ -121,6 +125,9 @@ linked-accounts:
 # The owner switches the dummy on in the chunk loader's menu. It sits on the block (visible, with the owner's
 # skin) as long as the loader is active. It is invulnerable, ignored by mobs, not in the tab list
 # and does not count towards the player count. For MRsleep, MRadmin and MRpvp it is not a player.
+# A dummy simulates a square around itself, so it only works on square loaders with the block in the middle and
+# at least 5x5 chunks (otherwise it would simulate chunks outside the loader). With a dummy on, the size can only
+# be changed evenly in all directions.
 #
 # WARNING: dummies cost a lot more performance than a chunk loader alone (mob spawning and mob AI like a
 # real player). Lag protection and server pause apply here too - if a loader is locked or paused, its
@@ -142,10 +149,13 @@ dummies:
 #   3) LAG PROTECTION
 # ------------------------------------------------------------------------------
 # MRchunks regularly measures what happens in the area of every active chunk loader (all chunks together).
-# If a value is above "warn", the loader counts as suspicious: admins see it in /mrchunks lag (and in
+# The limits grow with the size of the loaders, and all active loaders of a player share them: what counts is the
+# sum of all their loaders against the limits of all their chunks together. Splitting the same budget into many small
+# loaders therefore never allows more, and one busy small loader is fine while the player's other loaders are quiet.
+# If the sum is above "warn", the busiest loader counts as suspicious: admins see it in /mrchunks lag (and in
 # MRadmin's server status, if installed), plus a Discord log (at most once per hour).
-# If a value is above "lock" several times in a row, the loader is switched off and LOCKED: only admins can
-# lift the lock (loader menu or /mrchunks unlock <player> <nr>). The owner is informed.
+# If the sum is above "lock" several times in a row, the loader furthest over its share is switched off and LOCKED:
+# only admins can lift the lock (loader menu or /mrchunks unlock <player> <nr>). The owner is informed.
 # A value of 0 switches the respective measurement off (e.g. hoppers: { warn: 0, lock: 0 }).
 lag-protection:
   enabled: true
@@ -165,7 +175,9 @@ lag-protection:
   # 1 = as soon as "lock" is exceeded, 2 = from double the limit (e.g. 1600 entities with lock 800), 1.5 works too.
   # 0 = off, then it never locks without server lag.
   force-lock-multiplier: 2
-  # Limits for the whole area of a loader (default 7x7 chunks).
+  # The limits below apply to this many chunks (49 = one 7x7 loader) and are scaled to the actual area:
+  # a 3x3 loader (9 chunks) gets 9/49 of them, the 147 chunks of three 7x7 loaders three times as much.
+  limits-per-chunks: 49
   limits:
     # Entities (mobs, animals, minecarts, armour stands ... including items on the ground, without players)
     entities: { warn: 300, lock: 800 }
@@ -338,6 +350,9 @@ discord:
       enabled: true
       color: "#3498DB"
     loader-renamed:
+      enabled: true
+      color: "#1ABC9C"
+    loader-resized:
       enabled: true
       color: "#1ABC9C"
     loader-restored:
