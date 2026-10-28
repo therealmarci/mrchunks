@@ -101,7 +101,16 @@ final class SelfPage {
         }
         blocks.add(map(plugin, viewer, own));
 
-        List<SelfBlock> summary = List.of(new SelfBlock.Stats(List.of(stats.get(1), stats.get(2))));
+        // Start page tile: active loaders big, budget and placed loaders as bars ("a / b"), a ban as a warning line.
+        List<SelfBlock.Stat> tile = new ArrayList<>(List.of(stats.get(1), stats.get(2), stats.get(0)));
+        if (stats.size() > 3) {
+            tile.add(stats.get(3));
+        }
+        List<SelfBlock> summary = new ArrayList<>();
+        summary.add(new SelfBlock.Stats(tile));
+        if (ban != null) {
+            summary.add(new SelfBlock.Text(m.plain("self-banned-short"), "bad"));
+        }
         return new SelfArea(AREA, m.plain("self-title"), "🧱", summary, blocks);
     }
 
