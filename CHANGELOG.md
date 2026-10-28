@@ -20,6 +20,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 - **Budget im Menü:** `/chunkloader` zeigt beim Knopf **Chunkloader holen** das genutzte und freie Budget, das Admin-Menü zeigt es bei jedem Spieler und ändert es in 10er-Schritten.
 - **MRadmin-Weboberfläche:** Größe und Budget werden angezeigt, Admins mit `mrchunks.admin.resize` ändern die Größe direkt auf der Seite eines Loaders.
 - **Discord:** neues Ereignis `loader-resized`, wenn sich die Größe eines Loaders ändert.
+- **Zusammenarbeit mit MRadmin über die Modul-API 1.2.0:** MRchunks liefert seine Kachel auf der MRadmin-Startseite, die Push-Art „Gesperrte Chunkloader“, den Namen der Ticket-Kategorie, die geladenen Chunks für den Serverzustand und das Erkennen der Dummies jetzt selbst - MRadmin hat dafür nichts mehr fest eingebaut. Die Texte stehen in den Sprachdateien (`web-tile-*`, `web-push-locked*`, `report-lock-category`). Das Ticket bei einer Lag-Sperre nennt außerdem, wie das Team entsperrt (lang-version 14).
 
 ### Entfernt
 - **Setz- und Aktiv-Limit:** `loaders.radius`, `loaders.default-limit` und `loaders.default-active-limit` fallen weg. Stattdessen gelten `loaders.default-budget`, `loaders.default-reach`, `loaders.max-reach` und `loaders.max-loaders` (beim Update automatisch aus den alten Werten übernommen, config-version 12).

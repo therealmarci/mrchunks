@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Nicht ändern - damit erkennt das Plugin bei Updates, welche Texte erneuert werden müssen.
-lang-version: 13
+lang-version: 14
 
 # Texte der Discord-Logs (Markdown wie in Discord). Platzhalter: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. An/aus und Farbe stehen in der config.yml.
@@ -151,6 +151,7 @@ lock-details:
   - "Gesperrt: <time>"
   - "Grund: <metric> <value> (Sperrgrenze <limit>)"
   - "Server: <tps> TPS, <mspt> ms pro Tick"
+  - "Entsperren (Team): im Menü des Loaders oder mit /mrchunks unlock <player> <number>"
   - "Gemessen im ganzen Bereich des Loaders:"
 lock-details-metric: "- <metric>: <value> (Warnung <warn>, Sperre <lock>)"
 lock-details-pool: "- Alle aktiven Chunkloader von <player> zusammen (<chunks> Chunks): <percent> % der Sperrgrenze"
@@ -591,6 +592,20 @@ report-lock-lifted: "Die Sperre wurde von <admin> aufgehoben. Der Chunkloader is
 web-alert-paused: "Chunkloader pausiert - die Server-TPS liegt bei <tps>"
 web-alert-locked: "<count> Chunkloader wegen Lag gesperrt"
 web-alert-warn: "<count> Chunkloader über der Warnschwelle"
+# Kachel auf der Startseite der MRadmin-Weboberfläche (reiner Text). Platzhalter: <loaders> (alle), <active>
+web-tile-label: "Chunkloader"
+web-tile-unit: "/ <loaders> aktiv"
+web-tile-paused: "⏸ Pausiert"
+web-tile-locked: "🔒 Gesperrt"
+web-tile-warn: "! Auffällig"
+web-tile-chunks: "Geladene Chunks"
+web-tile-headline: "<active> Chunkloader aktiv"
+web-tile-link: "Zu den Chunkloadern"
+# Art der Push-Benachrichtigung in MRadmin (Name und Erklärung)
+web-push-locked: "Gesperrte Chunkloader"
+web-push-locked-hint: "MRchunks sperrt einen Chunkloader wegen Lag."
+# Ticket-Kategorie in MRadmin für Lag-Sperren
+report-lock-category: "Chunkloader-Sperre"
 mradmin-summary:
   - "<gray>Chunkloader: <white><loaders></white> <dark_gray>(<white><active></white> aktiv)"
   - "<gray>Geladene Chunks: <white><chunks>"

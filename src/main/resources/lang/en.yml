@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Do not change - tells the plugin which texts need to be renewed on updates.
-lang-version: 13
+lang-version: 14
 
 # Discord log texts (Discord markdown). Placeholders: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. On/off and colour are set in config.yml.
@@ -151,6 +151,7 @@ lock-details:
   - "Locked: <time>"
   - "Reason: <metric> <value> (lock limit <limit>)"
   - "Server: <tps> TPS, <mspt> ms per tick"
+  - "Unlocking (team): in the loader's menu or with /mrchunks unlock <player> <number>"
   - "Measured in the loader's whole area:"
 lock-details-metric: "- <metric>: <value> (warn <warn>, lock <lock>)"
 lock-details-pool: "- All active chunk loaders of <player> together (<chunks> chunks): <percent>% of the lock limit"
@@ -591,6 +592,20 @@ report-lock-lifted: "The lock was lifted by <admin>. The chunk loader is still o
 web-alert-paused: "Chunk loaders paused - the server TPS is at <tps>"
 web-alert-locked: "<count> chunk loader(s) locked because of lag"
 web-alert-warn: "<count> chunk loader(s) above the warning limit"
+# Tile on the start page of MRadmin's web interface (plain text). Placeholders: <loaders> (all), <active>
+web-tile-label: "Chunk loaders"
+web-tile-unit: "/ <loaders> active"
+web-tile-paused: "⏸ Paused"
+web-tile-locked: "🔒 Locked"
+web-tile-warn: "! Conspicuous"
+web-tile-chunks: "Loaded chunks"
+web-tile-headline: "<active> chunk loaders active"
+web-tile-link: "Go to the chunk loaders"
+# Kind of push notification in MRadmin (name and explanation)
+web-push-locked: "Locked chunk loaders"
+web-push-locked-hint: "MRchunks locks a chunk loader because of lag."
+# Ticket category in MRadmin for lag locks
+report-lock-category: "Chunk loader lock"
 mradmin-summary:
   - "<gray>Chunk loaders: <white><loaders></white> <dark_gray>(<white><active></white> active)"
   - "<gray>Loaded chunks: <white><chunks>"

@@ -6,6 +6,8 @@ import at.marcelr.mradmin.api.MRadminService;
 import at.marcelr.mradmin.api.Report;
 import at.marcelr.mradmin.api.WebAlert;
 import at.marcelr.mradmin.api.WebModule;
+import at.marcelr.mradmin.api.WebPushKind;
+import at.marcelr.mradmin.api.WebTile;
 import at.marcelr.mradmin.api.WebUser;
 import at.marcelr.mrchunks.Loader;
 import at.marcelr.mrchunks.LoaderManager;
@@ -52,6 +54,9 @@ final class MRadminModule implements AdminModule, WebModule {
     private static final String PAUSE_ID = "pause";
     /** Read-only requests of {@link WebData} (its actions go through {@link #action} / {@link #playerAction}). */
     private static final Set<String> DATA = Set.of("overview", "chunks", "loaders", "loader");
+    /** Ticket category of lag locks and the web push kind about them. */
+    private static final String LOCK_KIND = "chunkloader-lock";
+    private static final String PUSH_LOCKED = "chunks-locked";
 
     private final MRChunks plugin;
 
@@ -78,10 +83,10 @@ final class MRadminModule implements AdminModule, WebModule {
             return;
         }
         Location location = loader.location();
-        service.report(ID, new Report(String.valueOf(loader.id()), "chunkloader-lock", loader.owner(),
+        service.report(ID, new Report(String.valueOf(loader.id()), LOCK_KIND, loader.owner(),
                 LoaderManager.name(loader.owner()),
                 plugin.messages().server(() -> plugin.messages().plain("report-lock-subject", "name", Texts.name(plugin, loader))), details,
-                location == null ? null : location.add(0.5, 0, 0.5), "chunks-locked"));
+                location == null ? null : location.add(0.5, 0, 0.5), PUSH_LOCKED));
     }
 
     /** The lock was lifted: a note in the owner's ticket. */
@@ -305,6 +310,59 @@ final class MRadminModule implements AdminModule, WebModule {
         all.put("admin", user.name());
         Object error = WebData.handle(plugin, "playerAction", all);
         return error == null ? null : String.valueOf(error);
+    }
+
+    // ------------------------------------------- since MRadmin API 3 (1.2.0)
+    // An older MRadmin never calls these - its interfaces do not have them.
+
+    /** Dummy players are no real players for MRadmin (lists, counts, maintenance kicks). */
+    @Override
+    public boolean isNpc(Player player) {
+        return at.marcelr.mrchunks.dummy.Dummies.isDummy(player);
+    }
+
+    /** Chunks the loaders keep loaded, for MRadmin's server health. */
+    @Override
+    public int loadedChunks() {
+        return plugin.loaders().loadedChunkCount();
+    }
+
+    /** Start page tile: active loaders, server pause, locks, conspicuous loaders, loaded chunks. */
+    @Override
+    public @Nullable WebTile tile() {
+        var messages = plugin.messages();
+        var all = plugin.loaders().all();
+        long active = all.stream().filter(Loader::active).count();
+        int locked = plugin.loaders().lagLocks().size();
+        long warn = all.stream().filter(l -> LoaderStatus.of(plugin, l) == LoaderStatus.WARN).count();
+        boolean paused = plugin.loaders().paused();
+        return messages.server(() -> {
+            List<WebTile.Fact> facts = new ArrayList<>();
+            if (paused) {
+                facts.add(new WebTile.Fact(messages.plain("web-tile-paused"), "", "info"));
+            }
+            facts.add(new WebTile.Fact(messages.plain("web-tile-locked"), String.valueOf(locked), locked > 0 ? "bad" : ""));
+            facts.add(new WebTile.Fact(messages.plain("web-tile-warn"), String.valueOf(warn), warn > 0 ? "warn" : ""));
+            facts.add(new WebTile.Fact(messages.plain("web-tile-chunks"), String.valueOf(plugin.loaders().loadedChunkCount()), ""));
+            return new WebTile(messages.plain("web-tile-label"), String.valueOf(active),
+                    messages.plain("web-tile-unit", "loaders", String.valueOf(all.size())),
+                    paused ? "info" : locked > 0 ? "bad" : warn > 0 ? "warn" : "good", facts,
+                    messages.plain("web-tile-headline", "active", String.valueOf(active)), "/chunks",
+                    messages.plain("web-tile-link"));
+        });
+    }
+
+    @Override
+    public List<WebPushKind> pushKinds() {
+        var messages = plugin.messages();
+        return List.of(messages.server(() -> new WebPushKind(PUSH_LOCKED, messages.plain("web-push-locked"),
+                messages.plain("web-push-locked-hint"), "🔒", true)));
+    }
+
+    @Override
+    public Map<String, String> reportCategories() {
+        var messages = plugin.messages();
+        return Map.of(LOCK_KIND, messages.server(() -> messages.plain("report-lock-category")));
     }
 
     /** Server pause, locked loaders, loaders over the warning limit. */

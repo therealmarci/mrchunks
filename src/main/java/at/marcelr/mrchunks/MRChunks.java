@@ -25,7 +25,7 @@ public final class MRChunks extends JavaPlugin {
     private FileConfiguration config;
     private Settings settings;
     /** lang-version 2: version display with MC version; 3: loaders by name/number; 4: squaremap.address; 5: merged admin commands; 6: shorter window titles; 7: lag protection (admin usage); 8: /chunkloader is only the menu (invite notice); 9: get/return as two buttons; 11: dummies and linked accounts (admin usage). */
-    private final Messages messages = new Messages(13, Map.ofEntries(
+    private final Messages messages = new Messages(14, Map.ofEntries(
             Map.entry(2, Set.of("version", "gui-info-name")),
             Map.entry(3, Set.of("discord.loader-placed", "discord.loader-deleted", "discord.loader-toggled",
                     "discord.loader-restored", "discord.loader-removed-missing", "discord.admin-delete",
@@ -46,7 +46,9 @@ public final class MRChunks extends JavaPlugin {
             Map.entry(12, Set.of("version-links")),
             // 13: chunk budget and loader sizes (width x length instead of size x size, budget instead of active limit).
             Map.entry(13, Set.of("item-lore", "map-click-tooltip", "placed", "placed-inactive", "admin-usage",
-                    "gui-loader-lore", "gui-toggle-on-lore", "gui-player-lore", "gui-limit-lore"))));
+                    "gui-loader-lore", "gui-toggle-on-lore", "gui-player-lore", "gui-limit-lore")),
+            // 14: how the team unlocks, in the ticket MRadmin opens for a lag lock.
+            Map.entry(14, Set.of("lock-details"))));
     private final DiscordWebhook discord = new DiscordWebhook(this);
     private final AdminActions adminActions = new AdminActions(this);
     private LoaderManager loaders;
