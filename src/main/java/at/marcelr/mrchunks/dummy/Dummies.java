@@ -281,6 +281,7 @@ public final class Dummies implements Listener {
         }
         Entity seat = plugin.settings().dummies().seat() ? seat(world, x, y, z, player) : null;
         spawned.put(loader.id(), new Spawned(player, owner, seat));
+        plugin.maps().refreshSoon(); // dummy icon on the web map
         plugin.getLogger().info("Dummy " + name + " sits on " + Texts.consoleName(plugin, loader) + ".");
     }
 
@@ -356,6 +357,9 @@ public final class Dummies implements Listener {
         } finally {
             internal = false;
             ids.remove(s.player().getUniqueId());
+            if (!shuttingDown) {
+                plugin.maps().refreshSoon();
+            }
         }
     }
 

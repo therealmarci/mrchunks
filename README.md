@@ -290,7 +290,7 @@ Alles steht in `plugins/MRchunks/config.yml`. Jede Option ist in der Datei komme
 | `dummies` | an/aus (Standard aus), Limit, Skin, sitzend |
 | `lag-protection` · `server-pause` | Mess- und Sperrgrenzen, TPS-Schwellen |
 | `item` · `border` | Aussehen des Loaders und der Grenze, `item.block-choices`: Blöcke, die Spieler für ihre Loader wählen dürfen (leere Liste `[]` = keine Auswahl) |
-| `squaremap` | Adresse der Webkarte, Farben, Raster |
+| `squaremap` | Adresse der Webkarte, Farben (auch nach Status), getrennte Ebenen, Dummy-Symbol, Raster |
 | `discord` · `update-checker` · `gui` | Logs, Update-Hinweise, Menüs |
 
 **Überschneidende Loader** (`loaders.overlap`): `allow` erlaubt einfach, `warn` (Standard) erlaubt mit Hinweis und zeigt die Grenze, `deny-own` verbietet Überschneidungen mit eigenen Loadern, `deny-all` mit allen - beim Setzen und beim Vergrößern. Jeder Chunk wird ohnehin nur **einmal** geladen gehalten, im Budget zählt er aber für jeden Loader.
@@ -319,7 +319,12 @@ MRchunks zeigt alle Chunkloader auf **[squaremap](https://modrinth.com/plugin/sq
    ```
 3. **Adresse festlegen** (`squaremap.address`), damit Spieler über den Knopf **Webkarte** einen funktionierenden Link bekommen. Leer lassen = MRchunks ermittelt sie selbst (`http://<server-ip>:8080/`). Port 8080 muss dann beim Hoster freigegeben sein.
 
-Auf der Karte gibt es zwei Ebenen, die jeder Besucher oben links ein- und ausschaltet: **Chunkloader** (Bereiche in einer Farbe pro Owner, ausgeschaltete grau, Infos beim Anklicken) und **Chunkraster** (Chunk-Linien, Regionsgrenzen, Koordinaten).
+Auf der Karte gibt es Ebenen, die jeder Besucher oben links ein- und ausschaltet:
+- **Chunkloader** (aktive Loader in einer Farbe pro Owner), **Chunkloader (aus)** (grau) und **Chunkloader (gesperrt)** (rot) - mit `squaremap.split-layers: false` alles in einer Ebene. Gesperrte Loader sind immer zu sehen.
+- **Farbe nach Status** (`squaremap.status-colors`): gesperrte Loader rot, auffällige (über einer Warngrenze) orange, während einer Server-Pause orange-gelb. Farben unter `locked-color`, `warn-color`, `paused-color`.
+- **Beim Anklicken:** Owner, Position, Größe und Kosten im Budget, Status - bei gesperrten und auffälligen Loadern mit Grund (z.B. „gesperrt (Entities 900, Grenze 800)“) - und ob ein Dummy sitzt. Text in den Sprachdateien (`map-click-tooltip`, `map-tooltip-*`).
+- **Dummy-Symbol:** Sitzt ein Dummy auf dem Loader, zeigt die Karte eine kleine Figur statt des Loader-Symbols (`squaremap.show-dummy-icon`).
+- **Chunkraster** (Chunk-Linien, Regionsgrenzen, Koordinaten).
 
 <details>
 <summary>Eigene Domain, Reverse Proxy (nginx, Caddy, Cloudflare Tunnel)</summary>

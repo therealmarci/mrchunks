@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Do not change - tells the plugin which texts need to be renewed on updates.
-lang-version: 14
+lang-version: 15
 
 # Discord log texts (Discord markdown). Placeholders: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. On/off and colour are set in config.yml.
@@ -57,9 +57,17 @@ map-dimension-nether: "Nether"
 map-dimension-end: "End"
 # Name of the layer in the map's layer selection.
 map-layer-name: "Chunk Loaders"
-# Texts on the map (HTML allowed). Placeholders: {name} {number} {player} {world} {x} {y} {z} {width} {length} {chunks} {state}
+# More layers with squaremap.split-layers: true (the active loaders are in map-layer-name)
+map-layer-inactive: "Chunk Loaders (off)"
+map-layer-locked: "Chunk Loaders (locked)"
+# Texts on the map (HTML allowed). Placeholders: {name} {number} {player} {world} {x} {y} {z} {width} {length} {chunks}
+# {state} (active/off/paused), {status} (like {state}, with the reason for locked and conspicuous loaders), {dummy}
 map-hover-tooltip: "{name} - {player}"
-map-click-tooltip: "<b>{name}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br>Area: {width}x{length} chunks<br>Status: {state}"
+map-click-tooltip: "<b>{name}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br>Size: {width}x{length} chunks ({chunks} of the budget)<br>Status: {status}{dummy}"
+# Status with reason (placeholders {metric} {value} {limit}) and the addition for a sitting dummy
+map-tooltip-locked: "<span style=\"color:#E74C3C\">locked</span> ({metric} {value}, limit {limit})"
+map-tooltip-warn: "<span style=\"color:#E67E22\">conspicuous</span> ({metric} {value}, warn limit {limit})"
+map-tooltip-dummy: "<br>A dummy sits on the loader"
 # Name of the chunk grid in the map's layer menu.
 map-grid-label: "Chunk Grid"
 

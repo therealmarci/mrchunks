@@ -113,7 +113,18 @@ public record Settings(
                                     String endName, boolean hidePlayers, String layerName, boolean defaultHidden, boolean showInactive,
                                     java.awt.Color color, java.awt.Color inactiveColor, java.awt.Color pausedColor, double fillOpacity,
                                     boolean showIcon, String hoverTooltip, String clickTooltip, int updateSeconds,
-                                    String address, boolean reverseProxy, boolean detectPublicIp, GridSettings grid) {
+                                    String address, boolean reverseProxy, boolean detectPublicIp, GridSettings grid,
+                                    StatusSettings status) {
+    }
+
+    /**
+     * Extras of the chunk loader layer: own colours for locked and conspicuous loaders ({@code colors}), one layer
+     * each for active, switched-off and locked loaders ({@code splitLayers}, names from the language file), a dummy
+     * icon on loaders with a dummy, and the texts of the click tooltip for these states.
+     */
+    public record StatusSettings(boolean colors, java.awt.Color lockedColor, java.awt.Color warnColor,
+                                 boolean splitLayers, String inactiveLayerName, String lockedLayerName,
+                                 boolean dummyIcon, String tooltipLocked, String tooltipWarn, String tooltipDummy) {
     }
 
     public record GridSettings(boolean enabled, boolean defaultVisible, String color, double opacity,
@@ -214,7 +225,18 @@ public record Settings(
                         c.getBoolean("squaremap.chunk-grid.region-lines", true),
                         hexColor(c.getString("squaremap.chunk-grid.region-color", "#FFD54F"), "#FFD54F"),
                         c.getBoolean("squaremap.chunk-grid.labels", true),
-                        texts.optional("map-grid-label")));
+                        texts.optional("map-grid-label")),
+                new StatusSettings(
+                        c.getBoolean("squaremap.status-colors", true),
+                        parseColor(c.getString("squaremap.locked-color", "#E74C3C"), "squaremap.locked-color", log),
+                        parseColor(c.getString("squaremap.warn-color", "#E67E22"), "squaremap.warn-color", log),
+                        c.getBoolean("squaremap.split-layers", true),
+                        texts.optional("map-layer-inactive"),
+                        texts.optional("map-layer-locked"),
+                        c.getBoolean("squaremap.show-dummy-icon", true),
+                        texts.optional("map-tooltip-locked"),
+                        texts.optional("map-tooltip-warn"),
+                        texts.optional("map-tooltip-dummy")));
 
         String source = c.getString("update-checker.source", "github").toLowerCase(Locale.ROOT);
         if (!source.equals("modrinth") && !source.equals("github")) {

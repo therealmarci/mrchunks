@@ -78,6 +78,8 @@ public final class LagMonitor implements Listener {
     /** loader id -> samples judged since an admin lifted its lock (cooldown, removed after lock-after-samples) */
     private final Map<Integer, Integer> sinceUnlock = new HashMap<>();
     private final Map<Integer, Long> lastWarn = new HashMap<>();
+    /** Loader ids that were conspicuous at the last sample (the web map is redrawn when they change). */
+    private java.util.Set<Integer> lastConspicuous = java.util.Set.of();
 
     public LagMonitor(MRChunks plugin) {
         this.plugin = plugin;
@@ -275,6 +277,17 @@ public final class LagMonitor implements Listener {
             judge(owner, owned, pool, serverLags, now);
         });
         activity.keySet().removeIf(id -> loaders().byId(id) == null);
+        // The web map colours conspicuous loaders: redraw it when that changed.
+        java.util.Set<Integer> conspicuousNow = new java.util.HashSet<>();
+        for (Loader loader : loaders().all()) {
+            if (conspicuous(loader)) {
+                conspicuousNow.add(loader.id());
+            }
+        }
+        if (!conspicuousNow.equals(lastConspicuous)) {
+            lastConspicuous = conspicuousNow;
+            plugin.maps().refreshSoon();
+        }
         counts.clear();
         windowStart = now;
         rebuildIndex();

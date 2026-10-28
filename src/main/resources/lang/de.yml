@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Nicht ändern - damit erkennt das Plugin bei Updates, welche Texte erneuert werden müssen.
-lang-version: 14
+lang-version: 15
 
 # Texte der Discord-Logs (Markdown wie in Discord). Platzhalter: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. An/aus und Farbe stehen in der config.yml.
@@ -57,9 +57,17 @@ map-dimension-nether: "Nether"
 map-dimension-end: "End"
 # Name der Ebene in der Ebenen-Auswahl der Karte.
 map-layer-name: "Chunkloader"
-# Texte auf der Karte (HTML erlaubt). Platzhalter: {name} {number} {player} {world} {x} {y} {z} {width} {length} {chunks} {state}
+# Weitere Ebenen mit squaremap.split-layers: true (die aktiven Loader stehen in map-layer-name)
+map-layer-inactive: "Chunkloader (aus)"
+map-layer-locked: "Chunkloader (gesperrt)"
+# Texte auf der Karte (HTML erlaubt). Platzhalter: {name} {number} {player} {world} {x} {y} {z} {width} {length} {chunks}
+# {state} (aktiv/aus/pausiert), {status} (wie {state}, bei gesperrten und auffälligen Loadern mit Grund), {dummy}
 map-hover-tooltip: "{name} - {player}"
-map-click-tooltip: "<b>{name}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br>Bereich: {width}x{length} Chunks<br>Status: {state}"
+map-click-tooltip: "<b>{name}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br>Größe: {width}x{length} Chunks ({chunks} im Budget)<br>Status: {status}{dummy}"
+# Status mit Grund (Platzhalter {metric} {value} {limit}) und der Zusatz für einen sitzenden Dummy
+map-tooltip-locked: "<span style=\"color:#E74C3C\">gesperrt</span> ({metric} {value}, Grenze {limit})"
+map-tooltip-warn: "<span style=\"color:#E67E22\">auffällig</span> ({metric} {value}, Warngrenze {limit})"
+map-tooltip-dummy: "<br>Dummy sitzt auf dem Loader"
 # Name des Chunkrasters im Ebenen-Menü der Karte.
 map-grid-label: "Chunkraster"
 
