@@ -9,6 +9,8 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+## [0.8.0] - 2026-10-28
+
 > [!WARNING]
 > **Neue Permission-Gruppen:** Das Paket `mrchunks.admin` gibt es nicht mehr. Stattdessen gibt es in allen MRtechnology-Plugins dieselben Gruppen `<plugin>.player` und `<plugin>.groups.support|staff|admin`. Bitte die LuckPerms-Gruppen umstellen, z.B. `/lp group admin permission unset mrchunks.admin` und `/lp group admin permission set mrchunks.groups.admin true`.
 
