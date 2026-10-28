@@ -204,7 +204,7 @@ final class SelfPage {
         return stats;
     }
 
-    /** On the card: how close the busiest value is to the warning (100 % = warning), the bar up to the lock. */
+    /** On the card: the busiest value as a share of its lock limit (100 % = locked), the warning marked on the bar. */
     private static List<SelfBlock.Meter> load(MRChunks plugin, Loader loader) {
         Activity a = plugin.settings().lag().enabled() ? plugin.lag().activity(loader) : null;
         if (a == null || !loader.active()) {
@@ -218,10 +218,12 @@ final class SelfPage {
         if (warn <= 0 && lock <= 0) {
             return List.of();
         }
+        // One scale for text and bar: share of the lock limit (100 % = locked), the line marks the warning.
         double full = lock > 0 ? lock : warn;
+        double share = value / full;
         return List.of(new SelfBlock.Meter(plugin.messages().plain("self-load"),
-                plugin.messages().plain("self-load-value", "percent", Math.round(a.warnRatio() * 100)),
-                value / full, lock > 0 && warn > 0 ? warn / lock : -1, "", meterTone(value, warn, lock)));
+                plugin.messages().plain("self-load-value", "percent", Math.round(share * 100)),
+                share, lock > 0 && warn > 0 ? warn / lock : -1, "", meterTone(value, warn, lock)));
     }
 
     /** Opened card: every measured value against its warning and lock limit, like the team sees it in MRadmin. */
@@ -244,7 +246,8 @@ final class SelfPage {
             }
             double value = a.value(metric);
             double full = lock > 0 ? lock : warn;
-            meters.add(new SelfBlock.Meter(m.plain("lag-metric-" + metric.key()), LagMonitor.format(value),
+            // "12.4 / 40": the value against the limit the bar runs up to.
+            meters.add(new SelfBlock.Meter(m.plain("lag-metric-" + metric.key()), LagMonitor.format(value) + " / " + LagMonitor.format(full),
                     value / full, lock > 0 && warn > 0 ? warn / lock : -1,
                     m.plain("self-limits-hint", "warn", LagMonitor.format(warn), "lock", LagMonitor.format(lock)),
                     meterTone(value, warn, lock)));
@@ -259,7 +262,7 @@ final class SelfPage {
     }
 
     private static String meterTone(double value, double warn, double lock) {
-        return lock > 0 && value >= lock ? "bad" : warn > 0 && value >= warn ? "warn" : "";
+        return lock > 0 && value >= lock ? "bad" : warn > 0 && value >= warn ? "warn" : "good";
     }
 
     /** squaremap centred on the loader (?world=...&zoom=...&x=...&z=...). */
