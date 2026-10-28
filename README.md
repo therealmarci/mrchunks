@@ -105,7 +105,7 @@ Hast du einen Zweit-Account (z.B. zum AFK-Farmen), verknüpf ihn mit deinem Haup
 - Erlaubt ist standardmäßig ein Zweit-Account (`linked-accounts.max-accounts`). Eine Sperre gilt für alle verknüpften Accounts.
 
 ### Im Browser (mit MRadmin)
-Ist MRadmin installiert und die Spielerseite eingeschaltet, gibt `/web` im Spiel einen Link zu deiner eigenen Seite. Dort siehst du unter **Chunkloader** dein Budget, alle deine Loader mit Status und Größe und eine Karte. Du kannst sie ein- und ausschalten, umbenennen, Dummies schalten, löschen und Mitspieler einladen oder wieder entfernen - nur die **Größe** änderst du im Spiel. Die Seite kannst du als Lesezeichen speichern.
+Ist MRadmin installiert und die Spielerseite eingeschaltet, gibt `/web` im Spiel einen Link zu deiner eigenen Seite. Unter **Chunkloader** siehst du oben dein Budget und Warnungen (z.B. Lag-Sperre), darunter jeden Loader als Karte mit Status, Größe und Auslastung - mit einem Knopf zum Ein- und Ausschalten. Ein Klick auf eine Karte zeigt die Grenzwerte des Lag-Schutzes (Warnung und Sperre), eine Live-Karte rund um den Loader (mit squaremap) und die Knöpfe zum Umbenennen, für den Dummy und zum Löschen. Darunter verwaltest du deine Mitglieder und lädst Spieler per Formular ein (für einen oder alle Loader, mit Dauer aus `invites.durations`). Nur die **Größe** änderst du im Spiel. Braucht MRadmin ab der Version mit Modul-API 5.
 
 ### Dummy-Spieler
 Ein Chunkloader hält Chunks geladen - für den Server steht dort aber **kein Spieler**. Mobs sind deshalb fast inaktiv, und es spawnt nichts. Ein **Dummy** ist ein künstlicher Spieler, der auf dem Loader sitzt und als Spieler in der Nähe zählt.

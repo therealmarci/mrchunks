@@ -1,5 +1,6 @@
 package at.marcelr.mrchunks.api;
 
+import at.marcelr.mradmin.api.MRadminService;
 import at.marcelr.mradmin.api.SelfArea;
 import at.marcelr.mradmin.api.SelfBlock;
 import at.marcelr.mradmin.api.SelfViewer;
@@ -8,11 +9,17 @@ import at.marcelr.mrchunks.LoaderManager;
 import at.marcelr.mrchunks.LoaderStatus;
 import at.marcelr.mrchunks.MRChunks;
 import at.marcelr.mrchunks.Messages;
-import at.marcelr.mrchunks.Settings;
 import at.marcelr.mrchunks.Texts;
 import at.marcelr.mrchunks.dummy.Dummies;
+import at.marcelr.mrchunks.lag.Activity;
+import at.marcelr.mrchunks.lag.LagLimits;
+import at.marcelr.mrchunks.lag.LagLock;
+import at.marcelr.mrchunks.lag.LagMonitor;
+import at.marcelr.mrchunks.lag.Metric;
+import at.marcelr.mrchunks.util.DurationUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -22,10 +29,12 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * MRchunks on the player's own page in MRadmin's web interface (/web): their loaders with status, budget and a map,
- * switching on and off, renaming, dummies, deleting and invites - everything they may do in game except changing the
- * size. Loaders shared with them can be switched on and off. Every action checks ownership, permissions and the same
- * rules as in game again. Only loaded while MRadmin runs (like {@link MRadminModule}).
+ * MRchunks on the player's own page in MRadmin's web interface (/web): every loader as a card (status, size, how busy
+ * it is) that opens with its limits, a live map around it and its buttons - switching on and off, renaming, dummies,
+ * deleting; the invited players and a form to invite more; loaders shared with the player; the live map (squaremap).
+ * Everything they may do in game except changing the size. Every action checks ownership, permissions and the same
+ * rules as in game again. Needs MRadmin with API 5 (cards, bars, forms); with an older MRadmin the area is left out.
+ * Only loaded while MRadmin runs (like {@link MRadminModule}).
  */
 final class SelfPage {
 
@@ -35,11 +44,8 @@ final class SelfPage {
     private static final String MAP = "mrchunks.map";
     private static final String EXEMPT = "mrchunks.exempt";
     static final Set<String> PERMISSIONS = Set.of(USE, INVITE, MAP, EXEMPT);
-
-    private static final String LOCKED_COLOR = "#E74C3C";
-    private static final String WARN_COLOR = "#E67E22";
-    private static final String OFF_COLOR = "#8A958E";
-    private static final String ON_COLOR = "#2ECC71";
+    /** Cards, Meters, People, Form and Embed came with MRadmin's API 5. */
+    private static final int NEEDED_API = 5;
 
     private SelfPage() {
     }
@@ -51,7 +57,8 @@ final class SelfPage {
     // ---------------------------------------------------------------- page
 
     static List<SelfArea> areas(MRChunks plugin, SelfViewer viewer) {
-        if (!allowed(viewer)) {
+        MRadminService service = MRadminService.get();
+        if (!allowed(viewer) || service == null || service.apiVersion() < NEEDED_API) {
             return List.of();
         }
         return plugin.messages().in(viewer.lang(), () -> List.of(area(plugin, viewer)));
@@ -66,51 +73,26 @@ final class SelfPage {
         long active = own.stream().filter(Loader::active).count();
         LoaderManager.Limit budget = loaders.budget(player);
         long free = loaders.freeBudget(player);
+        LoaderManager.Ban ban = loaders.groupBan(viewer.player());
+        String mapUrl = viewer.has(MAP) ? plugin.maps().mapUrl() : "";
 
+        // Head of the page and tile on the start page: active loaders big, budget and placed loaders as bars
+        // ("a / b"); a ban, lag locks, loaders near the lag limit and an exceeded budget as warning lines (MRadmin also
+        // shows them in the slideshow).
         List<SelfBlock.Stat> stats = new ArrayList<>();
-        stats.add(new SelfBlock.Stat(m.plain("self-loaders"), own.size() + " / " + loaders.maxLoaders(), ""));
         stats.add(new SelfBlock.Stat(m.plain("self-active"), String.valueOf(active), active > 0 ? "good" : ""));
         stats.add(new SelfBlock.Stat(m.plain("self-budget"), m.plain("self-budget-value", "used", loaders.usedBudget(owner),
                 "budget", Texts.limit(budget)), free <= 0 && budget.value() != Integer.MAX_VALUE ? "warn" : ""));
+        stats.add(new SelfBlock.Stat(m.plain("self-loaders"), own.size() + " / " + loaders.maxLoaders(), ""));
         if (plugin.dummies().enabled()) {
             stats.add(new SelfBlock.Stat(m.plain("self-dummies"), loaders.dummyCount(owner) + " / "
                     + Texts.limit(loaders.limit(player, LoaderManager.LimitKind.DUMMY)), ""));
         }
-        List<SelfBlock> blocks = new ArrayList<>();
-        LoaderManager.Ban ban = loaders.groupBan(viewer.player());
-        if (ban != null) {
-            blocks.add(new SelfBlock.Text(m.plain("self-banned", "duration", Texts.banDuration(plugin, ban),
-                    "reason", ban.reason()), "bad"));
-        }
-        blocks.add(new SelfBlock.Stats(stats));
-        blocks.add(loaderTable(plugin, viewer, own, ban == null));
-        blocks.add(new SelfBlock.Text(m.plain("self-size-hint"), "info"));
-        if (plugin.settings().invites().enabled() && viewer.has(INVITE) && ban == null) {
-            blocks.add(memberTable(plugin, owner, own));
-            List<SelfBlock.Button> invite = new ArrayList<>();
-            for (long duration : plugin.settings().invites().durations()) {
-                invite.add(new SelfBlock.Button(m.plain("self-invite-all", "duration", Texts.duration(plugin, duration)),
-                        "invite", Map.of("duration", String.valueOf(duration)), "", null,
-                        new SelfBlock.Input(m.plain("self-invite-label"), "", 16)));
-            }
-            blocks.add(new SelfBlock.Buttons(invite));
-        }
-        List<Loader> shared = loaders.sharedWith(viewer.player());
-        if (!shared.isEmpty()) {
-            blocks.add(sharedTable(plugin, shared));
-        }
-        blocks.add(map(plugin, viewer, own));
-
-        // Start page tile: active loaders big, budget and placed loaders as bars ("a / b"); a ban, lag locks, loaders near
-        // the lag limit and an exceeded budget as warning lines (MRadmin also shows them in the slideshow).
-        List<SelfBlock.Stat> tile = new ArrayList<>(List.of(stats.get(1), stats.get(2), stats.get(0)));
-        if (stats.size() > 3) {
-            tile.add(stats.get(3));
-        }
         List<SelfBlock> summary = new ArrayList<>();
-        summary.add(new SelfBlock.Stats(tile));
+        summary.add(new SelfBlock.Stats(stats));
         if (ban != null) {
-            summary.add(new SelfBlock.Text(m.plain("self-banned-short"), "bad"));
+            summary.add(new SelfBlock.Text(m.plain("self-banned", "duration", Texts.banDuration(plugin, ban),
+                    "reason", ban.reason()), "bad"));
         }
         long locked = own.stream().filter(loaders::lagLocked).count();
         if (locked > 0) {
@@ -124,97 +106,213 @@ final class SelfPage {
             summary.add(new SelfBlock.Text(m.plain("self-notice-budget", "used", loaders.usedBudget(owner),
                     "budget", Texts.limit(budget)), "warn"));
         }
+
+        List<SelfBlock> blocks = new ArrayList<>();
+        List<SelfBlock.Card> cards = new ArrayList<>();
+        for (Loader loader : own) {
+            cards.add(card(plugin, viewer, loader, ban == null, mapUrl));
+        }
+        blocks.add(new SelfBlock.Cards(m.plain("self-table"), cards, m.plain("self-empty")));
+
+        List<Loader> shared = loaders.sharedWith(viewer.player());
+        if (!shared.isEmpty()) {
+            List<SelfBlock.Card> sharedCards = new ArrayList<>();
+            for (Loader loader : shared) {
+                sharedCards.add(sharedCard(plugin, loader, ban == null, mapUrl));
+            }
+            blocks.add(new SelfBlock.Cards(m.plain("self-shared"), sharedCards, ""));
+        }
+        if (plugin.settings().invites().enabled() && viewer.has(INVITE) && ban == null) {
+            blocks.add(members(plugin, owner, own));
+            blocks.add(inviteForm(plugin, own));
+        }
+        if (!mapUrl.isEmpty()) {
+            blocks.add(new SelfBlock.Embed(m.plain("self-map"), mapUrl, 520, m.plain("self-map-open")));
+        }
         return new SelfArea(AREA, m.plain("self-title"), "🧱", summary, blocks);
     }
 
-    private static SelfBlock.Table loaderTable(MRChunks plugin, SelfViewer viewer, List<Loader> own, boolean actions) {
+    /** One own loader: status, size, how busy; opened: limits, live map around it, all buttons. */
+    private static SelfBlock.Card card(MRChunks plugin, SelfViewer viewer, Loader loader, boolean actions, String mapUrl) {
         Messages m = plugin.messages();
-        List<SelfBlock.Row> rows = new ArrayList<>();
-        for (Loader loader : own) {
-            LoaderStatus status = LoaderStatus.of(plugin, loader);
-            String id = String.valueOf(loader.id());
-            List<SelfBlock.Button> buttons = new ArrayList<>();
-            if (actions) {
-                if (status != LoaderStatus.LOCKED) {
-                    buttons.add(new SelfBlock.Button(m.plain(loader.active() ? "self-off" : "self-on"), "toggle",
-                            Map.of("id", id), loader.active() ? "" : "good", null, null));
-                }
-                buttons.add(new SelfBlock.Button(m.plain("self-rename"), "rename", Map.of("id", id), "", null,
-                        new SelfBlock.Input(m.plain("self-rename-label"), loader.name() == null ? "" : loader.name(),
-                                plugin.settings().gui().maxNameLength())));
-                if (plugin.dummies().enabled() && (loader.dummy() || Dummies.fits(loader))) {
-                    buttons.add(new SelfBlock.Button(m.plain(loader.dummy() ? "self-dummy-off" : "self-dummy-on"), "dummy",
-                            Map.of("id", id), "", null, null));
-                }
-                if (plugin.settings().invites().enabled() && viewer.has(INVITE)) {
-                    buttons.add(new SelfBlock.Button(m.plain("self-invite"), "invite", Map.of("id", id), "", null,
-                            new SelfBlock.Input(m.plain("self-invite-label"), "", 16)));
-                }
-                buttons.add(new SelfBlock.Button(m.plain("self-delete"), "delete", Map.of("id", id), "bad",
-                        m.plain("self-delete-confirm", "name", Texts.name(plugin, loader)), null));
+        LoaderStatus status = LoaderStatus.of(plugin, loader);
+        String id = String.valueOf(loader.id());
+        SelfBlock.Button primary = null;
+        List<SelfBlock.Button> buttons = new ArrayList<>();
+        if (actions) {
+            if (status != LoaderStatus.LOCKED) {
+                primary = new SelfBlock.Button(m.plain(loader.active() ? "self-off" : "self-on"), "toggle",
+                        Map.of("id", id), loader.active() ? "" : "good", null, null);
             }
-            rows.add(new SelfBlock.Row(List.of(Texts.name(plugin, loader),
-                    loader.worldName() + " " + loader.x() + " " + loader.y() + " " + loader.z(),
-                    m.plain("self-size-value", "width", loader.width(), "length", loader.length(), "chunks", loader.area()),
-                    state(plugin, loader, status)), tone(status), buttons));
+            buttons.add(new SelfBlock.Button(m.plain("self-rename"), "rename", Map.of("id", id), "", null,
+                    new SelfBlock.Input(m.plain("self-rename-label"), loader.name() == null ? "" : loader.name(),
+                            plugin.settings().gui().maxNameLength())));
+            if (plugin.dummies().enabled() && (loader.dummy() || Dummies.fits(loader))) {
+                buttons.add(new SelfBlock.Button(m.plain(loader.dummy() ? "self-dummy-off" : "self-dummy-on"), "dummy",
+                        Map.of("id", id), "", null, null));
+            }
+            buttons.add(new SelfBlock.Button(m.plain("self-delete"), "delete", Map.of("id", id), "bad",
+                    m.plain("self-delete-confirm", "name", Texts.name(plugin, loader)), null));
         }
-        return new SelfBlock.Table(m.plain("self-table"), List.of(m.plain("self-col-name"), m.plain("self-col-place"),
-                m.plain("self-col-size"), m.plain("self-col-state")), rows, m.plain("self-empty"));
+        List<SelfBlock> details = new ArrayList<>();
+        LagLock lock = plugin.loaders().lagLock(loader);
+        if (lock != null) {
+            details.add(new SelfBlock.Text(m.plain("self-locked-detail", "metric", m.plain("lag-metric-" + lock.metric().key()),
+                    "value", LagMonitor.format(lock.value()), "limit", LagMonitor.format(lock.limit()),
+                    "since", Texts.date(m, lock.since())), "bad"));
+        }
+        details.add(limits(plugin, loader));
+        if (!mapUrl.isEmpty()) {
+            details.add(new SelfBlock.Embed(m.plain("self-card-map"), mapAt(mapUrl, loader), 320, m.plain("self-map-open")));
+        }
+        return new SelfBlock.Card(id, Texts.name(plugin, loader), place(plugin, loader), state(plugin, loader, status),
+                tone(status), cardStats(plugin, loader), load(plugin, loader), primary, buttons, details);
     }
 
-    private static SelfBlock.Table memberTable(MRChunks plugin, UUID owner, List<Loader> own) {
+    /** A loader of someone else the player was invited to: only on/off. */
+    private static SelfBlock.Card sharedCard(MRChunks plugin, Loader loader, boolean actions, String mapUrl) {
+        Messages m = plugin.messages();
+        LoaderStatus status = LoaderStatus.of(plugin, loader);
+        SelfBlock.Button primary = !actions || status == LoaderStatus.LOCKED ? null
+                : new SelfBlock.Button(m.plain(loader.active() ? "self-off" : "self-on"), "shared",
+                Map.of("id", String.valueOf(loader.id())), loader.active() ? "" : "good", null, null);
+        List<SelfBlock> details = new ArrayList<>();
+        details.add(limits(plugin, loader));
+        if (!mapUrl.isEmpty()) {
+            details.add(new SelfBlock.Embed(m.plain("self-card-map"), mapAt(mapUrl, loader), 320, m.plain("self-map-open")));
+        }
+        return new SelfBlock.Card("shared-" + loader.id(), Texts.name(plugin, loader),
+                m.plain("self-shared-sub", "owner", LoaderManager.name(loader.owner()), "place", place(plugin, loader)),
+                state(plugin, loader, status), tone(status), cardStats(plugin, loader), load(plugin, loader), primary,
+                List.of(), details);
+    }
+
+    private static String place(MRChunks plugin, Loader loader) {
+        return plugin.messages().plain("self-card-place", "world", loader.worldName(), "x", loader.x(), "z", loader.z());
+    }
+
+    private static List<SelfBlock.Stat> cardStats(MRChunks plugin, Loader loader) {
+        Messages m = plugin.messages();
+        List<SelfBlock.Stat> stats = new ArrayList<>();
+        stats.add(new SelfBlock.Stat(m.plain("self-card-size"), loader.width() + "×" + loader.length(), ""));
+        stats.add(new SelfBlock.Stat(m.plain("self-card-chunks"), String.valueOf(loader.area()), ""));
+        if (loader.dummy() && plugin.dummies().enabled()) {
+            boolean present = plugin.dummies().dummyOf(loader) != null;
+            stats.add(new SelfBlock.Stat(m.plain("self-card-dummy"), m.plain(present ? "self-dummy-present" : "self-dummy-waiting"),
+                    present ? "good" : ""));
+        }
+        return stats;
+    }
+
+    /** On the card: how close the busiest value is to the warning (100 % = warning), the bar up to the lock. */
+    private static List<SelfBlock.Meter> load(MRChunks plugin, Loader loader) {
+        Activity a = plugin.settings().lag().enabled() ? plugin.lag().activity(loader) : null;
+        if (a == null || !loader.active()) {
+            return List.of();
+        }
+        LagLimits limits = plugin.settings().lag().limitsFor(loader.area());
+        Metric worst = a.worst();
+        double value = a.value(worst);
+        double warn = limits.warn(worst);
+        double lock = limits.lock(worst);
+        if (warn <= 0 && lock <= 0) {
+            return List.of();
+        }
+        double full = lock > 0 ? lock : warn;
+        return List.of(new SelfBlock.Meter(plugin.messages().plain("self-load"),
+                plugin.messages().plain("self-load-value", "percent", Math.round(a.warnRatio() * 100)),
+                value / full, lock > 0 && warn > 0 ? warn / lock : -1, "", meterTone(value, warn, lock)));
+    }
+
+    /** Opened card: every measured value against its warning and lock limit, like the team sees it in MRadmin. */
+    private static SelfBlock limits(MRChunks plugin, Loader loader) {
+        Messages m = plugin.messages();
+        Activity a = plugin.settings().lag().enabled() ? plugin.lag().activity(loader) : null;
+        if (!plugin.settings().lag().enabled()) {
+            return new SelfBlock.Text(m.plain("self-limits-off"), "info");
+        }
+        if (a == null) {
+            return new SelfBlock.Text(m.plain("self-limits-none"), "info");
+        }
+        LagLimits limits = plugin.settings().lag().limitsFor(loader.area());
+        List<SelfBlock.Meter> meters = new ArrayList<>();
+        for (Metric metric : Metric.values()) {
+            double warn = limits.warn(metric);
+            double lock = limits.lock(metric);
+            if (warn <= 0 && lock <= 0) {
+                continue;
+            }
+            double value = a.value(metric);
+            double full = lock > 0 ? lock : warn;
+            meters.add(new SelfBlock.Meter(m.plain("lag-metric-" + metric.key()), LagMonitor.format(value),
+                    value / full, lock > 0 && warn > 0 ? warn / lock : -1,
+                    m.plain("self-limits-hint", "warn", LagMonitor.format(warn), "lock", LagMonitor.format(lock)),
+                    meterTone(value, warn, lock)));
+        }
+        String text = m.plain("self-limits-measured", "ago", DurationUtil.format(System.currentTimeMillis() - a.time()),
+                "loaded", a.loadedChunks(), "total", a.totalChunks());
+        Activity pool = plugin.lag().pool(loader.owner());
+        if (pool != null) {
+            text += " " + m.plain("self-limits-pool", "chunks", pool.totalChunks(), "percent", Math.round(pool.warnRatio() * 100));
+        }
+        return new SelfBlock.Meters(m.plain("self-limits"), text, meters);
+    }
+
+    private static String meterTone(double value, double warn, double lock) {
+        return lock > 0 && value >= lock ? "bad" : warn > 0 && value >= warn ? "warn" : "";
+    }
+
+    /** squaremap centred on the loader (?world=...&zoom=...&x=...&z=...). */
+    private static String mapAt(String mapUrl, Loader loader) {
+        World world = loader.world();
+        String id = world == null ? loader.worldName() : world.getKey().asString().replace(':', '_');
+        String base = mapUrl.contains("?") ? mapUrl + "&" : mapUrl.endsWith("/") ? mapUrl + "?" : mapUrl + "/?";
+        return base + "world=" + id + "&zoom=4&x=" + loader.x() + "&z=" + loader.z();
+    }
+
+    /** Invited players: for all loaders or for one, until when; each with "remove". */
+    private static SelfBlock.People members(MRChunks plugin, UUID owner, List<Loader> own) {
         Messages m = plugin.messages();
         LoaderManager loaders = plugin.loaders();
-        List<SelfBlock.Row> rows = new ArrayList<>();
-        loaders.members(owner, null).forEach((member, until) -> rows.add(memberRow(plugin, member, until,
+        List<SelfBlock.Person> people = new ArrayList<>();
+        loaders.members(owner, null).forEach((member, until) -> people.add(person(plugin, member, until,
                 m.plain("self-scope-all"), "all")));
         for (Loader loader : own) {
-            loaders.members(owner, loader).forEach((member, until) -> rows.add(memberRow(plugin, member, until,
+            loaders.members(owner, loader).forEach((member, until) -> people.add(person(plugin, member, until,
                     Texts.name(plugin, loader), String.valueOf(loader.id()))));
         }
-        return new SelfBlock.Table(m.plain("self-members"), List.of(m.plain("self-col-player"), m.plain("self-col-scope"),
-                m.plain("self-col-until")), rows, m.plain("self-members-empty"));
+        return new SelfBlock.People(m.plain("self-members"), m.plain("self-members-text"), people,
+                m.plain("self-members-empty"));
     }
 
-    private static SelfBlock.Row memberRow(MRChunks plugin, UUID member, long until, String scope, String id) {
+    private static SelfBlock.Person person(MRChunks plugin, UUID member, long until, String scope, String id) {
         Messages m = plugin.messages();
-        String time = until == Long.MAX_VALUE ? m.plain("self-permanent") : Texts.date(m, until);
-        return new SelfBlock.Row(List.of(LoaderManager.name(member), scope, time), "",
+        String time = until == Long.MAX_VALUE ? m.plain("self-permanent") : m.plain("self-until", "date", Texts.date(m, until));
+        boolean online = Bukkit.getPlayer(member) != null;
+        return new SelfBlock.Person(member, LoaderManager.name(member), scope + " · " + time,
+                online ? m.plain("self-online") : "", online ? "good" : "",
                 List.of(new SelfBlock.Button(m.plain("self-uninvite"), "uninvite",
-                        Map.of("id", id, "player", member.toString()), "", null, null)));
+                        Map.of("id", id, "player", member.toString()), "bad", null, null)));
     }
 
-    private static SelfBlock.Table sharedTable(MRChunks plugin, List<Loader> shared) {
+    /** Invite: player, for which loader (or all), for how long (invites.durations). */
+    private static SelfBlock.Form inviteForm(MRChunks plugin, List<Loader> own) {
         Messages m = plugin.messages();
-        List<SelfBlock.Row> rows = new ArrayList<>();
-        for (Loader loader : shared) {
-            LoaderStatus status = LoaderStatus.of(plugin, loader);
-            List<SelfBlock.Button> buttons = status == LoaderStatus.LOCKED ? List.of()
-                    : List.of(new SelfBlock.Button(m.plain(loader.active() ? "self-off" : "self-on"), "shared",
-                    Map.of("id", String.valueOf(loader.id())), loader.active() ? "" : "good", null, null));
-            rows.add(new SelfBlock.Row(List.of(Texts.name(plugin, loader), LoaderManager.name(loader.owner()),
-                    state(plugin, loader, status)), tone(status), buttons));
-        }
-        return new SelfBlock.Table(m.plain("self-shared"), List.of(m.plain("self-col-name"), m.plain("self-col-owner"),
-                m.plain("self-col-state")), rows, "");
-    }
-
-    private static SelfBlock.AreaMap map(MRChunks plugin, SelfViewer viewer, List<Loader> own) {
-        Messages m = plugin.messages();
-        List<SelfBlock.Rect> rects = new ArrayList<>();
+        List<SelfBlock.Option> scopes = new ArrayList<>();
+        scopes.add(new SelfBlock.Option("all", m.plain("self-scope-all")));
         for (Loader loader : own) {
-            LoaderStatus status = LoaderStatus.of(plugin, loader);
-            String color = switch (status) {
-                case LOCKED -> LOCKED_COLOR;
-                case WARN -> WARN_COLOR;
-                case INACTIVE -> OFF_COLOR;
-                default -> ON_COLOR;
-            };
-            rects.add(new SelfBlock.Rect(loader.worldName(), loader.minChunkX() << 4, loader.minChunkZ() << 4,
-                    (loader.maxChunkX() + 1) << 4, (loader.maxChunkZ() + 1) << 4, Texts.name(plugin, loader), color, null));
+            scopes.add(new SelfBlock.Option(String.valueOf(loader.id()), Texts.name(plugin, loader)));
         }
-        String url = viewer.has(MAP) ? plugin.maps().mapUrl() : "";
-        return new SelfBlock.AreaMap(m.plain("self-map"), rects, url.isEmpty() ? null : url, m.plain("self-map-open"));
+        List<SelfBlock.Option> durations = new ArrayList<>();
+        for (long duration : plugin.settings().invites().durations()) {
+            durations.add(new SelfBlock.Option(String.valueOf(duration), Texts.duration(plugin, duration)));
+        }
+        return new SelfBlock.Form(m.plain("self-invite-title"), m.plain("self-invite-text"), List.of(
+                new SelfBlock.Field("player", m.plain("self-invite-player"), "text", "", List.of(), 16),
+                new SelfBlock.Field("scope", m.plain("self-invite-scope"), "select", "all", scopes, 0),
+                new SelfBlock.Field("duration", m.plain("self-invite-duration"), "select", durations.getFirst().value(),
+                        durations, 0)),
+                m.plain("self-invite"), "invite", Map.of());
     }
 
     private static String state(MRChunks plugin, Loader loader, LoaderStatus status) {
@@ -224,7 +322,7 @@ final class SelfPage {
             case INACTIVE -> m.plain("self-state-off");
             case PAUSED -> m.plain("self-state-paused");
             case WARN -> m.plain("self-state-warn");
-            case OK -> m.plain("self-state-on") + (plugin.dummies().dummyOf(loader) != null ? " · " + m.plain("self-state-dummy") : "");
+            case OK -> m.plain("self-state-on");
         };
     }
 
@@ -255,8 +353,14 @@ final class SelfPage {
             return m.plain("self-err-banned");
         }
         String by = viewer.name() + " (web)";
-        if (action.equals("invite") && "all".equals(args.getOrDefault("id", "all")) && args.containsKey("duration")) {
-            return invite(plugin, viewer, owner, null, args.get("value"), parseDuration(plugin, args.get("duration")));
+        if (action.equals("invite")) {
+            // From the form: player, scope ("all" or a loader id), duration (one of invites.durations).
+            String scope = args.getOrDefault("scope", "all");
+            Loader target = "all".equals(scope) ? null : loader(loaders, scope);
+            if (!"all".equals(scope) && (target == null || !target.owner().equals(owner))) {
+                return m.plain("self-err-not-found");
+            }
+            return invite(plugin, viewer, owner, target, args.get("player"), parseDuration(plugin, args.get("duration")));
         }
         if (action.equals("uninvite")) {
             return uninvite(plugin, viewer, owner, args);
@@ -281,7 +385,6 @@ final class SelfPage {
                 plugin.discord().log("loader-deleted", plugin.adminActions().discordTags(loader));
                 yield null;
             }
-            case "invite" -> invite(plugin, viewer, owner, loader, args.get("value"), Settings.PERMANENT);
             default -> m.plain("self-err-not-found");
         };
     }
