@@ -55,17 +55,23 @@ public record Settings(
      * Lag protection: every {@code sampleSeconds} the area of each active loader is measured. A loader is locked when
      * a metric is over its lock limit {@code lockAfterSamples} times in a row (and, with {@code onlyWhenServerLags},
      * only while the server's average tick time is at least {@code serverLagMspt}). From {@code forceLockMultiplier}
-     * times a lock limit on (0 = off) the server state does not matter. Durations in ms.
+     * times a lock limit on (0 = off) the server state does not matter. Durations in ms. Limits: see {@link #limitsFor}.
      */
     public record LagSettings(boolean enabled, int sampleSeconds, int lockAfterSamples, boolean onlyWhenServerLags,
-                              double serverLagMspt, double forceLockMultiplier, LagLimits limits, int limitsPerChunks) {
+                              double serverLagMspt, double forceLockMultiplier, LagLimits limits, int limitsPerChunks,
+                              LagLimits smallLimits, int smallChunks) {
 
         /**
-         * The limits for an area of {@code chunks} chunks: the configured ones apply to {@code limitsPerChunks}
-         * chunks and grow and shrink with the area, so the same budget always allows the same load.
+         * The limits for an area of {@code chunks} chunks (a loader, or all active loaders of an owner together), in
+         * whole numbers: up to {@code smallChunks} (3x3) the fixed {@code smallLimits}; above, the configured ones
+         * scaled from {@code limitsPerChunks} chunks to the area - so the same budget allows the same load - but never
+         * below the small ones.
          */
         public LagLimits limitsFor(int chunks) {
-            return limits.scaled((double) chunks / limitsPerChunks);
+            if (chunks <= smallChunks) {
+                return smallLimits.rounded();
+            }
+            return limits.scaled((double) chunks / limitsPerChunks).atLeast(smallLimits).rounded();
         }
     }
 
@@ -263,20 +269,6 @@ public record Settings(
                 durations(c.getStringList("invites.durations"), List.of("1d", "7d", "30d", "permanent"), "invites.durations", log),
                 Math.clamp(c.getInt("invites.max-members", 10), 1, 100));
 
-        LagLimits defaults = LagLimits.defaults();
-        Map<Metric, Double> warn = new EnumMap<>(Metric.class);
-        Map<Metric, Double> lock = new EnumMap<>(Metric.class);
-        for (Metric metric : Metric.values()) {
-            String path = "lag-protection.limits." + metric.key();
-            double w = Math.max(0, c.getDouble(path + ".warn", defaults.warn(metric)));
-            double l = Math.max(0, c.getDouble(path + ".lock", defaults.lock(metric)));
-            if (l > 0 && w > l) {
-                log.warning(path + ": warn (" + w + ") is above lock (" + l + "), using warn = lock.");
-                w = l;
-            }
-            warn.put(metric, w);
-            lock.put(metric, l);
-        }
         LagSettings lag = new LagSettings(
                 c.getBoolean("lag-protection.enabled", true),
                 Math.clamp(c.getInt("lag-protection.sample-seconds", 30), 5, 600),
@@ -284,8 +276,10 @@ public record Settings(
                 c.getBoolean("lag-protection.only-when-server-lags", true),
                 Math.clamp(c.getDouble("lag-protection.server-lag-mspt", 40), 1, 1000),
                 forceLockMultiplier(c.getDouble("lag-protection.force-lock-multiplier", 2), log),
-                new LagLimits(Map.copyOf(warn), Map.copyOf(lock)),
-                Math.clamp(c.getInt("lag-protection.limits-per-chunks", 49), 1, 10_000));
+                limits(c, "lag-protection.limits", LagLimits.defaults(), log),
+                Math.clamp(c.getInt("lag-protection.limits-per-chunks", 49), 1, 10_000),
+                limits(c, "lag-protection.small-loaders.limits", LagLimits.smallDefaults(), log),
+                Math.clamp(c.getInt("lag-protection.small-loaders.max-chunks", 9), 0, 10_000));
 
         double below = Math.clamp(c.getDouble("server-pause.below-tps", 15), 1, 19.9);
         double resume = Math.clamp(c.getDouble("server-pause.resume-tps", 18), 1, 20);
@@ -371,6 +365,24 @@ public record Settings(
             log.warning("Invalid value '" + raw + "' for " + path + ", using " + fallback.name().toLowerCase(Locale.ROOT) + ".");
             return fallback;
         }
+    }
+
+    /** Warn and lock limit per metric under {@code path} (warn above lock is lowered to lock). */
+    private static LagLimits limits(FileConfiguration c, String path, LagLimits defaults, Logger log) {
+        Map<Metric, Double> warn = new EnumMap<>(Metric.class);
+        Map<Metric, Double> lock = new EnumMap<>(Metric.class);
+        for (Metric metric : Metric.values()) {
+            String key = path + "." + metric.key();
+            double w = Math.max(0, c.getDouble(key + ".warn", defaults.warn(metric)));
+            double l = Math.max(0, c.getDouble(key + ".lock", defaults.lock(metric)));
+            if (l > 0 && w > l) {
+                log.warning(key + ": warn (" + w + ") is above lock (" + l + "), using warn = lock.");
+                w = l;
+            }
+            warn.put(metric, w);
+            lock.put(metric, l);
+        }
+        return new LagLimits(Map.copyOf(warn), Map.copyOf(lock));
     }
 
     /** Exactly three quick-select ban durations; invalid entries fall back to the defaults. */

@@ -51,7 +51,7 @@ public final class MRChunks extends JavaPlugin {
             Map.entry(14, Set.of("lock-details")),
             // 15: web map with size, budget, status reason and dummy in the tooltip.
             Map.entry(15, Set.of("map-click-tooltip")),
-            Map.entry(16, Set.of())));
+            Map.entry(16, Set.of("self-members"))));
     private final DiscordWebhook discord = new DiscordWebhook(this);
     private final AdminActions adminActions = new AdminActions(this);
     private LoaderManager loaders;

@@ -271,6 +271,7 @@ MRchunks misst alle 30 Sekunden, was im Bereich jedes **aktiven** Loaders passie
 - **Gesperrt heißt:** Der Loader ist aus und kann nur von Admins entsperrt werden (Menü oder `/mrchunks unlock`). Der Owner wird informiert, mit MRadmin bekommt er automatisch ein **Ticket** mit allen Details.
 - Das Menü jedes aktiven Loaders zeigt die letzte Messung mit dem Anteil dieses Loaders an den Grenzen und wie ausgelastet alle Loader des Spielers zusammen sind - so können Spieler ihre Farm selbst einschätzen.
 - Alle Grenzen stehen unter `lag-protection.limits`, für wie viele Chunks sie gelten unter `lag-protection.limits-per-chunks` (49). `0` schaltet eine Messung ab.
+- **Kleine Loader** bis 3×3 (`lag-protection.small-loaders.max-chunks`, 9 Chunks) bekommen feste, höhere Grenzen aus `lag-protection.small-loaders.limits` - heruntergerechnet wären sie für eine kleine Farm zu knapp. Größere Flächen werden umgerechnet, liegen aber nie unter diesen Werten. Das gilt auch für alle aktiven Loader eines Spielers zusammen. Alle Grenzen werden auf ganze Zahlen gerundet.
 
 Die Standardwerte sind bewusst großzügig: Normale Farmen bleiben weit darunter, außer Kontrolle geratene Maschinen nicht.
 

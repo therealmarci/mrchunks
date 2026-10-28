@@ -16,7 +16,7 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 13
+config-version: 14
 
 # Language of the texts (chat, menus, items). The texts are in plugins/MRchunks/lang/<language>.yml.
 #   auto = every player gets the language set in their Minecraft client:
@@ -176,7 +176,8 @@ lag-protection:
   # 0 = off, then it never locks without server lag.
   force-lock-multiplier: 2
   # The limits below apply to this many chunks (49 = one 7x7 loader) and are scaled to the actual area:
-  # a 3x3 loader (9 chunks) gets 9/49 of them, the 147 chunks of three 7x7 loaders three times as much.
+  # a 5x5 loader (25 chunks) gets 25/49 of them, the 147 chunks of three 7x7 loaders three times as much
+  # (up to 3x3 see small-loaders).
   limits-per-chunks: 49
   limits:
     # Entities (mobs, animals, minecarts, armour stands ... including items on the ground, without players)
@@ -191,6 +192,18 @@ lag-protection:
     pistons: { warn: 40, lock: 150 }
     # New mobs and items per second
     spawns: { warn: 20, lock: 80 }
+  # Small loaders up to max-chunks chunks (9 = 3x3) get these fixed limits instead - scaled down from the ones above
+  # they would be too tight for a small farm. Bigger areas use the scaled limits, but never less than these.
+  # This also applies to all active loaders of a player together. All limits are rounded to whole numbers.
+  small-loaders:
+    max-chunks: 9
+    limits:
+      entities: { warn: 100, lock: 250 }
+      items: { warn: 80, lock: 300 }
+      redstone: { warn: 150, lock: 600 }
+      hoppers: { warn: 100, lock: 400 }
+      pistons: { warn: 15, lock: 50 }
+      spawns: { warn: 8, lock: 25 }
 
 # Server pause: if the whole server lags (no matter whether because of chunk loaders or something else), ALL chunk
 # loaders release their chunks until it has recovered - afterwards they load again automatically. Whether a loader is

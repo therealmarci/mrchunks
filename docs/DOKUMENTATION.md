@@ -121,7 +121,7 @@ bans:
 
 ## 7a. Lag-Schutz (`lag/LagMonitor`)
 - **Messung:** alle `sample-seconds` pro aktivem (und gesperrtem) Loader über alle Chunks seines Rechtecks; Ereignisse (Redstone, Trichter, Kolben, Spawns) zählt ein Chunk-Index, der bei jeder Messung und nach `resize` (`areaChanged`) neu gebaut wird.
-- **Grenzen pro Fläche:** `LagSettings#limitsFor(chunks)` skaliert `lag-protection.limits` mit `chunks / limits-per-chunks` (`LagLimits#scaled`). Jede `Activity` eines Loaders ist gegen seinen eigenen Anteil gerechnet.
+- **Grenzen pro Fläche:** `LagSettings#limitsFor(chunks)`: bis `small-loaders.max-chunks` (9) die festen `small-loaders.limits`, darüber `lag-protection.limits` × `chunks / limits-per-chunks` (`LagLimits#scaled`), mindestens die kleinen (`atLeast`); immer `rounded()` (ganze Zahlen, geprüfte Grenzen ≥ 1). Jede `Activity` eines Loaders ist gegen seinen eigenen Anteil gerechnet, der Pool eines Spielers gegen `limitsFor(Summe der Flächen)`.
 - **Pool pro Owner:** `pool(...)` summiert die Werte aller aktiven Loader eines Owners gegen `limitsFor(Summe der Flächen)`. Gezählt werden Treffer (`strikes`) pro Owner; nach `lock-after-samples` sperrt `culprit` den Loader, der beim schlimmsten Pool-Messwert am weitesten über seinem Anteil liegt (Anteil ≥ 1 - bei einem Pool über der Grenze gibt es immer einen). Auffällig (`conspicuous(loader)`) ist ein Loader nur, wenn er selbst **und** sein Pool über der Warngrenze liegen. `lockOffendersBeforePause` sperrt pro Owner so lange Verursacher, bis der Pool unter der Grenze ist.
 
 ## 8. squaremap (`map/MapHooks.java`, `map/SquaremapHook.java`)

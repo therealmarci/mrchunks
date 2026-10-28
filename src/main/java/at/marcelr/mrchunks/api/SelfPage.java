@@ -114,6 +114,11 @@ final class SelfPage {
         }
         blocks.add(new SelfBlock.Cards(m.plain("self-table"), cards, m.plain("self-empty")));
 
+        // Invites for all loaders right under the own loaders; those for one loader are in its opened card.
+        if (plugin.settings().invites().enabled() && viewer.has(INVITE) && ban == null) {
+            blocks.add(members(plugin, owner, null));
+            blocks.add(inviteForm(plugin, null));
+        }
         List<Loader> shared = loaders.sharedWith(viewer.player());
         if (!shared.isEmpty()) {
             List<SelfBlock.Card> sharedCards = new ArrayList<>();
@@ -121,10 +126,6 @@ final class SelfPage {
                 sharedCards.add(sharedCard(plugin, loader, ban == null, mapUrl));
             }
             blocks.add(new SelfBlock.Cards(m.plain("self-shared"), sharedCards, ""));
-        }
-        if (plugin.settings().invites().enabled() && viewer.has(INVITE) && ban == null) {
-            blocks.add(members(plugin, owner, own));
-            blocks.add(inviteForm(plugin, own));
         }
         if (!mapUrl.isEmpty()) {
             blocks.add(new SelfBlock.Embed(m.plain("self-map"), mapUrl, 520, m.plain("self-map-open")));
@@ -147,7 +148,7 @@ final class SelfPage {
             buttons.add(new SelfBlock.Button(m.plain("self-rename"), "rename", Map.of("id", id), "", null,
                     new SelfBlock.Input(m.plain("self-rename-label"), loader.name() == null ? "" : loader.name(),
                             plugin.settings().gui().maxNameLength())));
-            if (plugin.dummies().enabled() && (loader.dummy() || Dummies.fits(loader))) {
+            if (plugin.dummies().enabled()) {
                 buttons.add(new SelfBlock.Button(m.plain(loader.dummy() ? "self-dummy-off" : "self-dummy-on"), "dummy",
                         Map.of("id", id), "", null, null));
             }
@@ -162,6 +163,13 @@ final class SelfPage {
                     "since", Texts.date(m, lock.since())), "bad"));
         }
         details.add(limits(plugin, loader));
+        if (actions && plugin.dummies().enabled() && !loader.dummy() && !Dummies.fits(loader)) {
+            details.add(new SelfBlock.Text(m.plain("self-dummy-square-hint"), "info"));
+        }
+        if (actions && plugin.settings().invites().enabled() && viewer.has(INVITE)) {
+            details.add(members(plugin, loader.owner(), loader));
+            details.add(inviteForm(plugin, loader));
+        }
         if (!mapUrl.isEmpty()) {
             details.add(new SelfBlock.Embed(m.plain("self-card-map"), mapAt(mapUrl, loader), 320, m.plain("self-map-open")));
         }
@@ -273,49 +281,44 @@ final class SelfPage {
         return base + "world=" + id + "&zoom=4&x=" + loader.x() + "&z=" + loader.z();
     }
 
-    /** Invited players: for all loaders or for one, until when; each with "remove". */
-    private static SelfBlock.People members(MRChunks plugin, UUID owner, List<Loader> own) {
+    /**
+     * Invited players with "remove": {@code loader} null = those for all loaders (under "Your chunk loaders"),
+     * otherwise those for this one loader (in its opened card).
+     */
+    private static SelfBlock.People members(MRChunks plugin, UUID owner, Loader loader) {
         Messages m = plugin.messages();
-        LoaderManager loaders = plugin.loaders();
         List<SelfBlock.Person> people = new ArrayList<>();
-        loaders.members(owner, null).forEach((member, until) -> people.add(person(plugin, member, until,
-                m.plain("self-scope-all"), "all")));
-        for (Loader loader : own) {
-            loaders.members(owner, loader).forEach((member, until) -> people.add(person(plugin, member, until,
-                    Texts.name(plugin, loader), String.valueOf(loader.id()))));
-        }
-        return new SelfBlock.People(m.plain("self-members"), m.plain("self-members-text"), people,
-                m.plain("self-members-empty"));
+        String id = loader == null ? "all" : String.valueOf(loader.id());
+        plugin.loaders().members(owner, loader).forEach((member, until) -> people.add(person(plugin, member, until, id)));
+        return loader == null
+                ? new SelfBlock.People(m.plain("self-members"), m.plain("self-members-text"), people, m.plain("self-members-empty"))
+                : new SelfBlock.People(m.plain("self-members-loader"), m.plain("self-members-loader-text"), people,
+                m.plain("self-members-loader-empty"));
     }
 
-    private static SelfBlock.Person person(MRChunks plugin, UUID member, long until, String scope, String id) {
+    private static SelfBlock.Person person(MRChunks plugin, UUID member, long until, String id) {
         Messages m = plugin.messages();
         String time = until == Long.MAX_VALUE ? m.plain("self-permanent") : m.plain("self-until", "date", Texts.date(m, until));
         boolean online = Bukkit.getPlayer(member) != null;
-        return new SelfBlock.Person(member, LoaderManager.name(member), scope + " · " + time,
+        return new SelfBlock.Person(member, LoaderManager.name(member), time,
                 online ? m.plain("self-online") : "", online ? "good" : "",
                 List.of(new SelfBlock.Button(m.plain("self-uninvite"), "uninvite",
                         Map.of("id", id, "player", member.toString()), "bad", null, null)));
     }
 
-    /** Invite: player, for which loader (or all), for how long (invites.durations). */
-    private static SelfBlock.Form inviteForm(MRChunks plugin, List<Loader> own) {
+    /** Invite: player and duration (invites.durations); {@code loader} null = for all loaders, otherwise for this one. */
+    private static SelfBlock.Form inviteForm(MRChunks plugin, Loader loader) {
         Messages m = plugin.messages();
-        List<SelfBlock.Option> scopes = new ArrayList<>();
-        scopes.add(new SelfBlock.Option("all", m.plain("self-scope-all")));
-        for (Loader loader : own) {
-            scopes.add(new SelfBlock.Option(String.valueOf(loader.id()), Texts.name(plugin, loader)));
-        }
         List<SelfBlock.Option> durations = new ArrayList<>();
         for (long duration : plugin.settings().invites().durations()) {
             durations.add(new SelfBlock.Option(String.valueOf(duration), Texts.duration(plugin, duration)));
         }
-        return new SelfBlock.Form(m.plain("self-invite-title"), m.plain("self-invite-text"), List.of(
+        return new SelfBlock.Form(m.plain(loader == null ? "self-invite-title" : "self-invite-loader-title"),
+                m.plain(loader == null ? "self-invite-text" : "self-invite-loader-text"), List.of(
                 new SelfBlock.Field("player", m.plain("self-invite-player"), "text", "", List.of(), 16),
-                new SelfBlock.Field("scope", m.plain("self-invite-scope"), "select", "all", scopes, 0),
                 new SelfBlock.Field("duration", m.plain("self-invite-duration"), "select", durations.getFirst().value(),
                         durations, 0)),
-                m.plain("self-invite"), "invite", Map.of());
+                m.plain("self-invite"), "invite", Map.of("scope", loader == null ? "all" : String.valueOf(loader.id())));
     }
 
     private static String state(MRChunks plugin, Loader loader, LoaderStatus status) {
