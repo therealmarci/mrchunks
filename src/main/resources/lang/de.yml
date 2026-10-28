@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Nicht ändern - damit erkennt das Plugin bei Updates, welche Texte erneuert werden müssen.
-lang-version: 16
+lang-version: 17
 
 # Texte der Discord-Logs (Markdown wie in Discord). Platzhalter: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. An/aus und Farbe stehen in der config.yml.
@@ -787,7 +787,6 @@ self-invite-title: "Spieler einladen"
 self-invite-text: "Auch Spieler, die gerade offline sind - sie müssen nur schon einmal auf dem Server gewesen sein."
 self-invite-player: "Spielername"
 self-invite-duration: "Dauer"
-self-dummy-square-hint: "Ein Dummy geht nur bei einem quadratischen Loader ab 5×5 mit dem Block in der Mitte - die Größe änderst du im Spiel."
 self-members-loader: "Mitglieder dieses Loaders"
 self-members-loader-text: "Diese Spieler dürfen nur diesen Loader an- und ausschalten."
 self-members-loader-empty: "Niemand nur für diesen Loader eingeladen."

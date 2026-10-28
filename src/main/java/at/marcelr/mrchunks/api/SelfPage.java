@@ -163,9 +163,6 @@ final class SelfPage {
                     "since", Texts.date(m, lock.since())), "bad"));
         }
         details.add(limits(plugin, loader));
-        if (actions && plugin.dummies().enabled() && !loader.dummy() && !Dummies.fits(loader)) {
-            details.add(new SelfBlock.Text(m.plain("self-dummy-square-hint"), "info"));
-        }
         if (actions && plugin.settings().invites().enabled() && viewer.has(INVITE)) {
             details.add(invites(plugin, loader.owner(), loader));
         }

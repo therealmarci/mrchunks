@@ -25,7 +25,7 @@ public final class MRChunks extends JavaPlugin {
     private FileConfiguration config;
     private Settings settings;
     /** lang-version 2: version display with MC version; 3: loaders by name/number; 4: squaremap.address; 5: merged admin commands; 6: shorter window titles; 7: lag protection (admin usage); 8: /chunkloader is only the menu (invite notice); 9: get/return as two buttons; 11: dummies and linked accounts (admin usage). */
-    private final Messages messages = new Messages(16, Map.ofEntries(
+    private final Messages messages = new Messages(17, Map.ofEntries(
             Map.entry(2, Set.of("version", "gui-info-name")),
             Map.entry(3, Set.of("discord.loader-placed", "discord.loader-deleted", "discord.loader-toggled",
                     "discord.loader-restored", "discord.loader-removed-missing", "discord.admin-delete",
@@ -51,7 +51,8 @@ public final class MRChunks extends JavaPlugin {
             Map.entry(14, Set.of("lock-details")),
             // 15: web map with size, budget, status reason and dummy in the tooltip.
             Map.entry(15, Set.of("map-click-tooltip")),
-            Map.entry(16, Set.of("self-members"))));
+            Map.entry(16, Set.of("self-members")),
+            Map.entry(17, Set.of("self-members", "self-members-text", "self-invite-title", "self-invite-text"))));
     private final DiscordWebhook discord = new DiscordWebhook(this);
     private final AdminActions adminActions = new AdminActions(this);
     private LoaderManager loaders;
