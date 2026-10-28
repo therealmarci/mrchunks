@@ -101,7 +101,8 @@ final class SelfPage {
         }
         blocks.add(map(plugin, viewer, own));
 
-        // Start page tile: active loaders big, budget and placed loaders as bars ("a / b"), a ban as a warning line.
+        // Start page tile: active loaders big, budget and placed loaders as bars ("a / b"); a ban, lag locks, loaders near
+        // the lag limit and an exceeded budget as warning lines (MRadmin also shows them in the slideshow).
         List<SelfBlock.Stat> tile = new ArrayList<>(List.of(stats.get(1), stats.get(2), stats.get(0)));
         if (stats.size() > 3) {
             tile.add(stats.get(3));
@@ -110,6 +111,18 @@ final class SelfPage {
         summary.add(new SelfBlock.Stats(tile));
         if (ban != null) {
             summary.add(new SelfBlock.Text(m.plain("self-banned-short"), "bad"));
+        }
+        long locked = own.stream().filter(loaders::lagLocked).count();
+        if (locked > 0) {
+            summary.add(new SelfBlock.Text(m.plain("self-notice-locked", "count", locked), "bad"));
+        }
+        long near = own.stream().filter(l -> l.active() && !loaders.lagLocked(l) && plugin.lag().conspicuous(l)).count();
+        if (near > 0) {
+            summary.add(new SelfBlock.Text(m.plain("self-notice-near", "count", near), "warn"));
+        }
+        if (free < 0 && budget.value() != Integer.MAX_VALUE) {
+            summary.add(new SelfBlock.Text(m.plain("self-notice-budget", "used", loaders.usedBudget(owner),
+                    "budget", Texts.limit(budget)), "warn"));
         }
         return new SelfArea(AREA, m.plain("self-title"), "🧱", summary, blocks);
     }
