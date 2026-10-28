@@ -9,6 +9,22 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+## [0.8.0] - 2026-10-28
+
+> [!WARNING]
+> **Neue Permission-Gruppen:** Das Paket `mrchunks.admin` gibt es nicht mehr. Stattdessen gibt es in allen MRtechnology-Plugins dieselben Gruppen `<plugin>.player` und `<plugin>.groups.support|staff|admin`. Bitte die LuckPerms-Gruppen umstellen, z.B. `/lp group admin permission unset mrchunks.admin` und `/lp group admin permission set mrchunks.groups.admin true`.
+
+### Neu
+- **Permission-Gruppen:** `mrchunks.groups.support` (Admin-Menü, Status aller Loader, Teleport), `mrchunks.groups.staff` (+ fremde Loader an/aus, Einladungen verwalten, Accounts verknüpfen und lösen) und `mrchunks.groups.admin` (alles). Jede Gruppe enthält die darunter und `mrchunks.player`.
+- **Neue Einzel-Rechte:** `mrchunks.admin.toggle` (fremde Loader an/aus), `mrchunks.admin.invites` (Einladungen fremder Loader), `mrchunks.admin.link` (`/mrchunks link`, `unlink`). `mrchunks.admin.manage` enthält sie weiterhin.
+- **Knopf im MRadmin-Dashboard:** öffnet das Admin-Menü jetzt direkt über die Modul-API (nicht mehr über den Befehl).
+
+### Entfernt
+- **Paket `mrchunks.admin`:** ersetzt durch `mrchunks.groups.admin`.
+
+### Behoben & geändert
+- **`/mrchunks version` nur noch mit Permission:** `mrchunks.version` (in `mrchunks.player`) - bisher durfte das jeder.
+
 ## [0.7.0] - 2026-10-27
 
 ### Neu

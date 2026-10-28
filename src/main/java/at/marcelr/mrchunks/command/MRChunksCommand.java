@@ -38,7 +38,8 @@ public final class MRChunksCommand implements TabExecutor {
     private static final String PERM_MAP = "mrchunks.admin.map";
     private static final String PERM_DISCORD = "mrchunks.admin.discord";
     private static final List<String> ADMIN_PERMS = List.of(PERM_GUI, PERM_RELOAD, PERM_MAP, PERM_DISCORD,
-            AdminActions.PERM_MANAGE, AdminActions.PERM_TELEPORT, AdminActions.PERM_LIMIT, AdminActions.PERM_BAN);
+            AdminActions.PERM_MANAGE, AdminActions.PERM_TOGGLE, AdminActions.PERM_LINK_OTHERS, AdminActions.PERM_INVITES,
+            AdminActions.PERM_TELEPORT, AdminActions.PERM_LIMIT, AdminActions.PERM_BAN);
 
     private final MRChunks plugin;
 
@@ -66,7 +67,14 @@ public final class MRChunksCommand implements TabExecutor {
             return true;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "version", "ver" -> version(sender);
+            case "version", "ver" -> {
+                // For players too (in mrchunks.player).
+                if (sender.hasPermission("mrchunks.version")) {
+                    version(sender);
+                } else {
+                    messages().send(sender, "no-permission");
+                }
+            }
             case "gui", "menu" -> {
                 if (!(sender instanceof Player player)) {
                     messages().send(sender, "players-only");
@@ -86,7 +94,7 @@ public final class MRChunksCommand implements TabExecutor {
             case "unlock", "entsperren" -> withLoader(sender, args, loader -> actions().unlock(sender, loader));
             case "dummy" -> withLoader(sender, args, loader -> actions().toggleDummy(sender, loader));
             case "link" -> {
-                if (check(sender, AdminActions.PERM_MANAGE)) {
+                if (check(sender, AdminActions.PERM_LINK_OTHERS)) {
                     withPlayer(sender, args, 1, main -> withPlayer(sender, args, 2,
                             second -> actions().adminLink(sender, main, second)));
                 }
@@ -365,10 +373,14 @@ public final class MRChunksCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         List<String> options = new ArrayList<>();
         if (args.length == 1) {
-            options.add("version");
+            if (sender.hasPermission("mrchunks.version")) {
+                options.add("version");
+            }
             addIf(sender, PERM_GUI, options, "gui");
             addIf(sender, AdminActions.PERM_TELEPORT, options, "tp");
-            addIf(sender, AdminActions.PERM_MANAGE, options, "toggle", "delete", "unlock", "lag", "dummy", "link", "unlink");
+            addIf(sender, AdminActions.PERM_TOGGLE, options, "toggle");
+            addIf(sender, AdminActions.PERM_LINK_OTHERS, options, "link", "unlink");
+            addIf(sender, AdminActions.PERM_MANAGE, options, "delete", "unlock", "lag", "dummy");
             addIf(sender, AdminActions.PERM_LIMIT, options, "limit");
             addIf(sender, AdminActions.PERM_BAN, options, "ban", "unban", "bans");
             addIf(sender, PERM_MAP, options, "map");

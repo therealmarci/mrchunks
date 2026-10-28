@@ -73,7 +73,7 @@ public final class PlayerLoadersMenu extends Menu {
 
         set(4, PlayerIcons.head(plugin, target, false));
         if (loaders.isLinked(targetId)) {
-            guarded(5, Material.IRON_CHAIN, "gui-unlink-name", "gui-unlink-lore", AdminActions.PERM_MANAGE,
+            guarded(5, Material.IRON_CHAIN, "gui-unlink-name", "gui-unlink-lore", AdminActions.PERM_LINK_OTHERS,
                     () -> actions.unlink(viewer, targetId), tags);
         }
 

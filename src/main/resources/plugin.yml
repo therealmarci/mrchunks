@@ -17,16 +17,53 @@ commands:
     usage: /mrchunks <gui|tp|toggle|delete|unlock|lag|limit|ban|unban|bans|link|unlink|map|discord|reload|version>
 
 permissions:
+  # ------------------------------------------------------------------ Groups
+  # The same in every MRtechnology plugin: <plugin>.player for players, <plugin>.groups.support / staff / admin for
+  # the team - each group contains the one below. The single permissions further down stay usable on their own;
+  # exempt and the limits (limit.*, active.*, dummies.*) are in no group on purpose.
   mrchunks.player:
-    description: All player permissions at once (use, map, view, invite, link, block) - e.g. for the default group in LuckPerms.
+    description: "Player: get, place and manage your own chunk loaders, web map, view other loaders, invite, link accounts, choose the block; /mrchunks version."
     default: op
     children:
+      mrchunks.version: true
       mrchunks.use: true
       mrchunks.map: true
       mrchunks.view: true
       mrchunks.invite: true
       mrchunks.link: true
       mrchunks.block: true
+  mrchunks.groups.support:
+    description: "Group support: player + admin menu (see all loaders and their status), teleport to loaders."
+    default: op
+    children:
+      mrchunks.player: true
+      mrchunks.admin.gui: true
+      mrchunks.admin.teleport: true
+  mrchunks.groups.staff:
+    description: "Group staff: support + switch other players' loaders on and off, manage their invites, link and unlink accounts."
+    default: op
+    children:
+      mrchunks.groups.support: true
+      mrchunks.admin.toggle: true
+      mrchunks.admin.invites: true
+      mrchunks.admin.link: true
+  mrchunks.groups.admin:
+    description: "Group admin: everything of MRchunks - delete, rename, dummies, lift lag locks, limits, bans, web map, Discord, reload, update notice."
+    default: op
+    children:
+      mrchunks.groups.staff: true
+      mrchunks.admin.manage: true
+      mrchunks.admin.limit: true
+      mrchunks.admin.ban: true
+      mrchunks.admin.map: true
+      mrchunks.admin.discord: true
+      mrchunks.admin.reload: true
+      mrchunks.admin.update: true
+
+  # ------------------------------------------------------------------ Single permissions
+  mrchunks.version:
+    description: /mrchunks version - version, update status and links.
+    default: op
   mrchunks.use:
     description: Get chunk loaders (/chunkloader), place them and manage your own.
     default: op
@@ -57,25 +94,25 @@ permissions:
   mrchunks.dummies.unlimited:
     description: Any number of dummy players. Fixed limits via mrchunks.dummies.<number>, e.g. mrchunks.dummies.2.
     default: false
-  mrchunks.admin:
-    description: All admin permissions of MRchunks.
-    default: op
-    children:
-      mrchunks.admin.gui: true
-      mrchunks.admin.manage: true
-      mrchunks.admin.teleport: true
-      mrchunks.admin.limit: true
-      mrchunks.admin.ban: true
-      mrchunks.admin.map: true
-      mrchunks.admin.discord: true
-      mrchunks.admin.reload: true
-      mrchunks.admin.update: true
   mrchunks.admin.gui:
     description: /mrchunks gui - open the admin menu (actions in it need their own permission).
     default: op
-  mrchunks.admin.manage:
-    description: Switch other players' chunk loaders on/off and delete them, toggle dummies, link and unlink accounts.
+  mrchunks.admin.toggle:
+    description: Switch other players' chunk loaders on and off (also beyond their active limit).
     default: op
+  mrchunks.admin.invites:
+    description: Manage the invites of other players' chunk loaders.
+    default: op
+  mrchunks.admin.link:
+    description: Link and unlink other players' accounts (/mrchunks link, unlink).
+    default: op
+  mrchunks.admin.manage:
+    description: Delete and rename other players' chunk loaders, choose their block, toggle dummies, lift lag locks - and everything of toggle, invites and link.
+    default: op
+    children:
+      mrchunks.admin.toggle: true
+      mrchunks.admin.invites: true
+      mrchunks.admin.link: true
   mrchunks.admin.teleport:
     description: Teleport to chunk loaders.
     default: op
