@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+/** Main class of MRchunks: loads config, texts and loaders, starts lag protection, web map and the MRadmin link. */
 public final class MRChunks extends JavaPlugin {
 
     private FileConfiguration config;

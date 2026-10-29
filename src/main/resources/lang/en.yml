@@ -97,14 +97,6 @@ date-format: "yyyy-MM-dd HH:mm"
 
 # --- /chunkloader ------------------------------------------------------------
 # Command help (/chunkloader): every line only appears if the player may use the command.
-help-header: "<prefix><gray>Chunk loader commands:"
-help-give: "<green>/chunkloader give [amount]</green> <dark_gray>- <gray>Get chunk loaders into your inventory"
-help-remove: "<green>/chunkloader remove [amount|all]</green> <dark_gray>- <gray>Remove chunk loader items from your inventory"
-help-list: "<green>/chunkloader list</green> <dark_gray>- <gray>Your chunk loaders and those shared with you (menu)"
-help-map: "<green>/chunkloader map</green> <dark_gray>- <gray>Link to the web map"
-help-info: "<green>/chunkloader info</green> <dark_gray>- <gray>This help"
-help-version: "<green>/chunkloader version</green> <dark_gray>- <gray>Plugin version"
-help-menu-hint: "<dark_gray>Right-click a chunk loader to open its menu: on/off, members, border, rename, delete."
 give-ok: "<prefix><green>You received <white><count></white> chunk loader(s). <gray>(<used>/<limit> used)"
 give-none-left: "<prefix><red>You have no chunk loaders left <gray>(<placed> placed, <held> in inventory, limit <limit>)."
 give-partial: "<prefix><yellow>There was only room for <white><count></white> chunk loader(s)."

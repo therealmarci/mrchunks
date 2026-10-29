@@ -36,6 +36,7 @@ import java.util.UUID;
 
 import static at.marcelr.mrchunks.Messages.tag;
 
+/** Placing, breaking and right-clicking chunk loader blocks, plus the protection of the loader blocks. */
 public final class LoaderListener implements Listener {
 
     private final MRChunks plugin;

@@ -97,14 +97,6 @@ date-format: "dd.MM.yyyy HH:mm"
 
 # --- /chunkloader ------------------------------------------------------------
 # Befehlshilfe (/chunkloader): jede Zeile erscheint nur, wenn der Spieler den Befehl nutzen darf.
-help-header: "<prefix><gray>Chunkloader-Befehle:"
-help-give: "<green>/chunkloader give [anzahl]</green> <dark_gray>- <gray>Chunkloader ins Inventar holen"
-help-remove: "<green>/chunkloader remove [anzahl|all]</green> <dark_gray>- <gray>Chunkloader-Items aus dem Inventar entfernen"
-help-list: "<green>/chunkloader list</green> <dark_gray>- <gray>Deine und mit dir geteilte Chunkloader (Menü)"
-help-map: "<green>/chunkloader map</green> <dark_gray>- <gray>Link zur Webkarte"
-help-info: "<green>/chunkloader info</green> <dark_gray>- <gray>Diese Hilfe"
-help-version: "<green>/chunkloader version</green> <dark_gray>- <gray>Version des Plugins"
-help-menu-hint: "<dark_gray>Rechtsklick auf einen Chunkloader öffnet sein Menü: an/aus, Mitglieder, Grenze, umbenennen, löschen."
 give-ok: "<prefix><green>Du hast <white><count></white> Chunkloader bekommen. <gray>(<used>/<limit> belegt)"
 give-none-left: "<prefix><red>Du hast kein Chunkloader-Kontingent mehr frei <gray>(<placed> gesetzt, <held> im Inventar, Limit <limit>)."
 give-partial: "<prefix><yellow>Es war nur noch Platz für <white><count></white> Chunkloader."
