@@ -199,13 +199,22 @@ public final class MRChunksCommand implements TabExecutor {
                 tag("by", ban.by())));
     }
 
-    /** /mrchunks lag - locked and conspicuous loaders with their worst metric. */
+    /** /mrchunks lag - server load (staged shutdown), loaders disabled by lag, locked and conspicuous loaders. */
     private void lag(CommandSender sender) {
         if (!plugin.settings().lag().enabled()) {
             messages().send(sender, "lag-disabled");
         }
         if (plugin.loaders().paused()) {
             messages().send(sender, "pause-status", plugin.pause().tags());
+        }
+        if (plugin.settings().shed().enabled()) {
+            messages().send(sender, plugin.shedder().warning() ? "shed-status-warning" : "shed-status", plugin.shedder().tags());
+            for (int id : plugin.loaders().shedIds()) {
+                Loader shed = plugin.loaders().byId(id);
+                if (shed != null) {
+                    messages().send(sender, "shed-list-entry", plugin.shedder().tags(shed));
+                }
+            }
         }
         var list = plugin.lag().conspicuous();
         if (list.isEmpty()) {

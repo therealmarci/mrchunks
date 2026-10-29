@@ -4,13 +4,15 @@ import org.bukkit.Material;
 
 /**
  * What state a loader is in, as shown by its icon in all menus (also in MRadmin). The first matching state wins:
- * locked, switched off, paused by the server pause, over a warn limit, ok.
+ * locked, switched off, disabled by lag (staged shutdown), paused by the server pause, over a warn limit, ok.
  */
 public enum LoaderStatus {
     /** Locked because of lag - only admins can lift it. */
     LOCKED(Material.REDSTONE_BLOCK),
     /** Switched off by a player or admin. */
     INACTIVE(Material.GRAY_CONCRETE),
+    /** Switched on, but taken off the grid for a while by the staged shutdown (server too slow). */
+    SHED(Material.ORANGE_CONCRETE),
     /** Switched on, but holding no chunks while the server lags (server pause). */
     PAUSED(Material.COBWEB),
     /** Last measurement over a warn limit. */
@@ -30,6 +32,9 @@ public enum LoaderStatus {
         }
         if (!loader.active()) {
             return INACTIVE;
+        }
+        if (plugin.loaders().shed(loader)) {
+            return SHED;
         }
         if (plugin.loaders().paused()) {
             return PAUSED;

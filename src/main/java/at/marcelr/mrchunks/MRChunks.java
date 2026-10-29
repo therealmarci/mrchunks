@@ -6,6 +6,7 @@ import at.marcelr.mrchunks.command.MRChunksCommand;
 import at.marcelr.mrchunks.dummy.Dummies;
 import at.marcelr.mrchunks.gui.MenuListener;
 import at.marcelr.mrchunks.lag.LagMonitor;
+import at.marcelr.mrchunks.lag.LoadShedder;
 import at.marcelr.mrchunks.lag.ServerPause;
 import at.marcelr.mrchunks.link.LinkRequests;
 import at.marcelr.mrchunks.map.MapHooks;
@@ -65,6 +66,7 @@ public final class MRChunks extends JavaPlugin {
     private MapHooks maps;
     private LagMonitor lag;
     private ServerPause pause;
+    private LoadShedder shedder;
     private MRadminLink mradmin;
     private Dummies dummies;
     private LinkRequests linkRequests;
@@ -90,8 +92,10 @@ public final class MRChunks extends JavaPlugin {
         linkRequests = new LinkRequests(this);
         lag = new LagMonitor(this);
         pause = new ServerPause(this);
+        shedder = new LoadShedder(this);
         lag.start();
         pause.start();
+        shedder.start();
 
         updateChecker = new UpdateChecker(this);
         updateChecker.start();
@@ -144,6 +148,9 @@ public final class MRChunks extends JavaPlugin {
         if (pause != null) {
             pause.stop();
         }
+        if (shedder != null) {
+            shedder.stop();
+        }
         discord.shutdown();
     }
 
@@ -157,6 +164,7 @@ public final class MRChunks extends JavaPlugin {
         startValidation();
         lag.start();
         pause.start();
+        shedder.start();
         updateChecker.start();
         menuListener.start();
         maps.start();
@@ -253,6 +261,10 @@ public final class MRChunks extends JavaPlugin {
 
     public ServerPause pause() {
         return pause;
+    }
+
+    public LoadShedder shedder() {
+        return shedder;
     }
 
     public MapHooks maps() {

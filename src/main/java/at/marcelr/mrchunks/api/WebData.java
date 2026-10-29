@@ -255,6 +255,9 @@ final class WebData {
         result.put("active", all.stream().filter(Loader::active).count());
         result.put("locked", loaders.lagLocks().size());
         result.put("warn", all.stream().filter(l -> LoaderStatus.of(plugin, l) == LoaderStatus.WARN).count());
+        result.put("shed", loaders.shedIds().size());
+        result.put("mspt", Math.round(plugin.shedder().mspt() * 10) / 10.0);
+        result.put("msptWarning", plugin.shedder().warning());
         result.put("chunks", loaders.loadedChunkCount());
         result.put("owners", all.stream().map(Loader::owner).distinct().count());
         result.put("size", plugin.settings().loaders().defaultSize());
@@ -311,6 +314,10 @@ final class WebData {
         if (lock != null) {
             m.put("lock", Map.of("metric", messages.plain("lag-metric-" + lock.metric().key()), "value", lock.value(),
                     "limit", lock.limit(), "since", lock.since()));
+        }
+        if (plugin.loaders().shed(loader)) {
+            long since = plugin.loaders().shedSince(loader);
+            m.put("shed", Map.of("since", since, "back", since + plugin.settings().shed().minMinutes() * 60_000L));
         }
         Activity a = plugin.settings().lag().enabled() ? plugin.lag().activity(loader) : null;
         if (a != null) {

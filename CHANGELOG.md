@@ -9,6 +9,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+### Neu
+- **Gestaffelte Abschaltung (Performance-Schutz):** Viele Loader zusammen konnten den Server ausbremsen, obwohl jeder einzelne unter seinen Grenzen blieb - der Lag-Schutz griff dann nicht. Jetzt beobachtet MRchunks die Tick-Zeit des Servers (MSPT, Mittel über 60 Sekunden): **über 40 ms** gibt es eine Warnung an das Team im Chat (`mrchunks.admin.gui`) und in Discord (hält mindestens 5 Minuten), **über 45 ms** wird der Loader mit der höchsten Auslastung **„Durch Lags deaktiviert“** - er bleibt eingeschaltet, gibt aber seine Chunks und seinen Dummy frei, mindestens 5 Minuten lang. Pro Minute folgt der nächste, bis der Server wieder bei 40 ms liegt. Danach kommen die Loader einzeln nacheinander zurück. Wird ein Loader **mehr als zweimal in 60 Minuten** abgeschaltet, wird er gesperrt. Owner (offline beim nächsten Login), Team und Discord werden informiert; `/mrchunks lag` zeigt die Serverlast und alle abgeschalteten Loader, Menü, squaremap-Karte und MRadmin den neuen Zustand. Neuer Config-Abschnitt `staged-shutdown` (`warn-mspt`, `shutdown-mspt`, `average-seconds`, `step-seconds`, `min-minutes`, `max-shutdowns`, `window-minutes`), neue Discord-Ereignisse `server-lag-warning`, `server-lag-normal`, `loader-lag-shutdown`, `loader-lag-back`, `loader-lag-repeat-locked`.
+
+### Behoben & geändert
+- **Entity-Grenzen halbiert:** `lag-protection.limits.entities` jetzt Warnung 150 / Sperre 400 (vorher 300 / 800), für kleine Loader bis 3×3 (`lag-protection.small-loaders.limits.entities`) 50 / 125 (vorher 100 / 250). Bestehende Server bekommen die neuen Werte nur, wenn sie die alten Standardwerte noch nicht geändert hatten (`config-version` 18).
+
 ## [1.0.0] - 2026-10-29
 
 > [!WARNING]

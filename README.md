@@ -18,7 +18,7 @@
 - **Dummy-Spieler** (optional): ein künstlicher Spieler auf dem Loader, damit Mobs aktiv bleiben und Farmen wie mit einem echten Spieler daneben laufen.
 - **Zweit-Accounts verknüpfen:** Haupt- und AFK-Account teilen sich Loader und Budget.
 - **Unzerstörbar:** kein Abbauen, keine Explosionen, Kolben, Wither oder Endermen.
-- **Lag-Schutz:** Loader, die den Server ausbremsen, werden erkannt und gesperrt. Laggt der ganze Server, pausieren alle Loader automatisch.
+- **Lag-Schutz:** Loader, die den Server ausbremsen, werden erkannt und gesperrt. Ist der Server ausgelastet, schaltet die gestaffelte Abschaltung die aufwendigsten Loader vorübergehend ab. Laggt der ganze Server, pausieren alle Loader automatisch.
 - **Webkarte** mit echtem Gelände über squaremap, automatisch eingerichtet.
 - **Menüs statt Befehle** für Spieler, ein Admin-Menü für das Team, **Discord-Logs** und **Update-Prüfung**.
 
@@ -76,6 +76,7 @@ Hast du mehr als 45 Loader, erscheinen Pfeile zum Blättern.
 | Grauer Beton | Ausgeschaltet |
 | Magmablock | Über einer Warnschwelle des [Lag-Schutzes](#lag-schutz) |
 | Redstone-Block | Wegen Lag gesperrt |
+| Oranger Beton | [Durch Lags deaktiviert](#gestaffelte-abschaltung): bleibt an, lädt von selbst wieder |
 | Spinnennetz | Pausiert, weil der ganze Server laggt |
 
 ### Was läuft in geladenen Chunks?
@@ -131,7 +132,7 @@ Spieler brauchen keine Befehle außer `/chunkloader` - alles läuft über Menüs
 | `/mrchunks toggle <spieler> <nr>` | Chunkloader an/aus | `mrchunks.admin.toggle` |
 | `/mrchunks delete <spieler> <nr>` | Chunkloader löschen | `mrchunks.admin.manage` |
 | `/mrchunks unlock <spieler> <nr>` | Lag-Sperre aufheben | `mrchunks.admin.manage` |
-| `/mrchunks lag` | Auffällige und gesperrte Loader anzeigen | `mrchunks.admin.manage` |
+| `/mrchunks lag` | Serverlast, durch Lags deaktivierte, auffällige und gesperrte Loader anzeigen | `mrchunks.admin.manage` |
 | `/mrchunks dummy <spieler> <nr>` | Dummy eines Loaders an/aus (auch über das Limit hinaus) | `mrchunks.admin.manage` |
 | `/mrchunks link <haupt> <zweit>` | Accounts ohne Zustimmung verknüpfen | `mrchunks.admin.link` |
 | `/mrchunks unlink <spieler>` | Verknüpfung lösen | `mrchunks.admin.link` |
@@ -263,14 +264,14 @@ MRchunks misst alle 30 Sekunden, was im Bereich jedes **aktiven** Loaders passie
 
 | Messwert | Was gezählt wird | Warnung bis 3×3 | Sperre bis 3×3 | Warnung (pro 49 Chunks) | Sperre (pro 49 Chunks) |
 |---|---|---|---|---|---|
-| `entities` | Mobs, Tiere, Loren, Items … | 100 | 250 | 300 | 800 |
+| `entities` | Mobs, Tiere, Loren, Items … | 50 | 125 | 150 | 400 |
 | `items` | Items am Boden | 80 | 300 | 200 | 1000 |
 | `redstone` | Redstone-Änderungen pro Sekunde | 150 | 600 | 500 | 2000 |
 | `hoppers` | Trichter-Transfers pro Sekunde | 100 | 400 | 300 | 1200 |
 | `pistons` | Kolben-Bewegungen pro Sekunde | 15 | 50 | 40 | 150 |
 | `spawns` | neue Mobs und Items pro Sekunde | 8 | 25 | 20 | 80 |
 
-**Beispiel Entities (Sperre):** ein 3×3-Loader 250, ein 5×5-Loader 408 (800 × 25/49), ein 7×7-Loader 800, ein 9×9-Loader 1322 (800 × 81/49).
+**Beispiel Entities (Sperre):** ein 3×3-Loader 125, ein 5×5-Loader 204 (400 × 25/49), ein 7×7-Loader 400, ein 9×9-Loader 661 (400 × 81/49).
 
 - **Über „Warnung“:** Der Loader taucht in `/mrchunks lag` auf (und in MRadmin), dazu ein Discord-Log. Sonst passiert nichts.
 - **Über „Sperre“:** Gesperrt wird erst, wenn der Loader **mehrere Messungen hintereinander** darüber liegt (Standard 3, also 1,5 Minuten) **und der Server dabei laggt**. Dann wird **nur dieser Loader** gesperrt. Eine große Farm, mit der der Server gut zurechtkommt, wird nicht gesperrt. Beim Doppelten der Sperrgrenze wird auch ohne Server-Lag gesperrt.
@@ -278,7 +279,22 @@ MRchunks misst alle 30 Sekunden, was im Bereich jedes **aktiven** Loaders passie
 - Das Menü jedes aktiven Loaders zeigt die letzte Messung gegen die Grenzen dieses Loaders - so können Spieler ihre Farm selbst einschätzen.
 - Alle Grenzen stehen unter `lag-protection.limits` und `lag-protection.small-loaders.limits`, für wie viele Chunks sie gelten unter `lag-protection.limits-per-chunks` (49) und bis zu welcher Größe die festen gelten unter `lag-protection.small-loaders.max-chunks` (9). `0` schaltet eine Messung ab. Alle Grenzen werden auf ganze Zahlen gerundet.
 
-Die Standardwerte sind bewusst großzügig: Normale Farmen bleiben weit darunter, außer Kontrolle geratene Maschinen nicht.
+Normale Farmen bleiben unter diesen Grenzen, große Mob-Farmen fallen auf. Ist der Server trotzdem ausgelastet, weil viele Loader zusammen zu viel sind, greift die gestaffelte Abschaltung.
+
+### Gestaffelte Abschaltung
+Viele Loader können den Server **zusammen** ausbremsen, auch wenn jeder für sich unter seinen Grenzen bleibt. Dafür beobachtet MRchunks die **Tick-Zeit des Servers (MSPT)** im Mittel über eine Minute - einzelne Spitzen lösen nichts aus:
+
+| MSPT im Mittel | Was passiert |
+|---|---|
+| bis 40 | alles in Ordnung |
+| über 40 | **Warnung** an das Team im Chat und in Discord. Sie bleibt mindestens 5 Minuten bestehen. |
+| über 45 | Der Loader mit der **höchsten Auslastung** (Anteil an seinen Grenzen) wird **„Durch Lags deaktiviert“**. Pro Minute folgt der nächste, bis die MSPT wieder bei 40 oder darunter liegt. |
+
+- **Durch Lags deaktiviert** ist **keine Sperre**: Der Loader bleibt eingeschaltet, gibt aber seine Chunks frei (und sein Dummy verschwindet). Er bleibt **mindestens 5 Minuten** aus.
+- **Zurück:** Liegt die MSPT danach wieder bei 40 oder darunter, laden die Loader **einzeln nacheinander** wieder (einer pro Minute, der zuletzt abgeschaltete zuerst). Steigt die Last dabei wieder, stoppt die Rückkehr.
+- **Zu oft:** Wird derselbe Loader **innerhalb von 60 Minuten mehr als zweimal** abgeschaltet, wird er beim dritten Mal **gesperrt** (nur Admins können entsperren, mit MRadmin bekommt der Owner ein Ticket).
+- **Wer erfährt es:** Der Owner (offline beim nächsten Einloggen), das Team (`mrchunks.admin.gui`) im Chat und der Discord-Log. `/mrchunks lag` zeigt die aktuelle Serverlast und alle abgeschalteten Loader.
+- Ein Neustart bringt alle abgeschalteten Loader zurück. Alles einstellbar unter `staged-shutdown` (`warn-mspt`, `shutdown-mspt`, `average-seconds`, `step-seconds`, `min-minutes`, `max-shutdowns`, `window-minutes`).
 
 ### Server-Pause
 Laggt der **ganze Server** - egal warum -, pausiert MRchunks **alle** Loader:
@@ -297,7 +313,7 @@ Alles steht in `plugins/MRchunks/config.yml`. Jede Option ist in der Datei komme
 | `invites` | an/aus, Dauer-Auswahl, höchstens so viele Mitglieder |
 | `linked-accounts` | an/aus, wie viele Zweit-Accounts |
 | `dummies` | an/aus (Standard aus), Limit, Skin, sitzend |
-| `lag-protection` · `server-pause` | Mess- und Sperrgrenzen, TPS-Schwellen |
+| `lag-protection` · `staged-shutdown` · `server-pause` | Mess- und Sperrgrenzen, MSPT-Stufen der gestaffelten Abschaltung, TPS-Schwellen |
 | `item` · `border` | Aussehen des Loaders und der Grenze, `item.block-choices`: Blöcke, die Spieler für ihre Loader wählen dürfen (leere Liste `[]` = keine Auswahl) |
 | `squaremap` | Adresse der Webkarte, Farben (auch nach Status), getrennte Ebenen, Dummy-Symbol, Raster |
 | `discord` · `update-checker` · `gui` | Logs, Update-Hinweise, Menüs |
@@ -330,7 +346,7 @@ MRchunks zeigt alle Chunkloader auf **[squaremap](https://modrinth.com/plugin/sq
 
 Auf der Karte gibt es Ebenen, die jeder Besucher oben links ein- und ausschaltet:
 - **Chunkloader** (aktive Loader, grün), **Chunkloader (aus)** (grau) und **Chunkloader (gesperrt)** (rot) - mit `squaremap.split-layers: false` alles in einer Ebene. Gesperrte Loader sind immer zu sehen.
-- **Farbe nach Zustand** wie in der Weboberfläche: aktiv grün, aus grau, gesperrt rot, auffällig (über einer Warngrenze) und während einer Server-Pause gelb (`squaremap.color: status`, Farben unter `active-color`, `inactive-color`, `locked-color`, `warn-color`, `paused-color`). `color: owner` gibt aktiven Loadern stattdessen eine eigene Farbe pro Spieler; `status-colors: false` färbt gesperrte und auffällige Loader wie die anderen.
+- **Farbe nach Zustand** wie in der Weboberfläche: aktiv grün, aus grau, gesperrt rot, auffällig (über einer Warngrenze), durch Lags deaktiviert und während einer Server-Pause gelb (`squaremap.color: status`, Farben unter `active-color`, `inactive-color`, `locked-color`, `warn-color`, `paused-color`). `color: owner` gibt aktiven Loadern stattdessen eine eigene Farbe pro Spieler; `status-colors: false` färbt gesperrte und auffällige Loader wie die anderen.
 - **Andere Welten ausblenden:** squaremap zeigt jede Welt. Eine Welt blendest du in `plugins/squaremap/config.yml` aus (`world-settings` → `"minecraft:<welt>"` → `map.enabled: false`). Die Arena-Welt von MRpvp blendet MRpvp selbst aus.
 - **Beim Anklicken:** Owner, Position, Größe und Kosten im Budget, Status - bei gesperrten und auffälligen Loadern mit Grund (z.B. „gesperrt (Entities 900, Grenze 800)“) - und ob ein Dummy sitzt. Text in den Sprachdateien (`map-click-tooltip`, `map-tooltip-*`).
 - **Dummy-Symbol:** Sitzt ein Dummy auf dem Loader, zeigt die Karte eine kleine Figur statt des Loader-Symbols (`squaremap.show-dummy-icon`).
@@ -393,6 +409,9 @@ Sein Chunk-Budget ist voll. Im Menü **Einstellungen → Größe** steht, wie vi
 
 **Der Dummy-Knopf ist grau / der Dummy setzt sich nicht.**
 Ein Dummy braucht einen quadratischen Loader mit dem Block in der Mitte, mindestens 5×5. Im Menü **Einstellungen → Größe** die Mitte anklicken (alle Richtungen gleichmäßig).
+
+**Mein Loader ist „Durch Lags deaktiviert“ - was heißt das?**
+Der Server war ausgelastet, und dein Loader war gerade der aufwendigste. Er bleibt eingeschaltet und lädt nach mindestens 5 Minuten von selbst wieder, sobald sich der Server erholt hat - du musst nichts tun. Passiert das öfter als zweimal in einer Stunde, wird er gesperrt; dann hilft es, die Farm zu verkleinern.
 
 **Was passiert, wenn ein Chunkloader-Item verloren geht?**
 Nichts Schlimmes - gezählt werden nur **gesetzte** Loader. Ein neues Item holst du dir im Menü unter **Chunkloader holen**. Normale Smaragdblöcke sind übrigens keine Chunkloader, nur Items aus dem Menü.

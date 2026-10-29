@@ -295,7 +295,7 @@ final class SquaremapHook {
     }
 
     /**
-     * Locked (red), switched off (grey), paused and conspicuous (yellow), otherwise squaremap.color (status = green).
+     * Locked (red), switched off (grey), paused, disabled by lag and conspicuous (yellow), otherwise squaremap.color (status = green).
      * Without status-colors locked and conspicuous loaders look like the others.
      */
     private Color colorOf(Loader loader, Settings.SquaremapSettings settings, boolean locked) {
@@ -306,7 +306,7 @@ final class SquaremapHook {
         if (!loader.active()) {
             return settings.inactiveColor();
         }
-        if (plugin.loaders().paused()) {
+        if (plugin.loaders().paused() || plugin.loaders().shed(loader)) {
             return settings.pausedColor();
         }
         if (status.colors() && plugin.settings().lag().enabled() && plugin.lag().conspicuous(loader)) {
@@ -344,6 +344,9 @@ final class SquaremapHook {
     }
 
     private String state(Loader loader) {
+        if (loader.active() && plugin.loaders().shed(loader)) {
+            return plugin.messages().plain("state-shed");
+        }
         return loader.active() && plugin.loaders().paused()
                 ? plugin.messages().plain("state-paused") : Texts.state(plugin, loader.active());
     }

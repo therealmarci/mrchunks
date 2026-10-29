@@ -53,6 +53,13 @@ public final class LoaderManager {
     private Settings.LoadMethod appliedMethod;
     /** Server pause (see {@link at.marcelr.mrchunks.lag.ServerPause}): no tickets at all, loaders keep their state. */
     private boolean paused;
+    /** Loaders whose chunks are in {@link #coverage} right now (so uncovering never takes chunks of others). */
+    private final Set<Integer> covered = new HashSet<>();
+    /**
+     * Staged shutdown (see {@link at.marcelr.mrchunks.lag.LoadShedder}): loader id -> since when it is disabled by lag.
+     * Such a loader stays switched on but holds no chunks; not saved, a restart brings everything back.
+     */
+    private final Map<Integer, Long> shed = new LinkedHashMap<>();
 
     private final Map<UUID, Integer> budgetOverrides = new HashMap<>();
     private final Map<UUID, Integer> dummyOverrides = new HashMap<>();
@@ -264,6 +271,7 @@ public final class LoaderManager {
         unindex(loader);
         loaderMembers.remove(loader.id());
         lagLocks.remove(loader.id());
+        shed.remove(loader.id());
         plugin.border().loaderRemoved(loader);
         World world = loader.world();
         if (world != null) {
@@ -406,6 +414,7 @@ public final class LoaderManager {
     /** Locks the loader and switches it off; it stays off until {@link #lagUnlock}. */
     public void lagLock(Loader loader, LagLock lock) {
         lagLocks.put(loader.id(), lock);
+        shed.remove(loader.id());
         if (loader.active()) {
             setActive(loader, false);
         } else {
@@ -435,6 +444,57 @@ public final class LoaderManager {
         loader.setName(name);
         save();
         plugin.maps().refreshSoon();
+    }
+
+    // ---------------------------------------------------- staged shutdown
+
+    /** Whether the loader is disabled by lag right now (switched on, but holding no chunks). */
+    public boolean shed(Loader loader) {
+        return shed.containsKey(loader.id());
+    }
+
+    /** Since when the loader is disabled by lag (ms), or 0. */
+    public long shedSince(Loader loader) {
+        return shed.getOrDefault(loader.id(), 0L);
+    }
+
+    /** Whether the loader holds its chunks right now (active, not disabled by lag, no server pause, world loaded). */
+    public boolean loading(Loader loader) {
+        return covered.contains(loader.id());
+    }
+
+    /** Ids of the loaders disabled by lag, oldest first. */
+    public List<Integer> shedIds() {
+        return List.copyOf(shed.keySet());
+    }
+
+    /** Disables the loader by lag: it releases its chunks and its dummy, but stays switched on. */
+    public void shed(Loader loader, long since) {
+        if (shed.putIfAbsent(loader.id(), since) != null) {
+            return;
+        }
+        uncover(loader);
+        syncDummy(loader);
+        plugin.maps().refreshSoon();
+        plugin.border().loaderChanged(loader);
+    }
+
+    /** Ends the shutdown of the loader; if it is (still) switched on, it loads its chunks again. */
+    public void unshed(Loader loader) {
+        if (shed.remove(loader.id()) == null) {
+            return;
+        }
+        if (loader.active()) {
+            cover(loader);
+            syncDummy(loader);
+        }
+        plugin.maps().refreshSoon();
+        plugin.border().loaderChanged(loader);
+    }
+
+    /** Removes the shutdown of a loader that no longer exists or is switched off (no chunks to load). */
+    public void forgetShed(int id) {
+        shed.remove(id);
     }
 
     // ------------------------------------------------------------- tickets
@@ -495,12 +555,16 @@ public final class LoaderManager {
         }
         coverage.clear();
         forcedByUs.clear();
+        covered.clear();
     }
 
     private void cover(Loader loader) {
         World world = loader.world();
-        if (world == null || paused) {
-            return; // applied later by applyWorld when the world loads, or by applyAll when the pause ends
+        if (world == null || paused || shed.containsKey(loader.id())) {
+            return; // applied later by applyWorld when the world loads, by applyAll when the pause ends, or unshed
+        }
+        if (!covered.add(loader.id())) {
+            return;
         }
         Map<Long, Integer> chunks = coverage.computeIfAbsent(world.getUID(), k -> new HashMap<>());
         for (int cx = loader.minChunkX(); cx <= loader.maxChunkX(); cx++) {
@@ -513,6 +577,9 @@ public final class LoaderManager {
     }
 
     private void uncover(Loader loader) {
+        if (!covered.remove(loader.id())) {
+            return;
+        }
         World world = loader.world();
         Map<Long, Integer> chunks = world == null ? null : coverage.get(world.getUID());
         if (chunks == null) {
@@ -1087,7 +1154,7 @@ public final class LoaderManager {
                 try {
                     if (metric != null) {
                         lagLocks.put(Integer.parseInt(key), new LagLock(s.getLong("since"), metric,
-                                s.getDouble("value"), s.getDouble("limit"), s.getBoolean("notified")));
+                                s.getDouble("value"), s.getDouble("limit"), s.getBoolean("notified"), s.getInt("shutdowns")));
                     }
                 } catch (NumberFormatException ignored) {
                     // broken entry
@@ -1233,6 +1300,9 @@ public final class LoaderManager {
             data.set(p + "value", lock.value());
             data.set(p + "limit", lock.limit());
             data.set(p + "notified", lock.notified());
+            if (lock.shutdowns() > 0) {
+                data.set(p + "shutdowns", lock.shutdowns());
+            }
         });
         bans.forEach((uuid, ban) -> {
             data.set("bans." + uuid + ".until", ban.until());

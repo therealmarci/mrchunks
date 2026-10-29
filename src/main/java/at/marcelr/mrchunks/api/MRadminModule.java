@@ -338,17 +338,21 @@ final class MRadminModule implements AdminModule, WebModule {
         int locked = plugin.loaders().lagLocks().size();
         long warn = all.stream().filter(l -> LoaderStatus.of(plugin, l) == LoaderStatus.WARN).count();
         boolean paused = plugin.loaders().paused();
+        int shed = plugin.loaders().shedIds().size();
         return messages.server(() -> {
             List<WebTile.Fact> facts = new ArrayList<>();
             if (paused) {
                 facts.add(new WebTile.Fact(messages.plain("web-tile-paused"), "", "info"));
+            }
+            if (shed > 0) {
+                facts.add(new WebTile.Fact(messages.plain("web-tile-shed"), String.valueOf(shed), "warn"));
             }
             facts.add(new WebTile.Fact(messages.plain("web-tile-locked"), String.valueOf(locked), locked > 0 ? "bad" : ""));
             facts.add(new WebTile.Fact(messages.plain("web-tile-warn"), String.valueOf(warn), warn > 0 ? "warn" : ""));
             facts.add(new WebTile.Fact(messages.plain("web-tile-chunks"), String.valueOf(plugin.loaders().loadedChunkCount()), ""));
             return new WebTile(messages.plain("web-tile-label"), String.valueOf(active),
                     messages.plain("web-tile-unit", "loaders", String.valueOf(all.size())),
-                    paused ? "info" : locked > 0 ? "bad" : warn > 0 ? "warn" : "good", facts,
+                    paused ? "info" : locked > 0 ? "bad" : warn > 0 || shed > 0 ? "warn" : "good", facts,
                     messages.plain("web-tile-headline", "active", String.valueOf(active)), "/chunks",
                     messages.plain("web-tile-link"));
         });
@@ -386,7 +390,7 @@ final class MRadminModule implements AdminModule, WebModule {
         return SelfPage.AREA.equals(area) ? SelfPage.action(plugin, viewer, action, args) : "?";
     }
 
-    /** Server pause, locked loaders, loaders over the warning limit. */
+    /** Server pause, staged shutdown (warning, loaders disabled by lag), locked loaders, loaders over the warning limit. */
     @Override
     public List<WebAlert> alerts() {
         var messages = plugin.messages();
@@ -394,6 +398,14 @@ final class MRadminModule implements AdminModule, WebModule {
         if (plugin.loaders().paused()) {
             alerts.add(new WebAlert("bad", messages.plain("web-alert-paused", "tps",
                     String.format(java.util.Locale.ROOT, "%.1f", at.marcelr.mrchunks.lag.ServerPause.tps())), "/chunks"));
+        }
+        int shed = plugin.loaders().shedIds().size();
+        if (shed > 0) {
+            alerts.add(new WebAlert("warn", messages.plain("web-alert-shed", "count", String.valueOf(shed),
+                    "mspt", String.format(java.util.Locale.ROOT, "%.1f", plugin.shedder().mspt())), "/chunks"));
+        } else if (plugin.shedder().warning()) {
+            alerts.add(new WebAlert("warn", messages.plain("web-alert-mspt",
+                    "mspt", String.format(java.util.Locale.ROOT, "%.1f", plugin.shedder().mspt())), "/chunks"));
         }
         int locked = plugin.loaders().lagLocks().size();
         if (locked > 0) {

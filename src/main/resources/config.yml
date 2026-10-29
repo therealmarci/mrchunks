@@ -16,7 +16,7 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 17
+config-version: 18
 
 # Language of the texts (chat, menus, items). The texts are in plugins/MRchunks/lang/<language>.yml.
 #   auto = every player gets the language set in their Minecraft client:
@@ -171,7 +171,7 @@ lag-protection:
   server-lag-mspt: 40
   # Unconditional lock: from how many times the "lock" limit to lock even WITHOUT server lag (also only
   # after lock-after-samples measurements in a row). Only relevant with only-when-server-lags: true.
-  # 1 = as soon as "lock" is exceeded, 2 = from double the limit (e.g. 1600 entities with lock 800), 1.5 works too.
+  # 1 = as soon as "lock" is exceeded, 2 = from double the limit (e.g. 800 entities with lock 400), 1.5 works too.
   # 0 = off, then it never locks without server lag.
   force-lock-multiplier: 2
   # The limits below apply to this many chunks (49 = one 7x7 loader) and are scaled to the actual area:
@@ -180,7 +180,7 @@ lag-protection:
   limits-per-chunks: 49
   limits:
     # Entities (mobs, animals, minecarts, armour stands ... including items on the ground, without players)
-    entities: { warn: 300, lock: 800 }
+    entities: { warn: 150, lock: 400 }
     # Items lying on the ground
     items: { warn: 200, lock: 1000 }
     # Redstone signal changes per second (clocks, large circuits)
@@ -197,7 +197,7 @@ lag-protection:
   small-loaders:
     max-chunks: 9
     limits:
-      entities: { warn: 100, lock: 250 }
+      entities: { warn: 50, lock: 125 }
       items: { warn: 80, lock: 300 }
       redstone: { warn: 150, lock: 600 }
       hoppers: { warn: 100, lock: 400 }
@@ -219,6 +219,27 @@ server-pause:
   resume-after-seconds: 60
   # Tell owners of active loaders and admins in the chat about pausing and resuming.
   notify-owners: true
+
+# Staged shutdown: protects the server's performance against the load of many loaders together (each one under its
+# own limits). Measured is the average tick time (MSPT) over "average-seconds", so single spikes trigger nothing.
+#   up to warn-mspt              everything fine
+#   warn-mspt .. shutdown-mspt   warning to the team (chat + Discord), held at least min-minutes
+#   above shutdown-mspt          the loader with the highest load (share of its lag limits) is "disabled by lag":
+#                                it releases its chunks (and its dummy) but stays switched on. One more loader per
+#                                step-seconds until the MSPT is at warn-mspt or lower again.
+# A loader disabled by lag stays off at least min-minutes. Afterwards, while the MSPT is at warn-mspt or lower,
+# the loaders come back one by one (one per step-seconds, the most recently disabled first).
+# A loader disabled more than max-shutdowns times within window-minutes is locked (only admins can lift that).
+# The server pause above stays the emergency brake for a server that lags badly.
+staged-shutdown:
+  enabled: true
+  average-seconds: 60
+  warn-mspt: 40
+  shutdown-mspt: 45
+  step-seconds: 60
+  min-minutes: 5
+  max-shutdowns: 2
+  window-minutes: 60
 
 
 # ------------------------------------------------------------------------------
@@ -428,6 +449,21 @@ discord:
     server-resumed:
       enabled: true
       color: "#27AE60"
+    server-lag-warning:
+      enabled: true
+      color: "#F39C12"
+    server-lag-normal:
+      enabled: true
+      color: "#27AE60"
+    loader-lag-shutdown:
+      enabled: true
+      color: "#E67E22"
+    loader-lag-back:
+      enabled: true
+      color: "#27AE60"
+    loader-lag-repeat-locked:
+      enabled: true
+      color: "#C0392B"
     dummy-toggled:
       enabled: true
       color: "#9B59B6"

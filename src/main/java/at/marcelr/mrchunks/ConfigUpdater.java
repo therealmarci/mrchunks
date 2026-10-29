@@ -22,7 +22,7 @@ import java.util.logging.Level;
  */
 public final class ConfigUpdater {
 
-    public static final int CURRENT_VERSION = 17;
+    public static final int CURRENT_VERSION = 18;
     public static final String BOM = "\uFEFF";
     /** Texts whose content changed with new features; the new default replaces the old value. */
     private static final Set<String> REPLACED_KEYS = Set.of();
@@ -97,6 +97,13 @@ public final class ConfigUpdater {
                 replaceDefault(existing, template, "squaremap.paused-color", "#F39C12", "#F1C40F");
                 replaceDefault(existing, template, "squaremap.warn-color", "#E67E22", "#F1C40F");
             }
+            // v18: halved entity limits (staged shutdown protects the performance) - only the old defaults are replaced.
+            if (version < 18) {
+                replaceDefault(existing, template, "lag-protection.limits.entities.warn", 300, 150);
+                replaceDefault(existing, template, "lag-protection.limits.entities.lock", 800, 400);
+                replaceDefault(existing, template, "lag-protection.small-loaders.limits.entities.warn", 100, 50);
+                replaceDefault(existing, template, "lag-protection.small-loaders.limits.entities.lock", 250, 125);
+            }
             template.set("config-version", CURRENT_VERSION);
             // Keep long messages on one line instead of folding them.
             template.options().width(10_000);
@@ -115,6 +122,14 @@ public final class ConfigUpdater {
     private static void replaceDefault(YamlConfiguration existing, YamlConfiguration template, String key, String old,
                                        String value) {
         if (old.equalsIgnoreCase(existing.getString(key, old).trim())) {
+            template.set(key, value);
+        }
+    }
+
+    /** Like {@link #replaceDefault(YamlConfiguration, YamlConfiguration, String, String, String)} for numbers. */
+    private static void replaceDefault(YamlConfiguration existing, YamlConfiguration template, String key, int old,
+                                       int value) {
+        if (!existing.contains(key) || existing.getDouble(key) == old) {
             template.set(key, value);
         }
     }

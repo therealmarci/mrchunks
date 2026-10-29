@@ -161,6 +161,10 @@ final class SelfPage {
             details.add(new SelfBlock.Text(m.plain("self-locked-detail", "metric", m.plain("lag-metric-" + lock.metric().key()),
                     "value", LagMonitor.format(lock.value()), "limit", LagMonitor.format(lock.limit()),
                     "since", Texts.date(m, lock.since())), "bad"));
+        } else if (status == LoaderStatus.SHED) {
+            details.add(new SelfBlock.Text(m.plain("self-shed-detail", "since",
+                    Texts.date(m, plugin.loaders().shedSince(loader)), "back", Texts.date(m,
+                            plugin.loaders().shedSince(loader) + plugin.settings().shed().minMinutes() * 60_000L)), "warn"));
         }
         details.add(limits(plugin, loader));
         if (actions && plugin.settings().invites().enabled() && viewer.has(INVITE)) {
@@ -318,6 +322,7 @@ final class SelfPage {
         return switch (status) {
             case LOCKED -> m.plain("self-state-locked");
             case INACTIVE -> m.plain("self-state-off");
+            case SHED -> m.plain("self-state-shed");
             case PAUSED -> m.plain("self-state-paused");
             case WARN -> m.plain("self-state-warn");
             case OK -> m.plain("self-state-on");
@@ -327,7 +332,7 @@ final class SelfPage {
     private static String tone(LoaderStatus status) {
         return switch (status) {
             case LOCKED -> "bad";
-            case WARN, PAUSED -> "warn";
+            case WARN, PAUSED, SHED -> "warn";
             case INACTIVE -> "";
             case OK -> "good";
         };

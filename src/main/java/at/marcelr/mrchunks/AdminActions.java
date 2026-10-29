@@ -171,6 +171,8 @@ public final class AdminActions {
         messages().send(sender, "toggled", Texts.loader(plugin, loader), tag("state", state));
         if (active && loaders().paused()) {
             messages().send(sender, "pause-toggle-hint", plugin.pause().tags());
+        } else if (active && loaders().shed(loader)) {
+            messages().send(sender, "shed-toggle-hint", plugin.shedder().tags(loader));
         }
         if (!isOwner(sender, loader)) {
             notifyOwner(loader.owner(), "owner-notify-toggled", Texts.loader(plugin, loader),
