@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Do not change - tells the plugin which texts need to be renewed on updates.
-lang-version: 17
+lang-version: 18
 
 # Discord log texts (Discord markdown). Placeholders: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. On/off and colour are set in config.yml.
@@ -353,7 +353,7 @@ gui-loader-lore:
   - "<gray>Placed: <white><created>"
 gui-loader-locked:
   - ""
-  - "<red>🔒 Locked because of lag"
+  - "<red>Locked because of lag"
   - "<gray>since <white><time></white>: <metric> <white><value></white> <dark_gray>(limit <limit>)"
   - "<gray>Only an admin can lift the lock."
 gui-loader-paused:
@@ -608,8 +608,8 @@ web-alert-warn: "<count> chunk loader(s) above the warning limit"
 web-tile-label: "Chunk loaders"
 web-tile-unit: "/ <loaders> active"
 web-tile-paused: "⏸ Paused"
-web-tile-locked: "🔒 Locked"
-web-tile-warn: "! Conspicuous"
+web-tile-locked: "Locked"
+web-tile-warn: "Conspicuous"
 web-tile-chunks: "Loaded chunks"
 web-tile-headline: "<active> chunk loaders active"
 web-tile-link: "Go to the chunk loaders"
