@@ -258,10 +258,6 @@ final class SelfPage {
         }
         String text = m.plain("self-limits-measured", "ago", DurationUtil.format(System.currentTimeMillis() - a.time()),
                 "loaded", a.loadedChunks(), "total", a.totalChunks());
-        Activity pool = plugin.lag().pool(loader.owner());
-        if (pool != null) {
-            text += " " + m.plain("self-limits-pool", "chunks", pool.totalChunks(), "percent", Math.round(pool.warnRatio() * 100));
-        }
         return new SelfBlock.Meters(m.plain("self-limits"), text, meters);
     }
 

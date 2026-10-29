@@ -320,7 +320,7 @@ final class WebData {
         return m;
     }
 
-    /** Metrics with the loader's own share of the limits; pool = all active loaders of the owner together. */
+    /** Metrics against the limits of the loader's own area. */
     private static Map<String, Object> detail(MRChunks plugin, Loader loader) {
         Map<String, Object> m = summary(plugin, loader);
         m.put("dummiesEnabled", plugin.dummies().enabled());
@@ -331,10 +331,6 @@ final class WebData {
         m.put("budget", budget.value() == Integer.MAX_VALUE ? -1 : budget.value());
         m.put("budgetUsed", plugin.loaders().usedBudget(loader.owner()));
         Messages messages = plugin.messages();
-        Activity pool = plugin.settings().lag().enabled() ? plugin.lag().pool(loader.owner()) : null;
-        if (pool != null) {
-            m.put("pool", Map.of("warnRatio", pool.warnRatio(), "lockRatio", pool.lockRatio(), "chunks", pool.totalChunks()));
-        }
         Activity a = plugin.settings().lag().enabled() ? plugin.lag().activity(loader) : null;
         if (a != null) {
             LagLimits limits = plugin.settings().lag().limitsFor(loader.area());

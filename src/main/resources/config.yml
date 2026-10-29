@@ -16,7 +16,7 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 14
+config-version: 15
 
 # Language of the texts (chat, menus, items). The texts are in plugins/MRchunks/lang/<language>.yml.
 #   auto = every player gets the language set in their Minecraft client:
@@ -149,12 +149,11 @@ dummies:
 #   3) LAG PROTECTION
 # ------------------------------------------------------------------------------
 # MRchunks regularly measures what happens in the area of every active chunk loader (all chunks together).
-# The limits grow with the size of the loaders, and all active loaders of a player share them: what counts is the
-# sum of all their loaders against the limits of all their chunks together. Splitting the same budget into many small
-# loaders therefore never allows more, and one busy small loader is fine while the player's other loaders are quiet.
-# If the sum is above "warn", the busiest loader counts as suspicious: admins see it in /mrchunks lag (and in
-# MRadmin's server status, if installed), plus a Discord log (at most once per hour).
-# If the sum is above "lock" several times in a row, the loader furthest over its share is switched off and LOCKED:
+# Every loader is judged on its own against the limits of its own area: up to 3x3 fixed limits (small-loaders),
+# above that they grow with the size of the loader, but never below the 3x3 ones.
+# If a loader is above "warn", it counts as suspicious: admins see it in /mrchunks lag (and in MRadmin's server
+# status, if installed), plus a Discord log (at most once per hour).
+# If a loader is above "lock" several times in a row, only this loader is switched off and LOCKED:
 # only admins can lift the lock (loader menu or /mrchunks unlock <player> <nr>). The owner is informed.
 # A value of 0 switches the respective measurement off (e.g. hoppers: { warn: 0, lock: 0 }).
 lag-protection:
@@ -176,7 +175,7 @@ lag-protection:
   # 0 = off, then it never locks without server lag.
   force-lock-multiplier: 2
   # The limits below apply to this many chunks (49 = one 7x7 loader) and are scaled to the actual area:
-  # a 5x5 loader (25 chunks) gets 25/49 of them, the 147 chunks of three 7x7 loaders three times as much
+  # a 5x5 loader (25 chunks) gets 25/49 of them, a 9x9 loader (81 chunks) 81/49 - for each loader on its own
   # (up to 3x3 see small-loaders).
   limits-per-chunks: 49
   limits:
@@ -194,7 +193,7 @@ lag-protection:
     spawns: { warn: 20, lock: 80 }
   # Small loaders up to max-chunks chunks (9 = 3x3) get these fixed limits instead - scaled down from the ones above
   # they would be too tight for a small farm. Bigger areas use the scaled limits, but never less than these.
-  # This also applies to all active loaders of a player together. All limits are rounded to whole numbers.
+  # All limits are rounded to whole numbers.
   small-loaders:
     max-chunks: 9
     limits:

@@ -253,25 +253,29 @@ Jeder Spieler hat ein **Budget in Chunks**: So viele Chunks dürfen alle seine *
 - **Dummies** haben ein eigenes Limit nach demselben Muster (`dummies.default-limit`, `mrchunks.dummies.<n>`, `/mrchunks limit <spieler> dummy <n>`).
 
 ## Lag-Schutz
-MRchunks misst alle 30 Sekunden, was im Bereich jedes **aktiven** Loaders passiert. Die Grenzen gelten **pro 49 Chunks** (ein 7×7-Loader) und wachsen mit der Fläche - und **alle aktiven Loader eines Spielers teilen sich eine gemeinsame Grenze**: Gezählt wird die Summe aller seiner Loader gegen die Grenzen aller seiner Chunks zusammen. So bringt es nichts, dasselbe Budget auf viele kleine Loader zu verteilen, und eine dichte kleine Farm ist kein Problem, solange die anderen Loader des Spielers ruhig sind.
+MRchunks misst alle 30 Sekunden, was im Bereich jedes **aktiven** Loaders passiert. **Jeder Loader wird für sich bewertet**, gegen die Grenzen seiner eigenen Fläche:
 
-| Messwert | Was gezählt wird | Warnung (pro 49 Chunks) | Sperre (pro 49 Chunks) |
-|---|---|---|---|
-| `entities` | Mobs, Tiere, Loren, Items … | 300 | 800 |
-| `items` | Items am Boden | 200 | 1000 |
-| `redstone` | Redstone-Änderungen pro Sekunde | 500 | 2000 |
-| `hoppers` | Trichter-Transfers pro Sekunde | 300 | 1200 |
-| `pistons` | Kolben-Bewegungen pro Sekunde | 40 | 150 |
-| `spawns` | neue Mobs und Items pro Sekunde | 20 | 80 |
+- **Bis 3×3** gelten feste Grenzen (`lag-protection.small-loaders`).
+- **Ab 3×3** wachsen die Grenzen mit der Größe des Loaders. Die Werte in `lag-protection.limits` gelten für 49 Chunks (ein 7×7-Loader) und werden auf die Fläche umgerechnet.
+- Die 3×3-Grenzen sind das **Minimum**: Kein Loader bekommt niedrigere Grenzen.
+- Überschreitet ein Loader eine Grenze, betrifft das **nur diesen einen Loader** - die anderen Loader desselben Spielers laufen weiter.
 
-**Beispiel:** Wer 147 Chunks aktiv hat, darf zusammen 3 × 800 = 2400 Entities haben, bevor gesperrt wird - egal ob in drei 7×7-Loadern oder in sechzehn 3×3-Loadern.
+| Messwert | Was gezählt wird | Warnung bis 3×3 | Sperre bis 3×3 | Warnung (pro 49 Chunks) | Sperre (pro 49 Chunks) |
+|---|---|---|---|---|---|
+| `entities` | Mobs, Tiere, Loren, Items … | 100 | 250 | 300 | 800 |
+| `items` | Items am Boden | 80 | 300 | 200 | 1000 |
+| `redstone` | Redstone-Änderungen pro Sekunde | 150 | 600 | 500 | 2000 |
+| `hoppers` | Trichter-Transfers pro Sekunde | 100 | 400 | 300 | 1200 |
+| `pistons` | Kolben-Bewegungen pro Sekunde | 15 | 50 | 40 | 150 |
+| `spawns` | neue Mobs und Items pro Sekunde | 8 | 25 | 20 | 80 |
 
-- **Über „Warnung“:** Der auffälligste Loader des Spielers taucht in `/mrchunks lag` auf (und in MRadmin), dazu ein Discord-Log. Sonst passiert nichts.
-- **Über „Sperre“:** Gesperrt wird erst, wenn die Summe **mehrere Messungen hintereinander** darüber liegt (Standard 3, also 1,5 Minuten) **und der Server dabei laggt**. Dann wird der Loader gesperrt, der am weitesten über seinem Anteil liegt. Eine große Farm, mit der der Server gut zurechtkommt, wird nicht gesperrt. Beim Doppelten der Sperrgrenze wird auch ohne Server-Lag gesperrt.
+**Beispiel Entities (Sperre):** ein 3×3-Loader 250, ein 5×5-Loader 408 (800 × 25/49), ein 7×7-Loader 800, ein 9×9-Loader 1322 (800 × 81/49).
+
+- **Über „Warnung“:** Der Loader taucht in `/mrchunks lag` auf (und in MRadmin), dazu ein Discord-Log. Sonst passiert nichts.
+- **Über „Sperre“:** Gesperrt wird erst, wenn der Loader **mehrere Messungen hintereinander** darüber liegt (Standard 3, also 1,5 Minuten) **und der Server dabei laggt**. Dann wird **nur dieser Loader** gesperrt. Eine große Farm, mit der der Server gut zurechtkommt, wird nicht gesperrt. Beim Doppelten der Sperrgrenze wird auch ohne Server-Lag gesperrt.
 - **Gesperrt heißt:** Der Loader ist aus und kann nur von Admins entsperrt werden (Menü oder `/mrchunks unlock`). Der Owner wird informiert, mit MRadmin bekommt er automatisch ein **Ticket** mit allen Details.
-- Das Menü jedes aktiven Loaders zeigt die letzte Messung mit dem Anteil dieses Loaders an den Grenzen und wie ausgelastet alle Loader des Spielers zusammen sind - so können Spieler ihre Farm selbst einschätzen.
-- Alle Grenzen stehen unter `lag-protection.limits`, für wie viele Chunks sie gelten unter `lag-protection.limits-per-chunks` (49). `0` schaltet eine Messung ab.
-- **Kleine Loader** bis 3×3 (`lag-protection.small-loaders.max-chunks`, 9 Chunks) bekommen feste, höhere Grenzen aus `lag-protection.small-loaders.limits` - heruntergerechnet wären sie für eine kleine Farm zu knapp. Größere Flächen werden umgerechnet, liegen aber nie unter diesen Werten. Das gilt auch für alle aktiven Loader eines Spielers zusammen. Alle Grenzen werden auf ganze Zahlen gerundet.
+- Das Menü jedes aktiven Loaders zeigt die letzte Messung gegen die Grenzen dieses Loaders - so können Spieler ihre Farm selbst einschätzen.
+- Alle Grenzen stehen unter `lag-protection.limits` und `lag-protection.small-loaders.limits`, für wie viele Chunks sie gelten unter `lag-protection.limits-per-chunks` (49) und bis zu welcher Größe die festen gelten unter `lag-protection.small-loaders.max-chunks` (9). `0` schaltet eine Messung ab. Alle Grenzen werden auf ganze Zahlen gerundet.
 
 Die Standardwerte sind bewusst großzügig: Normale Farmen bleiben weit darunter, außer Kontrolle geratene Maschinen nicht.
 

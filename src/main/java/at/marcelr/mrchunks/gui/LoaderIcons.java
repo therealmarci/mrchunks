@@ -76,9 +76,8 @@ public final class LoaderIcons {
         LagLimits limits = plugin.settings().lag().limitsFor(loader.area());
         boolean locked = plugin.loaders().lagLocked(loader);
         List<Component> lines = new ArrayList<>();
-        // Locked loaders are not part of their owner's pool: judged by their own share.
-        boolean high = locked ? a.lockRatio() >= 1 : plugin.lag().overLock(loader);
-        boolean warn = locked ? a.conspicuous() : plugin.lag().conspicuous(loader);
+        boolean high = a.lockRatio() >= 1;
+        boolean warn = a.conspicuous();
         lines.add(messages.item(high ? "gui-activity-header-high"
                 : warn ? "gui-activity-header-warn" : "gui-activity-header-ok"));
         List<Metric> metrics = new ArrayList<>(List.of(Metric.values()));
@@ -90,11 +89,6 @@ public final class LoaderIcons {
                     tag("value", LagMonitor.format(a.value(metric))),
                     tag("warn", LagMonitor.format(limits.warn(metric))),
                     tag("lock", LagMonitor.format(limits.lock(metric)))));
-        }
-        Activity pool = plugin.lag().pool(loader.owner());
-        if (!locked && pool != null && pool.totalChunks() > loader.area()) {
-            lines.add(messages.item("gui-activity-pool", tag("percent", Math.round(pool.warnRatio() * 100)),
-                    tag("chunks", pool.totalChunks())));
         }
         if (locked) {
             // Locked loaders are measured only while someone loads the area: how fresh and how complete it is.

@@ -46,12 +46,10 @@ import static at.marcelr.mrchunks.Messages.tag;
  * Events (redstone, hopper transfers, pistons, spawns) are counted per loader through a chunk index that is rebuilt
  * at every sample; entities and dropped items are counted at the sample itself.
  * <p>
- * The limits grow with the area (see {@link Settings.LagSettings#limitsFor}), and all active loaders of one owner
- * share one pool: what counts is the sum of their values against the limits of their areas together. So splitting the
- * same budget into many small loaders never allows more load, and a busy small loader is fine as long as the owner's
- * other loaders are quiet. When the pool is over a lock limit {@code lock-after-samples} times in a row - by default
- * only while the server is actually lagging, or without lag once it reaches {@code force-lock-multiplier} times the
- * limit - the owner's loader that is furthest over its own share is locked.
+ * Every loader is judged on its own against the limits of its area (see {@link Settings.LagSettings#limitsFor}): up to
+ * 3x3 fixed limits, above that they grow with the area, never below the 3x3 ones. When a loader is over a lock limit
+ * {@code lock-after-samples} times in a row - by default only while the server is actually lagging, or without lag
+ * once it reaches {@code force-lock-multiplier} times the limit - only that loader is locked.
  * Listeners are only registered for metrics that have a limit, so switching e.g. hoppers off costs nothing.
  */
 public final class LagMonitor implements Listener {
@@ -69,12 +67,10 @@ public final class LagMonitor implements Listener {
     private final Map<Integer, long[]> counts = new HashMap<>();
     private long windowStart = System.currentTimeMillis();
 
-    /** loader id -> last measurement, judged against the loader's own share of the limits */
+    /** loader id -> last measurement, judged against the limits of the loader's area */
     private final Map<Integer, Activity> activity = new HashMap<>();
-    /** owner -> all their active loaders together, against the limits of their areas together */
-    private final Map<UUID, Activity> pools = new HashMap<>();
-    /** owner -> samples in a row with their pool over a lock limit */
-    private final Map<UUID, Integer> strikes = new HashMap<>();
+    /** loader id -> samples in a row over a lock limit */
+    private final Map<Integer, Integer> strikes = new HashMap<>();
     /** loader id -> samples judged since an admin lifted its lock (cooldown, removed after lock-after-samples) */
     private final Map<Integer, Integer> sinceUnlock = new HashMap<>();
     private final Map<Integer, Long> lastWarn = new HashMap<>();
@@ -248,8 +244,8 @@ public final class LagMonitor implements Listener {
         double seconds = Math.max(1, (now - windowStart) / 1000.0);
         boolean serverLags = Bukkit.getAverageTickTime() >= s.serverLagMspt();
 
-        Map<UUID, List<Loader>> byOwner = new HashMap<>();
-        for (Loader loader : loaders().all()) {
+        java.util.Set<Integer> judged = new java.util.HashSet<>();
+        for (Loader loader : new ArrayList<>(loaders().all())) {
             boolean locked = loaders().lagLocked(loader);
             if (!loader.active() && !locked) {
                 activity.remove(loader.id());
@@ -262,20 +258,15 @@ public final class LagMonitor implements Listener {
             Activity a = measure(loader, world, seconds, now);
             if (loader.active()) {
                 activity.put(loader.id(), a);
-                byOwner.computeIfAbsent(loader.owner(), k -> new ArrayList<>()).add(loader);
+                judged.add(loader.id());
+                judge(loader, a, serverLags, now);
             } else if (a.loadedChunks() > 0) {
                 // Locked: measured while someone keeps (part of) the area loaded, never judged. Otherwise the last
                 // measurement stays, so admins still see why it was locked.
                 activity.put(loader.id(), a);
             }
         }
-        pools.keySet().retainAll(byOwner.keySet());
-        strikes.keySet().retainAll(byOwner.keySet());
-        byOwner.forEach((owner, owned) -> {
-            Activity pool = pool(owned, now);
-            pools.put(owner, pool);
-            judge(owner, owned, pool, serverLags, now);
-        });
+        strikes.keySet().retainAll(judged);
         activity.keySet().removeIf(id -> loaders().byId(id) == null);
         // The web map colours conspicuous loaders: redraw it when that changed.
         java.util.Set<Integer> conspicuousNow = new java.util.HashSet<>();
@@ -291,25 +282,6 @@ public final class LagMonitor implements Listener {
         counts.clear();
         windowStart = now;
         rebuildIndex();
-    }
-
-    /** All loaders of one owner together: the sum of their values against the limits of their areas together. */
-    private Activity pool(List<Loader> owned, long now) {
-        Map<Metric, Double> sum = new EnumMap<>(Metric.class);
-        int area = 0;
-        int loaded = 0;
-        for (Loader loader : owned) {
-            Activity a = activity.get(loader.id());
-            if (a == null) {
-                continue;
-            }
-            for (Metric metric : Metric.values()) {
-                sum.merge(metric, a.value(metric), Double::sum);
-            }
-            area += a.totalChunks();
-            loaded += a.loadedChunks();
-        }
-        return Activity.of(sum, settings().limitsFor(Math.max(1, area)), now, loaded, area);
     }
 
     /** Counts entities and items in the loaded chunks of the area and the events since the last sample. */
@@ -347,84 +319,29 @@ public final class LagMonitor implements Listener {
         return Activity.of(values, settings().limitsFor(loader.area()), now, loaded, loader.area());
     }
 
-    /** The pool of one owner over a lock limit often enough: lock their loader that is furthest over its share. */
-    private void judge(UUID owner, List<Loader> owned, Activity pool, boolean serverLags, long now) {
+    /** One loader over a lock limit often enough: lock it. Over a warn limit: a note in Discord (at most hourly). */
+    private void judge(Loader loader, Activity a, boolean serverLags, long now) {
         Settings.LagSettings s = settings();
         // Cooldown after an unlock: exactly lock-after-samples measurements, which the strikes below need anyway.
-        for (Loader loader : owned) {
-            sinceUnlock.computeIfPresent(loader.id(), (k, n) -> n + 1 >= s.lockAfterSamples() ? null : n + 1);
-        }
+        sinceUnlock.computeIfPresent(loader.id(), (k, n) -> n + 1 >= s.lockAfterSamples() ? null : n + 1);
         // Far enough over a lock limit (force-lock-multiplier), the loader is locked even while the server copes.
-        boolean forced = s.forceLockMultiplier() > 0 && pool.lockRatio() >= s.forceLockMultiplier();
-        if (pool.lockRatio() >= 1 && (!s.onlyWhenServerLags() || serverLags || forced)) {
-            int count = strikes.merge(owner, 1, Integer::sum);
+        boolean forced = s.forceLockMultiplier() > 0 && a.lockRatio() >= s.forceLockMultiplier();
+        if (a.lockRatio() >= 1 && (!s.onlyWhenServerLags() || serverLags || forced)) {
+            int count = strikes.merge(loader.id(), 1, Integer::sum);
             if (count >= s.lockAfterSamples()) {
-                Loader culprit = culprit(owned, pool, false);
-                if (culprit != null) {
-                    lock(culprit, activity.get(culprit.id()), now);
-                    strikes.remove(owner);
-                    return;
-                }
+                lock(loader, a, now);
+                return;
             }
         } else {
-            strikes.remove(owner);
+            strikes.remove(loader.id());
         }
-        if (!pool.conspicuous()) {
-            return;
-        }
-        Loader worst = null;
-        for (Loader loader : owned) {
-            Activity a = activity.get(loader.id());
-            if (a != null && a.conspicuous() && (worst == null || a.warnRatio() > activity.get(worst.id()).warnRatio())) {
-                worst = loader;
-            }
-        }
-        if (worst != null && now - lastWarn.getOrDefault(worst.id(), 0L) >= WARN_INTERVAL) {
-            lastWarn.put(worst.id(), now);
-            Activity a = activity.get(worst.id());
+        if (a.conspicuous() && now - lastWarn.getOrDefault(loader.id(), 0L) >= WARN_INTERVAL) {
+            lastWarn.put(loader.id(), now);
             Metric metric = a.worst();
-            plugin.discord().log("loader-lag-warning", plugin.adminActions().discordTags(worst,
+            plugin.discord().log("loader-lag-warning", plugin.adminActions().discordTags(loader,
                     "metric", plugin.messages().plain("lag-metric-" + metric.key()),
-                    "value", format(a.value(metric)), "limit", format(s.limitsFor(worst.area()).warn(metric))));
+                    "value", format(a.value(metric)), "limit", format(s.limitsFor(loader.area()).warn(metric))));
         }
-    }
-
-    /**
-     * The owner's loader to lock: for the metric the pool is furthest over, the loader furthest over its own share of
-     * that limit (always at least one is over it when the pool is). Null if none is over its share.
-     * @param skipCooldown leave out loaders whose lock was lifted only lately
-     */
-    private Loader culprit(List<Loader> owned, Activity pool, boolean skipCooldown) {
-        Settings.LagSettings s = settings();
-        LagLimits poolLimits = s.limitsFor(Math.max(1, pool.totalChunks()));
-        Metric metric = null;
-        double best = 0;
-        for (Metric m : Metric.values()) {
-            double limit = poolLimits.lock(m);
-            double ratio = limit <= 0 ? 0 : pool.value(m) / limit;
-            if (ratio > best) {
-                best = ratio;
-                metric = m;
-            }
-        }
-        if (metric == null) {
-            return null;
-        }
-        Loader culprit = null;
-        double worst = 0;
-        for (Loader loader : owned) {
-            Activity a = activity.get(loader.id());
-            double limit = s.limitsFor(loader.area()).lock(metric);
-            if (a == null || limit <= 0 || loaders().lagLocked(loader) || (skipCooldown && sinceUnlock.containsKey(loader.id()))) {
-                continue;
-            }
-            double ratio = a.value(metric) / limit;
-            if (ratio >= 1 && ratio > worst) {
-                worst = ratio;
-                culprit = loader;
-            }
-        }
-        return culprit;
     }
 
     // ------------------------------------------------------------------ locks
@@ -445,7 +362,7 @@ public final class LagMonitor implements Listener {
         Player owner = Bukkit.getPlayer(loader.owner());
         LagLock lock = new LagLock(now, metric, a.value(metric), limits.lock(metric), owner != null);
         loaders().lagLock(loader, lock);
-        strikes.remove(loader.owner());
+        strikes.remove(loader.id());
 
         Messages messages = plugin.messages();
         var tags = tags(loader, lock);
@@ -479,11 +396,6 @@ public final class LagMonitor implements Listener {
                 tag("mspt", String.format(java.util.Locale.ROOT, "%.1f", Bukkit.getAverageTickTime())))) {
             lines.add(PLAIN.serialize(line));
         }
-        Activity pool = pools.get(loader.owner());
-        if (pool != null) {
-            lines.add(PLAIN.serialize(messages.get("lock-details-pool", Texts.loader(plugin, loader),
-                    tag("percent", Math.round(pool.lockRatio() * 100)), tag("chunks", pool.totalChunks()))));
-        }
         for (Metric metric : Metric.values()) {
             if ((limits.warn(metric) > 0 || limits.lock(metric) > 0) && a.value(metric) > 0) {
                 lines.add(PLAIN.serialize(messages.get("lock-details-metric",
@@ -502,14 +414,14 @@ public final class LagMonitor implements Listener {
     /** After an admin lifted a lock: the next lock needs lock-after-samples new measurements over the limit. */
     public void unlocked(Loader loader) {
         sinceUnlock.put(loader.id(), 0);
-        strikes.remove(loader.owner());
+        strikes.remove(loader.id());
     }
 
     /**
-     * Called right before a server pause releases all chunks: owners whose loaders are over a lock limit now get the
-     * worst of them locked at once, until their pool is below the limit again (the server lags for sure). Otherwise the
-     * pause would hide them - their chunks unload, the lag is gone, the pause ends and it starts again, without the
-     * cause ever being locked. Loaders still in their cooldown after an unlock are left alone.
+     * Called right before a server pause releases all chunks: every loader over a lock limit now is locked at once
+     * (the server lags for sure). Otherwise the pause would hide them - their chunks unload, the lag is gone, the pause
+     * ends and it starts again, without the cause ever being locked. Loaders still in their cooldown after an unlock
+     * are left alone.
      */
     public void lockOffendersBeforePause() {
         if (!settings().enabled()) {
@@ -517,29 +429,17 @@ public final class LagMonitor implements Listener {
         }
         long now = System.currentTimeMillis();
         double seconds = Math.max(1, (now - windowStart) / 1000.0);
-        Map<UUID, List<Loader>> byOwner = new HashMap<>();
         for (Loader loader : new ArrayList<>(loaders().all())) {
             World world = loader.world();
             if (!loader.active() || world == null) {
                 continue;
             }
-            activity.put(loader.id(), measure(loader, world, seconds, now));
-            byOwner.computeIfAbsent(loader.owner(), k -> new ArrayList<>()).add(loader);
-        }
-        byOwner.forEach((owner, owned) -> {
-            List<Loader> left = new ArrayList<>(owned);
-            Activity pool = pool(left, now);
-            while (pool.lockRatio() >= 1) {
-                Loader culprit = culprit(left, pool, true);
-                if (culprit == null) {
-                    break;
-                }
-                lock(culprit, activity.get(culprit.id()), now);
-                left.remove(culprit);
-                pool = pool(left, now);
+            Activity a = measure(loader, world, seconds, now);
+            activity.put(loader.id(), a);
+            if (a.lockRatio() >= 1 && !sinceUnlock.containsKey(loader.id())) {
+                lock(loader, a, now);
             }
-            pools.put(owner, pool);
-        });
+        }
     }
 
     /** Owners whose loader was locked while they were offline hear about it when they join. */
@@ -562,26 +462,16 @@ public final class LagMonitor implements Listener {
         return activity.get(loader.id());
     }
 
-    /** All active loaders of the owner together (last measurement), or null. */
-    public Activity pool(UUID owner) {
-        return pools.get(owner);
-    }
-
-    /**
-     * Over a warn limit: the loader over its own share and its owner's loaders together over theirs. A busy loader
-     * whose owner's other loaders are quiet is fine.
-     */
+    /** Over a warn limit of its own area (last measurement). */
     public boolean conspicuous(Loader loader) {
         Activity a = activity.get(loader.id());
-        Activity pool = pools.get(loader.owner());
-        return a != null && a.conspicuous() && (pool == null || pool.conspicuous());
+        return a != null && a.conspicuous();
     }
 
     /** Like {@link #conspicuous(Loader)}, but over a lock limit. */
     public boolean overLock(Loader loader) {
         Activity a = activity.get(loader.id());
-        Activity pool = pools.get(loader.owner());
-        return a != null && a.lockRatio() >= 1 && (pool == null || pool.lockRatio() >= 1);
+        return a != null && a.lockRatio() >= 1;
     }
 
     /** Conspicuous and locked loaders, the worst first. */
