@@ -9,8 +9,10 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static at.marcelr.mrchunks.Messages.tag;
@@ -25,8 +27,14 @@ public final class AdminActions {
     public static final String PERM_VIEW = "mrchunks.view";
     /** Admins: delete, rename, dummies, block, lift lag locks - and everything below. */
     public static final String PERM_MANAGE = "mrchunks.admin.manage";
-    /** Staff: switch other players' loaders on and off (also beyond their active limit). */
+    /** Staff: switch other players' loaders on and off (within the owner's budget). */
     public static final String PERM_TOGGLE = "mrchunks.admin.toggle";
+    /** Support: switch a conspicuous loader (over a warn limit) and its dummy off - and on again. */
+    public static final String PERM_TOGGLE_CONSPICUOUS = "mrchunks.admin.toggle.conspicuous";
+    /** Players: change the size of their own loaders. */
+    public static final String PERM_RESIZE = "mrchunks.resize";
+    /** Admins: change the size of other players' loaders. */
+    public static final String PERM_RESIZE_OTHERS = "mrchunks.admin.resize";
     /** Staff: manage the invites of other players' loaders. */
     public static final String PERM_INVITES = "mrchunks.admin.invites";
     /** Staff: link and unlink other players' accounts. */
@@ -42,6 +50,11 @@ public final class AdminActions {
     public static final String PERM_EXEMPT = "mrchunks.exempt";
 
     private final MRChunks plugin;
+    /**
+     * Loaders switched off while conspicuous: without a measurement they are not conspicuous any more, but support
+     * must be able to switch them on again. Until the next start.
+     */
+    private final Set<Integer> offWhileConspicuous = new HashSet<>();
 
     public AdminActions(MRChunks plugin) {
         this.plugin = plugin;
@@ -98,7 +111,32 @@ public final class AdminActions {
 
     /** Switching on/off: owner, admins - and invited players (only this, never deleting or renaming). */
     public boolean canToggle(CommandSender sender, Loader loader) {
-        return canManage(sender, loader) || isMember(sender, loader) || sender.hasPermission(PERM_TOGGLE);
+        return canManage(sender, loader) || isMember(sender, loader) || sender.hasPermission(PERM_TOGGLE)
+                || conspicuousControl(sender, loader);
+    }
+
+    /** Over a warn limit (or switched off while it was) - then support may switch it and its dummy. */
+    public boolean conspicuous(Loader loader) {
+        return plugin.lag().conspicuous(loader) || offWhileConspicuous.contains(loader.id());
+    }
+
+    private boolean conspicuousControl(CommandSender sender, Loader loader) {
+        return sender.hasPermission(PERM_TOGGLE_CONSPICUOUS) && conspicuous(loader);
+    }
+
+    /** Dummy on/off: owner, admins - and support while the loader is conspicuous. */
+    public boolean canToggleDummy(CommandSender sender, Loader loader) {
+        return canManage(sender, loader) || conspicuousControl(sender, loader);
+    }
+
+    /** Switches a loader and remembers when it went off while conspicuous. */
+    private void setActive(Loader loader, boolean active) {
+        if (active) {
+            offWhileConspicuous.remove(loader.id());
+        } else if (plugin.lag().conspicuous(loader)) {
+            offWhileConspicuous.add(loader.id());
+        }
+        loaders().setActive(loader, active);
     }
 
     /** Managing the invites of a loader / of all loaders of {@code owner}: the owner (mrchunks.invite) or admins. */
@@ -123,14 +161,12 @@ public final class AdminActions {
             return;
         }
         OfflinePlayer owner = org.bukkit.Bukkit.getOfflinePlayer(loader.owner());
-        // Owners stay within their active limit; the team (mrchunks.admin.toggle / .manage) may go beyond it.
-        if (active && !sender.hasPermission(PERM_TOGGLE) && !sender.hasPermission(PERM_MANAGE) && !loaders().canActivate(owner)) {
-            messages().send(sender, "active-limit-reached",
-                    tag("active", loaders().activeCount(loader.owner())),
-                    tag("active-limit", Texts.limit(loaders().activeLimit(owner))));
+        // Nobody goes beyond the owner's budget - admins raise the budget instead (mrchunks.admin.limit).
+        if (active && !loaders().fitsBudget(owner, loader.area())) {
+            messages().send(sender, "budget-exceeded", Texts.loader(plugin, loader), budgetTags(owner));
             return;
         }
-        loaders().setActive(loader, active);
+        setActive(loader, active);
         String state = Texts.state(plugin, active);
         messages().send(sender, "toggled", Texts.loader(plugin, loader), tag("state", state));
         if (active && loaders().paused()) {
@@ -180,9 +216,136 @@ public final class AdminActions {
         }
     }
 
+    // ---------------------------------------------------------------- size
+
+    /** Placeholders {@code <used>}, {@code <budget>} and {@code <free>} (chunks) of the owner's account. */
+    public TagResolver budgetTags(OfflinePlayer owner) {
+        LoaderManager.Limit budget = loaders().budget(owner);
+        long free = loaders().freeBudget(owner);
+        return TagResolver.resolver(tag("used", loaders().usedBudget(loaders().main(owner.getUniqueId()))),
+                tag("budget", Texts.limit(budget)),
+                tag("free", free == Long.MAX_VALUE ? "∞" : String.valueOf(Math.max(0, free))));
+    }
+
+    /** Changing the size: the owner with mrchunks.resize, or an admin with mrchunks.admin.resize. */
+    public static boolean canResize(CommandSender sender, Loader loader) {
+        return (isOwner(sender, loader) && sender.hasPermission(PERM_USE) && sender.hasPermission(PERM_RESIZE))
+                || sender.hasPermission(PERM_RESIZE_OTHERS);
+    }
+
+    /**
+     * Grows ({@code delta} &gt; 0) or shrinks the loader's area by {@code delta} chunks in one direction, or with
+     * {@code direction == null} in all four. Stays between 0 and loaders.max-reach per direction; an active loader
+     * only grows within the owner's budget; with loaders.overlap deny-own / deny-all it may not grow into another
+     * loader; with a dummy on it only changes evenly and stays at least 5x5 (see {@link at.marcelr.mrchunks.dummy.Dummies#fits}).
+     * @return whether the size changed
+     */
+    public boolean resize(CommandSender sender, Loader loader, Loader.Direction direction, int delta) {
+        if (!canResize(sender, loader)) {
+            messages().send(sender, isOwner(sender, loader) ? "no-permission" : "not-owner");
+            return false;
+        }
+        int[] reach = newReach(loader, direction, delta);
+        String problem = resizeProblem(loader, reach, delta);
+        if (problem != null) {
+            OfflinePlayer owner = org.bukkit.Bukkit.getOfflinePlayer(loader.owner());
+            Loader conflict = problem.startsWith("resize-overlap") ? growConflict(loader, reach) : loader;
+            messages().send(sender, problem, Texts.loader(plugin, conflict), budgetTags(owner),
+                    tag("cost", area(reach) - loader.area()), tag("max", plugin.settings().loaders().maxReach() * 2 + 1));
+            return false;
+        }
+        applyResize(loader, reach, sender.getName(), !isOwner(sender, loader));
+        return true;
+    }
+
+    /** Resize from MRadmin's web interface (mrchunks.admin.resize): the same rules as in game. @return error key or null */
+    public String webResize(String admin, Loader loader, Loader.Direction direction, int delta) {
+        int[] reach = newReach(loader, direction, delta);
+        String problem = resizeProblem(loader, reach, delta);
+        if (problem != null) {
+            return problem;
+        }
+        applyResize(loader, reach, admin, true);
+        plugin.getLogger().info(admin + " (web) resized " + Texts.consoleName(plugin, loader) + " to "
+                + loader.width() + "x" + loader.length() + ".");
+        return null;
+    }
+
+    private static int[] newReach(Loader loader, Loader.Direction direction, int delta) {
+        int[] reach = new int[4];
+        for (Loader.Direction d : Loader.Direction.values()) {
+            int current = loader.reach(d);
+            reach[d.ordinal()] = direction == null || direction == d ? current + delta : current;
+        }
+        return reach;
+    }
+
+    /** Chunks of an area with this reach (north, south, west, east). */
+    private static int area(int[] reach) {
+        return (reach[2] + reach[3] + 1) * (reach[0] + reach[1] + 1);
+    }
+
+    /** Why the loader cannot get this reach (message key), or null. */
+    private String resizeProblem(Loader loader, int[] reach, int delta) {
+        int max = plugin.settings().loaders().maxReach();
+        for (int r : reach) {
+            if (r < 0) {
+                return "resize-min";
+            }
+            if (r > max && delta > 0) {
+                return "resize-max";
+            }
+        }
+        if (loader.dummy() && plugin.dummies().enabled()) {
+            boolean even = reach[0] == reach[1] && reach[0] == reach[2] && reach[0] == reach[3];
+            if (!even || reach[0] < at.marcelr.mrchunks.dummy.Dummies.MIN_REACH) {
+                return "resize-dummy";
+            }
+        }
+        int area = area(reach);
+        if (loader.active() && area > loader.area()
+                && !loaders().fitsBudget(org.bukkit.Bukkit.getOfflinePlayer(loader.owner()), area - loader.area())) {
+            return "resize-budget";
+        }
+        Loader conflict = growConflict(loader, reach);
+        if (conflict != null) {
+            return conflict.owner().equals(loader.owner()) ? "resize-overlap-own" : "resize-overlap";
+        }
+        return null;
+    }
+
+    private void applyResize(Loader loader, int[] reach, String by, boolean notify) {
+        String before = loader.width() + "x" + loader.length();
+        loaders().resize(loader, reach[0], reach[1], reach[2], reach[3]);
+        if (notify) {
+            notifyOwner(loader.owner(), "owner-notify-resized", Texts.loader(plugin, loader), tag("admin", by));
+        }
+        plugin.discord().log("loader-resized", discordTags(loader, "admin", by, "old", before,
+                "size", loader.width() + "x" + loader.length()));
+    }
+
+    /**
+     * With loaders.overlap deny-own / deny-all: a loader the new area would newly overlap (one it already overlapped,
+     * e.g. from before the setting, does not count), otherwise null.
+     */
+    private Loader growConflict(Loader loader, int[] reach) {
+        Settings.OverlapMode mode = plugin.settings().loaders().overlap();
+        if (mode != Settings.OverlapMode.DENY_OWN && mode != Settings.OverlapMode.DENY_ALL) {
+            return null;
+        }
+        List<Loader> before = loaders().overlapping(loader);
+        List<Loader> after = loaders().overlapping(loader.worldId(), loader.chunkX() - reach[2], loader.chunkZ() - reach[0],
+                loader.chunkX() + reach[3], loader.chunkZ() + reach[1], loader);
+        for (Loader other : after) {
+            if (!before.contains(other) && (mode == Settings.OverlapMode.DENY_ALL || other.owner().equals(loader.owner()))) {
+                return other;
+            }
+        }
+        return null;
+    }
+
     // ------------------------------------------------------------- dummies
 
-    /** Switches the loader's dummy player on or off: owner (within their dummy limit) or admins. */
     /** Choosing the block in the world: the owner with mrchunks.block, or an admin with mrchunks.admin.manage. */
     public boolean canChangeBlock(CommandSender sender, Loader loader) {
         return !plugin.settings().item().blockChoices().isEmpty() && canManage(sender, loader)
@@ -200,8 +363,9 @@ public final class AdminActions {
         messages().send(sender, "block-changed", Texts.loader(plugin, loader), tag("block", Component.translatable(material)));
     }
 
+    /** Switches the loader's dummy player on or off: owner (within their dummy limit) or admins. */
     public void toggleDummy(CommandSender sender, Loader loader) {
-        if (!canManage(sender, loader)) {
+        if (!canToggleDummy(sender, loader)) {
             messages().send(sender, isOwner(sender, loader) ? "no-permission" : "not-owner");
             return;
         }
@@ -210,6 +374,10 @@ public final class AdminActions {
             return;
         }
         boolean on = !loader.dummy();
+        if (on && !at.marcelr.mrchunks.dummy.Dummies.fits(loader)) {
+            messages().send(sender, "dummy-needs-square", Texts.loader(plugin, loader));
+            return;
+        }
         OfflinePlayer owner = org.bukkit.Bukkit.getOfflinePlayer(loader.owner());
         // Owners stay within their dummy limit; admins may go beyond it.
         if (on && !sender.hasPermission(PERM_MANAGE) && !loaders().canAddDummy(owner)) {
@@ -354,7 +522,10 @@ public final class AdminActions {
         if (active && loaders().lagLocked(loader)) {
             return "loader-locked";
         }
-        loaders().setActive(loader, active);
+        if (active && !loaders().fitsBudget(org.bukkit.Bukkit.getOfflinePlayer(loader.owner()), loader.area())) {
+            return "over-budget";
+        }
+        setActive(loader, active);
         String state = Texts.state(plugin, active);
         notifyOwner(loader.owner(), "owner-notify-toggled", Texts.loader(plugin, loader), tag("state", state), tag("admin", admin));
         plugin.getLogger().info(admin + " (web) switched " + Texts.consoleName(plugin, loader) + (active ? " on." : " off."));
@@ -375,11 +546,30 @@ public final class AdminActions {
         return null;
     }
 
+    /** Support (mrchunks.admin.toggle.conspicuous): only while the loader is conspicuous. */
+    public String webConspicuousToggle(String admin, Loader loader) {
+        return conspicuous(loader) ? webToggle(admin, loader) : "loader-not-conspicuous";
+    }
+
+    /** Support: the dummy of a conspicuous loader - switching on stays within the owner's dummy limit. */
+    public String webConspicuousDummy(String admin, Loader loader) {
+        if (!conspicuous(loader)) {
+            return "loader-not-conspicuous";
+        }
+        if (!loader.dummy() && !loaders().canAddDummy(org.bukkit.Bukkit.getOfflinePlayer(loader.owner()))) {
+            return "dummy-limit-reached";
+        }
+        return webToggleDummy(admin, loader);
+    }
+
     public String webToggleDummy(String admin, Loader loader) {
         if (!plugin.dummies().enabled()) {
             return "dummies-disabled";
         }
         boolean on = !loader.dummy();
+        if (on && !at.marcelr.mrchunks.dummy.Dummies.fits(loader)) {
+            return "dummy-needs-square";
+        }
         loaders().setDummy(loader, on);
         String state = Texts.state(plugin, on);
         notifyOwner(loader.owner(), "owner-notify-dummy", Texts.loader(plugin, loader), tag("state", state), tag("admin", admin));
@@ -399,7 +589,7 @@ public final class AdminActions {
 
     // Player actions from the web (MRadmin checks mrchunks.admin.limit, .ban or .manage first).
 
-    /** Sets or (limit null) resets one of the two caps, like /mrchunks limit; a lower active limit switches loaders off. */
+    /** Sets or (limit null) resets one of the two caps, like /mrchunks limit; a lower budget switches loaders off. */
     public String webSetLimit(String admin, OfflinePlayer target, LoaderManager.LimitKind kind, Integer limit) {
         loaders().setLimitOverride(target.getUniqueId(), kind, limit);
         String name = name(target);
@@ -540,7 +730,7 @@ public final class AdminActions {
             messages().send(player, "banned", Messages.lazy("duration", () -> Texts.banDuration(plugin, ban)), tag("reason", ban.reason()));
             return;
         }
-        LoaderManager.Limit limit = loaders.limit(player);
+        LoaderManager.Limit limit = new LoaderManager.Limit(loaders.maxLoaders(), LoaderManager.LimitSource.DEFAULT);
         int placed = loaders.count(accountOf(player));
         int held = plugin.loaderItem().count(player);
         long free = (long) limit.value() - placed - held;
@@ -689,7 +879,7 @@ public final class AdminActions {
     // ------------------------------------------------------------- players
 
     /**
-     * Sets one of the two caps. Lowering the active limit switches off the player's newest active loaders.
+     * Sets the budget or the dummy limit. A lower budget switches off the player's newest active loaders.
      * @param limit new limit, or null to reset to default/permission
      */
     public void setLimit(CommandSender sender, OfflinePlayer target, LoaderManager.LimitKind kind, Integer limit) {
@@ -707,32 +897,30 @@ public final class AdminActions {
         plugin.discord().log("admin-limit", "admin", sender.getName(), "player", name, "limit", effective, "type", messages().server(() -> limitType(kind)));
         int switchedOff = enforceLimit(target, kind);
         if (switchedOff > 0) {
-            messages().send(sender, kind == LoaderManager.LimitKind.DUMMY ? "dummy-limit-enforced" : "active-limit-enforced",
+            messages().send(sender, kind == LoaderManager.LimitKind.DUMMY ? "dummy-limit-enforced" : "budget-enforced",
                     tag("player", name), tag("count", switchedOff));
         }
     }
 
     private String limitType(LoaderManager.LimitKind kind) {
         return messages().plain(switch (kind) {
-            case PLACE -> "limit-type-place";
-            case ACTIVE -> "limit-type-active";
+            case BUDGET -> "limit-type-budget";
             case DUMMY -> "limit-type-dummy";
         });
     }
 
     /**
-     * After a lower limit: switches off the newest active loaders (active limit) or dummies (dummy limit) and tells the
+     * After a lower limit: switches off the newest active loaders (budget) or dummies (dummy limit) and tells the
      * owner. @return how many were switched off
      */
     private int enforceLimit(OfflinePlayer target, LoaderManager.LimitKind kind) {
         int switchedOff = switch (kind) {
-            case ACTIVE -> loaders().enforceActiveLimit(target).size();
+            case BUDGET -> loaders().enforceBudget(target).size();
             case DUMMY -> loaders().enforceDummyLimit(target).size();
-            case PLACE -> 0;
         };
         if (switchedOff > 0) {
             notifyOwner(target.getUniqueId(), kind == LoaderManager.LimitKind.DUMMY ? "dummy-limit-enforced-notify"
-                    : "active-limit-enforced-notify", tag("count", switchedOff));
+                    : "budget-enforced-notify", tag("count", switchedOff));
         }
         return switchedOff;
     }
@@ -814,7 +1002,7 @@ public final class AdminActions {
                 "player", LoaderManager.name(loader.owner()),
                 "world", loader.worldName(),
                 "x", loader.x(), "y", loader.y(), "z", loader.z(),
-                "chunks", plugin.settings().loaders().chunkCount()};
+                "chunks", loader.area()};
         Object[] all = new Object[base.length + extra.length];
         System.arraycopy(base, 0, all, 0, base.length);
         System.arraycopy(extra, 0, all, base.length, extra.length);

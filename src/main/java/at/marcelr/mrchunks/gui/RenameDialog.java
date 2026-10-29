@@ -23,7 +23,7 @@ import static at.marcelr.mrchunks.Messages.tag;
 
 /**
  * Native Minecraft dialog with a text field to name a loader. "Save" applies the name (empty = default name),
- * "Cancel" closes it; afterwards the loader's menu opens again.
+ * "Cancel" closes it; afterwards {@code reopen} runs (the menu it came from).
  */
 public final class RenameDialog {
 
@@ -32,7 +32,7 @@ public final class RenameDialog {
     private RenameDialog() {
     }
 
-    public static void open(MRChunks plugin, Player viewer, Loader loader, Runnable back) {
+    public static void open(MRChunks plugin, Player viewer, Loader loader, Runnable reopen) {
         Messages messages = plugin.messages();
         int loaderId = loader.id();
         int max = plugin.settings().gui().maxNameLength();
@@ -45,7 +45,7 @@ public final class RenameDialog {
                 Loader current = plugin.loaders().byId(loaderId);
                 if (current != null && viewer.isOnline()) {
                     plugin.adminActions().rename(viewer, current, text);
-                    new LoaderMenu(plugin, viewer, loaderId, back).open();
+                    reopen.run();
                 }
             }));
         }, ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(10)).build());
@@ -53,7 +53,7 @@ public final class RenameDialog {
         DialogAction cancel = DialogAction.customClick((response, audience) -> Bukkit.getScheduler().runTask(plugin,
                 () -> plugin.messages().run(viewer, () -> {
                     if (viewer.isOnline() && plugin.loaders().byId(loaderId) != null) {
-                        new LoaderMenu(plugin, viewer, loaderId, back).open();
+                        reopen.run();
                     }
                 })), ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(10)).build());
 

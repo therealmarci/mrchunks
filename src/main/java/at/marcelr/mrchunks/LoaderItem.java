@@ -33,8 +33,8 @@ public final class LoaderItem {
         Settings.ItemSettings item = plugin.settings().item();
         Settings.LoaderSettings loaders = plugin.settings().loaders();
         TagResolver tags = TagResolver.resolver(
-                Placeholder.unparsed("size", String.valueOf(loaders.size())),
-                Placeholder.unparsed("chunks", String.valueOf(loaders.chunkCount())));
+                Placeholder.unparsed("size", String.valueOf(loaders.defaultSize())),
+                Placeholder.unparsed("chunks", String.valueOf(loaders.defaultArea())));
 
         ItemStack stack = new ItemStack(item.material(), Math.max(1, amount));
         stack.editMeta(meta -> {

@@ -5,6 +5,10 @@ import at.marcelr.mrchunks.LoaderManager;
 import at.marcelr.mrchunks.MRChunks;
 import at.marcelr.mrchunks.Settings;
 import at.marcelr.mrchunks.Texts;
+import at.marcelr.mrchunks.lag.Activity;
+import at.marcelr.mrchunks.lag.LagLock;
+import at.marcelr.mrchunks.lag.LagMonitor;
+import at.marcelr.mrchunks.lag.Metric;
 import at.marcelr.mrchunks.util.MapAddress;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -30,24 +34,30 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * Draws every loader's area as a rectangle (plus an optional icon) on a "Chunkloader" layer of squaremap.
+ * Draws every loader's area as a rectangle (plus an optional icon, a dummy icon where a dummy sits) on squaremap -
+ * one layer for all, or (squaremap.split-layers) one each for active, switched-off and locked loaders, coloured by
+ * status (squaremap.status-colors).
  * Only loaded by {@link MapHooks} when squaremap is installed. Markers are rebuilt from scratch on every
  * update - with a few hundred loaders that is cheap and avoids any drift.
  */
 final class SquaremapHook {
 
     private static final Key LAYER = Key.of("mrchunks_loaders");
+    private static final Key LAYER_INACTIVE = Key.of("mrchunks_loaders_inactive");
+    private static final Key LAYER_LOCKED = Key.of("mrchunks_loaders_locked");
     private static final Key ICON = Key.of("mrchunks_loader");
+    private static final Key DUMMY_ICON = Key.of("mrchunks_dummy");
     private static final int ICON_SIZE = 16;
 
     private final MRChunks plugin;
     private final Squaremap api;
-    /** world -> our layer in that world (re-registered if squaremap was reloaded) */
-    private final Map<UUID, SimpleLayerProvider> layers = new HashMap<>();
+    /** world -> our layers in that world (re-registered if squaremap was reloaded) */
+    private final Map<UUID, Map<Key, SimpleLayerProvider>> layers = new HashMap<>();
 
     SquaremapHook(MRChunks plugin) {
         this.plugin = plugin;
@@ -154,77 +164,114 @@ final class SquaremapHook {
         if (!api.iconRegistry().hasEntry(ICON)) {
             api.iconRegistry().register(ICON, icon()); // lost on /squaremap reload
         }
+        if (!api.iconRegistry().hasEntry(DUMMY_ICON)) {
+            api.iconRegistry().register(DUMMY_ICON, dummyIcon());
+        }
         Settings.SquaremapSettings settings = plugin.settings().squaremap();
-        int radius = plugin.settings().loaders().radius();
+        Settings.StatusSettings status = settings.status();
         for (World world : Bukkit.getWorlds()) {
             MapWorld mapWorld = api.getWorldIfEnabled(BukkitAdapter.worldIdentifier(world)).orElse(null);
             if (mapWorld == null) {
                 continue;
             }
-            SimpleLayerProvider layer = layers.get(world.getUID());
-            if (layer == null || !mapWorld.layerRegistry().hasEntry(LAYER)) {
-                layer = SimpleLayerProvider.builder(settings.layerName())
-                        .showControls(true)
-                        .defaultHidden(settings.defaultHidden())
-                        .layerPriority(5)
-                        .zIndex(250)
-                        .build();
-                if (mapWorld.layerRegistry().hasEntry(LAYER)) {
-                    mapWorld.layerRegistry().unregister(LAYER);
+            Map<Key, SimpleLayerProvider> own = layers.computeIfAbsent(world.getUID(), k -> new HashMap<>());
+            SimpleLayerProvider active = layer(mapWorld, own, LAYER, settings.layerName(), 0);
+            SimpleLayerProvider inactive = active;
+            SimpleLayerProvider locked = active;
+            if (status.splitLayers()) {
+                inactive = layer(mapWorld, own, LAYER_INACTIVE, status.inactiveLayerName(), 1);
+                locked = layer(mapWorld, own, LAYER_LOCKED, status.lockedLayerName(), 2);
+            } else {
+                for (Key key : List.of(LAYER_INACTIVE, LAYER_LOCKED)) {
+                    own.remove(key);
+                    if (mapWorld.layerRegistry().hasEntry(key)) {
+                        mapWorld.layerRegistry().unregister(key);
+                    }
                 }
-                mapWorld.layerRegistry().register(LAYER, layer);
-                layers.put(world.getUID(), layer);
             }
-            layer.clearMarkers();
+            active.clearMarkers();
+            inactive.clearMarkers();
+            locked.clearMarkers();
             for (Loader loader : plugin.loaders().all()) {
-                if (!loader.worldId().equals(world.getUID()) || (!loader.active() && !settings.showInactive())) {
+                if (!loader.worldId().equals(world.getUID())) {
                     continue;
                 }
-                addMarkers(layer, loader, radius, settings);
+                // Locked loaders are always shown - they are what admins look for.
+                boolean isLocked = plugin.loaders().lagLocked(loader);
+                if (!loader.active() && !isLocked && !settings.showInactive()) {
+                    continue;
+                }
+                addMarkers(isLocked ? locked : loader.active() ? active : inactive, loader, settings);
             }
         }
     }
 
-    private void addMarkers(SimpleLayerProvider layer, Loader loader, int radius, Settings.SquaremapSettings settings) {
+    /** Our layer {@code key} in this world, registered again if squaremap lost it (e.g. /squaremap reload). */
+    private SimpleLayerProvider layer(MapWorld mapWorld, Map<Key, SimpleLayerProvider> own, Key key, String name, int order) {
+        SimpleLayerProvider layer = own.get(key);
+        if (layer == null || !mapWorld.layerRegistry().hasEntry(key)) {
+            layer = SimpleLayerProvider.builder(name)
+                    .showControls(true)
+                    .defaultHidden(plugin.settings().squaremap().defaultHidden())
+                    .layerPriority(5 + order)
+                    .zIndex(250 - order)
+                    .build();
+            if (mapWorld.layerRegistry().hasEntry(key)) {
+                mapWorld.layerRegistry().unregister(key);
+            }
+            mapWorld.layerRegistry().register(key, layer);
+            own.put(key, layer);
+        }
+        return layer;
+    }
+
+    private void addMarkers(SimpleLayerProvider layer, Loader loader, Settings.SquaremapSettings settings) {
         // The area covers whole chunks; squaremap uses block coordinates.
-        int minX = (loader.chunkX() - radius) << 4;
-        int minZ = (loader.chunkZ() - radius) << 4;
-        int maxX = (loader.chunkX() + radius + 1) << 4;
-        int maxZ = (loader.chunkZ() + radius + 1) << 4;
-        boolean paused = loader.active() && plugin.loaders().paused();
-        Color color = paused ? settings.pausedColor() : loader.active() ? colorOf(loader, settings) : settings.inactiveColor();
+        int minX = loader.minChunkX() << 4;
+        int minZ = loader.minChunkZ() << 4;
+        int maxX = (loader.maxChunkX() + 1) << 4;
+        int maxZ = (loader.maxChunkZ() + 1) << 4;
+        boolean locked = plugin.loaders().lagLocked(loader);
+        Color color = colorOf(loader, settings, locked);
+        boolean strong = loader.active() || locked;
+        String hover = fill(settings.hoverTooltip(), loader);
+        String click = fill(settings.clickTooltip(), loader);
         MarkerOptions options = MarkerOptions.builder()
                 .strokeColor(color)
                 .strokeWeight(2)
-                .strokeOpacity(loader.active() ? 0.9 : 0.6)
+                .strokeOpacity(strong ? 0.9 : 0.6)
                 .fillColor(color)
-                .fillOpacity(loader.active() ? settings.fillOpacity() : settings.fillOpacity() / 2)
-                .hoverTooltip(fill(settings.hoverTooltip(), loader))
-                .clickTooltip(fill(settings.clickTooltip(), loader))
+                .fillOpacity(strong ? settings.fillOpacity() : settings.fillOpacity() / 2)
+                .hoverTooltip(hover)
+                .clickTooltip(click)
                 .build();
         layer.addMarker(Key.of("loader_" + loader.id()),
                 Marker.rectangle(Point.of(minX, minZ), Point.of(maxX, maxZ)).markerOptions(options));
-        if (settings.showIcon()) {
+        // A sitting dummy gets its own icon instead of the loader icon.
+        boolean dummy = settings.status().dummyIcon() && plugin.dummies().dummyOf(loader) != null;
+        if (dummy || settings.showIcon()) {
             layer.addMarker(Key.of("loader_icon_" + loader.id()),
-                    Marker.icon(Point.of(loader.x() + 0.5, loader.z() + 0.5), ICON, ICON_SIZE)
-                            .markerOptions(MarkerOptions.builder()
-                                    .hoverTooltip(fill(settings.hoverTooltip(), loader))
-                                    .clickTooltip(fill(settings.clickTooltip(), loader))));
+                    Marker.icon(Point.of(loader.x() + 0.5, loader.z() + 0.5), dummy ? DUMMY_ICON : ICON, ICON_SIZE)
+                            .markerOptions(MarkerOptions.builder().hoverTooltip(hover).clickTooltip(click)));
         }
     }
 
-    /** Removes our layers and icon (on disable / before re-applying with new settings). */
+    /** Removes our layers and icons (on disable / before re-applying with new settings). */
     void remove() {
         for (World world : Bukkit.getWorlds()) {
             api.getWorldIfEnabled(BukkitAdapter.worldIdentifier(world)).ifPresent(mapWorld -> {
-                if (mapWorld.layerRegistry().hasEntry(LAYER)) {
-                    mapWorld.layerRegistry().unregister(LAYER);
+                for (Key key : List.of(LAYER, LAYER_INACTIVE, LAYER_LOCKED)) {
+                    if (mapWorld.layerRegistry().hasEntry(key)) {
+                        mapWorld.layerRegistry().unregister(key);
+                    }
                 }
             });
         }
         layers.clear();
-        if (api.iconRegistry().hasEntry(ICON)) {
-            api.iconRegistry().unregister(ICON);
+        for (Key key : List.of(ICON, DUMMY_ICON)) {
+            if (api.iconRegistry().hasEntry(key)) {
+                api.iconRegistry().unregister(key);
+            }
         }
         try {
             removeGrid();
@@ -247,7 +294,28 @@ final class SquaremapHook {
         return MapAddress.build(settings.address(), settings.reverseProxy(), webAddress, Bukkit.getIp(), publicIp, port);
     }
 
-    private Color colorOf(Loader loader, Settings.SquaremapSettings settings) {
+    /**
+     * Locked (red), switched off (grey), paused and conspicuous (yellow), otherwise squaremap.color (status = green).
+     * Without status-colors locked and conspicuous loaders look like the others.
+     */
+    private Color colorOf(Loader loader, Settings.SquaremapSettings settings, boolean locked) {
+        Settings.StatusSettings status = settings.status();
+        if (locked && status.colors()) {
+            return status.lockedColor();
+        }
+        if (!loader.active()) {
+            return settings.inactiveColor();
+        }
+        if (plugin.loaders().paused()) {
+            return settings.pausedColor();
+        }
+        if (status.colors() && plugin.settings().lag().enabled() && plugin.lag().conspicuous(loader)) {
+            return status.warnColor();
+        }
+        return ownerColor(loader, settings);
+    }
+
+    private Color ownerColor(Loader loader, Settings.SquaremapSettings settings) {
         if (settings.color() != null) {
             return settings.color();
         }
@@ -257,7 +325,6 @@ final class SquaremapHook {
     }
 
     private String fill(String template, Loader loader) {
-        Settings.LoaderSettings loaders = plugin.settings().loaders();
         return template
                 .replace("{name}", html(Texts.name(plugin, loader)))
                 .replace("{number}", String.valueOf(loader.number()))
@@ -267,16 +334,69 @@ final class SquaremapHook {
                 .replace("{x}", String.valueOf(loader.x()))
                 .replace("{y}", String.valueOf(loader.y()))
                 .replace("{z}", String.valueOf(loader.z()))
-                .replace("{size}", String.valueOf(loaders.size()))
-                .replace("{chunks}", String.valueOf(loaders.chunkCount()))
-                .replace("{state}", html(loader.active() && plugin.loaders().paused()
-                        ? plugin.messages().plain("state-paused") : Texts.state(plugin, loader.active())));
+                .replace("{width}", String.valueOf(loader.width()))
+                .replace("{length}", String.valueOf(loader.length()))
+                .replace("{size}", String.valueOf(loader.width()))
+                .replace("{chunks}", String.valueOf(loader.area()))
+                .replace("{state}", html(state(loader)))
+                .replace("{status}", status(loader))
+                .replace("{dummy}", plugin.dummies().dummyOf(loader) != null ? plugin.settings().squaremap().status().tooltipDummy() : "");
+    }
+
+    private String state(Loader loader) {
+        return loader.active() && plugin.loaders().paused()
+                ? plugin.messages().plain("state-paused") : Texts.state(plugin, loader.active());
+    }
+
+    /** {state}, for locked and conspicuous loaders with the reason (metric, value, limit). HTML-safe. */
+    private String status(Loader loader) {
+        Settings.StatusSettings status = plugin.settings().squaremap().status();
+        LagLock lock = plugin.loaders().lagLock(loader);
+        if (lock != null) {
+            return reason(status.tooltipLocked(), lock.metric(), lock.value(), lock.limit());
+        }
+        if (loader.active() && plugin.settings().lag().enabled() && plugin.lag().conspicuous(loader)) {
+            Activity a = plugin.lag().activity(loader);
+            Metric metric = a.worst();
+            return reason(status.tooltipWarn(), metric, a.value(metric),
+                    plugin.settings().lag().limitsFor(loader.area()).warn(metric));
+        }
+        return html(state(loader));
+    }
+
+    private String reason(String template, Metric metric, double value, double limit) {
+        return template.replace("{metric}", html(plugin.messages().plain("lag-metric-" + metric.key())))
+                .replace("{value}", LagMonitor.format(value))
+                .replace("{limit}", LagMonitor.format(limit));
     }
 
     private static String html(String text) {
         return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
 
+
+    /** A small figure (head, shirt, trousers) for loaders with a dummy, drawn in code like the loader icon. */
+    private static BufferedImage dummyIcon() {
+        BufferedImage image = new BufferedImage(ICON_SIZE, ICON_SIZE, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+        g.setColor(new Color(0x1B1B1B));
+        g.fillRect(4, 0, 8, 7);
+        g.fillRect(2, 7, 12, 5);
+        g.fillRect(4, 12, 8, 4);
+        g.setColor(new Color(0xC69C6D));
+        g.fillRect(5, 1, 6, 5);
+        g.fillRect(3, 8, 2, 3);
+        g.fillRect(11, 8, 2, 3);
+        g.setColor(new Color(0x00AFAF));
+        g.fillRect(5, 7, 6, 5);
+        g.setColor(new Color(0x3C3CA0));
+        g.fillRect(5, 12, 6, 3);
+        g.setColor(new Color(0x2B1E16));
+        g.fillRect(5, 1, 6, 2);
+        g.dispose();
+        return image;
+    }
     /** A small emerald-like block icon, drawn in code so no image file is needed. */
     private static BufferedImage icon() {
         BufferedImage image = new BufferedImage(ICON_SIZE, ICON_SIZE, BufferedImage.TYPE_INT_ARGB);

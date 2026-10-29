@@ -135,7 +135,7 @@ public final class MRChunksCommand implements TabExecutor {
 
     // ------------------------------------------------------------- loaders
 
-    /** /mrchunks limit <player> <place|active> <amount|reset> - one command for both caps. */
+    /** /mrchunks limit <player> <budget|dummy> <amount|reset> - one command for both caps. */
     private void limit(CommandSender sender, String[] args) {
         if (!check(sender, AdminActions.PERM_LIMIT)) {
             return;
@@ -145,8 +145,7 @@ public final class MRChunksCommand implements TabExecutor {
             return;
         }
         LoaderManager.LimitKind kind = switch (args[2].toLowerCase(Locale.ROOT)) {
-            case "place", "setzen", "set" -> LoaderManager.LimitKind.PLACE;
-            case "active", "aktiv" -> LoaderManager.LimitKind.ACTIVE;
+            case "budget", "chunks" -> LoaderManager.LimitKind.BUDGET;
             case "dummy", "dummies" -> LoaderManager.LimitKind.DUMMY;
             default -> null;
         };
@@ -224,7 +223,7 @@ public final class MRChunksCommand implements TabExecutor {
                 messages().send(sender, "lag-list-entry", Texts.loader(plugin, loader),
                         tag("metric", messages().plain("lag-metric-" + metric.key())),
                         tag("value", at.marcelr.mrchunks.lag.LagMonitor.format(activity.value(metric))),
-                        tag("limit", at.marcelr.mrchunks.lag.LagMonitor.format(plugin.settings().lag().limits().warn(metric))));
+                        tag("limit", at.marcelr.mrchunks.lag.LagMonitor.format(plugin.settings().lag().limitsFor(loader.area()).warn(metric))));
             }
         }
     }
@@ -405,9 +404,9 @@ public final class MRChunksCommand implements TabExecutor {
                         Bukkit.getOnlinePlayers().forEach(p -> options.add(p.getName()));
                         plugin.loaders().knownPlayers().forEach(u -> options.add(LoaderManager.name(u)));
                     } else if (args.length == 3 && sub.equals("limit")) {
-                        options.addAll(List.of("place", "active", "dummy"));
+                        options.addAll(List.of("budget", "dummy"));
                     } else if (args.length == 4 && sub.equals("limit")) {
-                        options.addAll(List.of("3", "5", "10", "reset"));
+                        options.addAll(args[2].equalsIgnoreCase("dummy") ? List.of("1", "2", "3", "reset") : List.of("49", "147", "300", "reset"));
                     } else if (args.length == 3 && sub.equals("ban")) {
                         options.addAll(List.of("permanent", "1d", "7d", "30d"));
                     }

@@ -36,6 +36,7 @@ import java.util.UUID;
 
 import static at.marcelr.mrchunks.Messages.tag;
 
+/** Placing, breaking and right-clicking chunk loader blocks, plus the protection of the loader blocks. */
 public final class LoaderListener implements Listener {
 
     private final MRChunks plugin;
@@ -72,10 +73,10 @@ public final class LoaderListener implements Listener {
                 messages.send(player, "banned", Messages.lazy("duration", () -> Texts.banDuration(plugin, ban)), tag("reason", ban.reason()));
                 return;
             }
-            LoaderManager.Limit limit = loaders().limit(player);
-            if (loaders().count(AdminActions.accountOf(player)) >= limit.value()) {
+            int max = loaders().maxLoaders();
+            if (loaders().count(AdminActions.accountOf(player)) >= max) {
                 event.setCancelled(true);
-                messages.send(player, "place-limit", tag("limit", Texts.limit(limit)));
+                messages.send(player, "place-limit", tag("limit", max));
                 return;
             }
             Loader conflict = overlapConflict(player, event.getBlock());
@@ -98,12 +99,30 @@ public final class LoaderListener implements Listener {
         if (mode != Settings.OverlapMode.DENY_OWN && mode != Settings.OverlapMode.DENY_ALL) {
             return null;
         }
-        for (Loader other : loaders().overlapping(block.getWorld(), block.getX() >> 4, block.getZ() >> 4, null)) {
+        int r = placementReach(player);
+        int cx = block.getX() >> 4;
+        int cz = block.getZ() >> 4;
+        for (Loader other : loaders().overlapping(block.getWorld().getUID(), cx - r, cz - r, cx + r, cz + r, null)) {
             if (mode == Settings.OverlapMode.DENY_ALL || other.owner().equals(AdminActions.accountOf(player))) {
                 return other;
             }
         }
         return null;
+    }
+
+    /**
+     * Size of a new loader (reach in every direction): loaders.default-reach, or the largest square that still fits
+     * into the player's free budget. If not even 1x1 fits, the default - the loader is then placed switched off.
+     */
+    private int placementReach(Player player) {
+        int reach = plugin.settings().loaders().defaultReach();
+        long free = loaders().freeBudget(player);
+        for (int r = reach; r >= 0; r--) {
+            if ((2L * r + 1) * (2L * r + 1) <= free) {
+                return r;
+            }
+        }
+        return reach;
     }
 
     /** With loaders.overlap warn: tells the player which loaders the new one overlaps and shows its border. */
@@ -116,7 +135,7 @@ public final class LoaderListener implements Listener {
             return;
         }
         World world = loader.world();
-        List<Loader> others = world == null ? List.of() : loaders().overlapping(world, loader.chunkX(), loader.chunkZ(), loader);
+        List<Loader> others = world == null ? List.of() : loaders().overlapping(loader);
         if (others.isEmpty()) {
             return;
         }
@@ -128,7 +147,7 @@ public final class LoaderListener implements Listener {
         }
         messages.send(player, "place-overlap-warning", Texts.loader(plugin, loader),
                 tag("loaders", String.join(", ", names)),
-                tag("shared", loaders().sharedChunks(loader.chunkX(), loader.chunkZ(), others)));
+                tag("shared", loaders().sharedChunks(loader, others)));
         plugin.border().show(player, loader);
     }
 
@@ -139,16 +158,19 @@ public final class LoaderListener implements Listener {
             return;
         }
         Player player = event.getPlayer();
-        // Starts active only if the player still has an active slot; otherwise it is placed switched off.
-        // A linked second account places for its main account.
+        // Starts active (as large as the budget allows, up to the default size); with no budget left it is placed
+        // switched off. A linked second account places for its main account.
         UUID owner = AdminActions.accountOf(player);
-        boolean active = loaders().canActivate(player);
-        Loader loader = loaders().create(owner, event.getBlockPlaced(), active);
-        plugin.messages().send(player, active ? "placed" : "placed-inactive", Texts.loader(plugin, loader),
+        int reach = placementReach(player);
+        int area = (2 * reach + 1) * (2 * reach + 1);
+        boolean active = loaders().fitsBudget(player, area);
+        Loader loader = loaders().create(owner, event.getBlockPlaced(), reach, active);
+        boolean smaller = active && reach < plugin.settings().loaders().defaultReach();
+        plugin.messages().send(player, !active ? "placed-inactive" : smaller ? "placed-smaller" : "placed",
+                Texts.loader(plugin, loader),
                 tag("placed", loaders().count(owner)),
-                tag("limit", Texts.limit(loaders().limit(player))),
-                tag("active", loaders().activeCount(owner)),
-                tag("active-limit", Texts.limit(loaders().activeLimit(player))));
+                tag("limit", loaders().maxLoaders()),
+                plugin.adminActions().budgetTags(player));
         plugin.discord().log("loader-placed", plugin.adminActions().discordTags(loader));
         warnOverlap(player, loader);
     }

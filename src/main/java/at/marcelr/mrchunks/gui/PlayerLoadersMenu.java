@@ -23,7 +23,7 @@ import static at.marcelr.mrchunks.Messages.tag;
 /**
  * One player's loaders plus player actions. Layout (6 rows):
  * <pre>
- *  [limit] [active limit] [delete all] [dummy limit] [head] [unlink] [ban1] [ban2] [ban3]   (or [unban] while banned)
+ *  [budget] . [delete all] [dummy limit] [head] [unlink] [ban1] [ban2] [ban3]   (or [unban] while banned)
  *  rows 1-4: the player's loaders (click: loader menu with admin actions)
  *  [«] . . . [back] . . . [»]
  * </pre>
@@ -32,6 +32,8 @@ public final class PlayerLoadersMenu extends Menu {
 
     private static final int PER_PAGE = 36;
     private static final int FIRST_SLOT = 9;
+    /** One click on the budget button adds or takes this many chunks. */
+    private static final int BUDGET_STEP = 10;
 
     private final UUID targetId;
     /** What "back" does: reopen the admin menu, or return to whoever opened this (e.g. MRadmin). */
@@ -59,11 +61,10 @@ public final class PlayerLoadersMenu extends Menu {
         // A linked second account shows the loaders of its main account (they share them).
         List<Loader> owned = loaders.byOwner(loaders.main(targetId));
 
-        // ---- the two caps: left +1, right -1, shift = reset
-        limitButton(0, Material.EXPERIENCE_BOTTLE, "gui-limit-name", target, LoaderManager.LimitKind.PLACE);
-        limitButton(1, Material.BEACON, "gui-active-limit-name", target, LoaderManager.LimitKind.ACTIVE);
+        // ---- the two caps: left +step, right -step, shift = reset
+        limitButton(0, Material.EXPERIENCE_BOTTLE, "gui-budget-name", target, LoaderManager.LimitKind.BUDGET, BUDGET_STEP);
         if (plugin.dummies().enabled()) {
-            limitButton(3, Material.ARMOR_STAND, "gui-dummy-limit-name", target, LoaderManager.LimitKind.DUMMY);
+            limitButton(3, Material.ARMOR_STAND, "gui-dummy-limit-name", target, LoaderManager.LimitKind.DUMMY, 1);
         }
 
         // ---- delete all
@@ -120,12 +121,13 @@ public final class PlayerLoadersMenu extends Menu {
     }
 
     private void limitButton(int slot, Material material, String nameKey, OfflinePlayer target,
-                             LoaderManager.LimitKind kind) {
+                             LoaderManager.LimitKind kind, int step) {
         Messages messages = plugin.messages();
         LoaderManager.Limit limit = plugin.loaders().limit(target, kind);
         Items item = Items.of(material)
-                .name(messages.item(nameKey, tag("limit", Texts.limit(limit))))
-                .lore(messages.lore("gui-limit-lore"));
+                .name(messages.item(nameKey, tag("limit", Texts.limit(limit)),
+                        tag("used", plugin.loaders().usedBudget(plugin.loaders().main(target.getUniqueId())))))
+                .lore(messages.lore("gui-limit-lore", tag("step", step)));
         if (!viewer.hasPermission(AdminActions.PERM_LIMIT)) {
             item.lore(messages.item("gui-no-permission"));
         }
@@ -136,7 +138,7 @@ public final class PlayerLoadersMenu extends Menu {
             if (click.isShiftClick()) {
                 plugin.adminActions().setLimit(viewer, target, kind, null);
             } else if (limit.value() != Integer.MAX_VALUE) {
-                int next = limit.value() + (click == ClickType.RIGHT ? -1 : 1);
+                int next = limit.value() + (click == ClickType.RIGHT ? -step : step);
                 plugin.adminActions().setLimit(viewer, target, kind, Math.max(0, next));
             }
             successSound();

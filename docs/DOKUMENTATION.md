@@ -34,7 +34,7 @@ src/main/java/at/marcelr/mrchunks/
 │  └─ nms/                NmsDummyBackend, FakeConnection - einzige Stelle mit Server-Interna
 ├─ link/                  LinkRequests (Anfrage + Zustimmungs-Dialog für verknüpfte Accounts)
 ├─ gui/                   Menu, MenuListener, Items, Heads, Pages, LoaderIcons, PlayerIcons,
-│                         LoaderMenu, BlockMenu, MyLoadersMenu, AdminMenu, PlayerLoadersMenu, LinkMenu, LinkPickerMenu
+│                         LoaderMenu, LoaderSettingsMenu, BlockMenu, MyLoadersMenu, AdminMenu, PlayerLoadersMenu, LinkMenu, LinkPickerMenu
 ├─ map/                   MapHooks (ohne squaremap-Typen), SquaremapHook (Ebene, Marker, Icon,
 │                         Raster, Spieler ausblenden), SquaremapSetup (squaremap-Config einrichten)
 └─ util/                  DurationUtil, Versions (mit Tests)
@@ -73,28 +73,34 @@ Loader in einer Welt, die noch nicht geladen ist, bekommen ihre Tickets per `Wor
 
 Die Block-Suche läuft über einen Positions-Index (`byPosition`), damit große Explosionen nicht alle Loader durchgehen müssen.
 
-**Überschneidung:** Zwei Bereiche überschneiden sich, wenn die Mittel-Chunks auf beiden Achsen höchstens `2 × radius` auseinander liegen (`LoaderManager#overlapping`). Tickets laufen über den Referenzzähler pro Chunk (`coverage`), deshalb ist Überlappen technisch immer sauber. `loaders.overlap` regelt nur, ob es erlaubt ist: `allow`, `warn` (Hinweis mit `sharedChunks` und Grenze nach dem Setzen), `deny-own`, `deny-all`.
+**Bereich:** Jeder Loader hat vier Reichweiten (`Loader.Direction` NORTH = −z, SOUTH, WEST = −x, EAST) ab dem Chunk seines Blocks; daraus ergeben sich `minChunkX/maxChunkX/minChunkZ/maxChunkZ`, `width`, `length` und `area` (= Kosten im Budget). Geändert wird nur über `LoaderManager#resize` (Tickets: erst `uncover` mit der alten, dann `cover` mit der neuen Fläche, danach Karte, Grenze, Lag-Index und Dummy aktualisieren). Die Prüfungen (Budget, `max-reach`, Überlappung nur für **neu** überlappte Loader, Dummy nur gleichmäßig und ≥ 2) stehen in `AdminActions#resizeProblem` - Spiel (`gui/SizeMenu`) und Web (`webResize`) nutzen dieselbe Methode.
+
+**Überschneidung:** Zwei Bereiche überschneiden sich, wenn sich ihre Rechtecke einen Chunk teilen (`Loader#overlaps`, `LoaderManager#overlapping`; beim Setzen mit der Fläche, die der neue Loader bekäme). Tickets laufen über den Referenzzähler pro Chunk (`coverage`), deshalb ist Überlappen technisch immer sauber. `loaders.overlap` regelt nur, ob es erlaubt ist: `allow`, `warn` (Hinweis mit `sharedChunks` und Grenze nach dem Setzen), `deny-own`, `deny-all`.
 
 **Namen & Nummern:** `Loader#id` ist intern (Schlüssel in `data.yml`, Marker-Keys). Spieler sehen `Loader#number`, die kleinste freie Nummer des Owners (`nextNumber`), oder den Namen aus dem Umbenennen-Dialog (`gui/RenameDialog`, Paper-Dialog-API mit Textfeld; `AdminActions#rename` entfernt Steuerzeichen und kürzt auf `gui.max-name-length`). Ältere `data.yml` ohne `number` werden beim Laden in Erstellungsreihenfolge durchnummeriert (`assignMissingNumbers`). Admin-Befehle nehmen `<spieler> <nr>`.
 
 **Grenze (`BorderDisplay`):** pro Betrachter eine Sitzung mit `BlockDisplay`-Entities: waagrechte Balken je Chunk der Außenkante auf mehreren Höhen und Pfosten an jeder Chunk-Ecke. Die Entities sind `persistent = false` (werden nie gespeichert) und `visibleByDefault = false` (nur `player.showEntity` macht sie sichtbar), leuchten (`setGlowing`, Farbe aus `border.color`) und sind über ihre Mitte verankert, damit der Client sie lange anzeigt. Alle 10 Ticks folgen sie der Höhe des Spielers (`setTeleportDuration` glättet), fehlende Teile (Chunk entladen) werden neu erzeugt. Ende: Zeit abgelaufen, Button im Menü, Loader gelöscht (`loaderRemoved`), Quit, Weltwechsel, Plugin-Stopp. Beim An/Ausschalten wird sie neu eingefärbt (`loaderChanged`).
 
 ## 5. Item (`LoaderItem`)
-Material, Name, Lore und Glanz kommen aus der Config. Markiert wird das Item im PersistentDataContainer (`mrchunks:chunkloader`). **Zwei Limits** (`LoaderManager.LimitKind` PLACE/ACTIVE), beide aufgelöst nach Admin-Override → höchste Permission `mrchunks.limit.<n>` bzw. `mrchunks.active.<n>` (nur online) → Config-Standard. Neue Loader starten nur aktiv, wenn `canActivate` gilt. `AdminActions#toggle` lehnt Aktivieren über dem Limit ab (außer mit `mrchunks.admin.manage`). `enforceActiveLimit` deaktiviert beim Senken die neuesten aktiven Loader. In `data.yml` stehen die Overrides unter `limits` bzw. `active-limits`.
-**Limit-Logik:** Setzen erlaubt, wenn `gesetzte < Limit`. `give` gibt höchstens `Limit − gesetzte − Items im Inventar` aus. Damit kann niemand Items horten, um das Limit zu umgehen, denn beim Setzen wird immer neu gezählt.
+Material, Name, Lore und Glanz kommen aus der Config. Markiert wird das Item im PersistentDataContainer (`mrchunks:chunkloader`).
+
+**Chunk-Budget** (`LoaderManager.LimitKind.BUDGET`, daneben `DUMMY`): aufgelöst nach Admin-Override → höchste Permission `mrchunks.budget.<n>` (nur online, offline der gemerkte Wert aus `known-limits`) → `loaders.default-budget`. `usedBudget` = Summe der `area` aller aktiven Loader des Owners, `freeBudget`/`fitsBudget` prüfen davor. Einschalten (`AdminActions#toggle`, `webToggle`) und Vergrößern eines aktiven Loaders gehen nur im Budget - für alle, auch das Team. `enforceBudget` schaltet beim Senken die neuesten aktiven Loader aus. Neue Loader: `LoaderListener#placementReach` nimmt `default-reach` oder das größte Quadrat, das ins freie Budget passt; passt nichts, wird der Loader aus gesetzt.
+**Höchstzahl:** `loaders.max-loaders` für alle gleich (keine Permission). Setzen erlaubt, wenn `gesetzte < max-loaders`. `give` gibt höchstens `max-loaders − gesetzte − Items im Inventar` aus. Damit kann niemand Items horten, denn beim Setzen wird immer neu gezählt.
+
+**Migration (config-version 12, lang-version 13):** `ConfigUpdater` übernimmt `loaders.radius` als `default-reach` und `limits-per-chunks` (alte Fläche) und setzt `default-budget = default-active-limit × alte Fläche`. `LoaderManager#load` gibt Loadern ohne `reach` die `default-reach` und rechnet alte `active-limits` in `budgets` um (× Fläche von `default-reach`), danach wird sofort gespeichert. `budgets` wird immer geschrieben, damit die Umrechnung nur einmal passiert.
 
 ## 6. Daten (`plugins/MRchunks/data.yml`)
 ```yaml
 next-id: 3
 loaders:
-  '1': { owner: <uuid>, world: <uuid oder Weltname>, world-name: world, x: 100, y: 80, z: 100, created: <ms>, number: 1, name: "Farm", active: true, dummy: true, block: DIAMOND_BLOCK }
+  '1': { owner: <uuid>, world: <uuid oder Weltname>, world-name: world, x: 100, y: 80, z: 100, created: <ms>, number: 1, name: "Farm", active: true, dummy: true, block: DIAMOND_BLOCK, reach: { north: 3, south: 3, west: 1, east: 6 } }
 # block nur, wenn der Besitzer einen anderen Block als item.material gewählt hat (Block ändern, item.block-choices)
-limits:
-  <spieler-uuid>: 10
-active-limits: { <spieler-uuid>: 3 }
+# Chunk-Budget pro Spieler (Admin-Wert); alte active-limits werden beim ersten Laden hierher umgerechnet
+budgets:
+  <spieler-uuid>: 300
 dummy-limits: { <spieler-uuid>: 2 }
-# Limits aus Permissions vom letzten Mal online (place | active | dummy)
-known-limits: { place: { <spieler-uuid>: 15 } }
+# Limits aus Permissions vom letzten Mal online (budget | dummy)
+known-limits: { budget: { <spieler-uuid>: 300 } }
 # Verknüpfte Accounts: Zweit-Account -> Haupt-Account
 links:
   <zweit-uuid>: <haupt-uuid>
@@ -104,12 +110,19 @@ bans:
 `world` darf in einer von Hand bearbeiteten Datei auch ein Weltname sein. Beim nächsten Speichern wird daraus die UUID.
 
 ## 7. Menüs (`gui/*`)
-- **`LoaderMenu`**: Reihe 2 = links An/Aus, Mitglieder, Dummy, Mitte Grenze anzeigen/ausblenden, rechts Block ändern (nur mit `item.block-choices`), Umbenennen, Löschen; Teleport nur mit `mrchunks.admin.teleport` unten rechts (Schließen rückt dann nach links). Löschen mit zweitem Klick innerhalb von `gui.confirm-seconds`. Wird der Loader inzwischen gelöscht, springt das Menü zurück.
+- **`LoaderMenu`**: symmetrisch - Reihe 2 = `. Mitglieder . An/Aus Grenze Dummy . Einstellungen .` (Mitglieder nur mit Einladungen, Dummy nur mit `dummies.enabled`, sonst Glas); Reihe 3 Zurück links, Schließen in der Mitte, mit `mrchunks.admin.teleport` Schließen links und Kompass rechts der Mitte. Wird der Loader inzwischen gelöscht, springt das Menü zurück.
+- **`LoaderSettingsMenu`**: Größe, Block ändern (nur mit `item.block-choices`), Umbenennen, Löschen mittig in Reihe 2 (4 oder 3 Knöpfe). Löschen mit zweitem Klick innerhalb von `gui.confirm-seconds`, danach zurück dorthin, wo das Loader-Menü herkam. `RenameDialog` öffnet danach wieder das aufrufende Menü.
 - **`BlockMenu`**: Auswahl des Blocks in der Welt (`item.material` + `item.block-choices`, Namen per `Component.translatable` = Sprache des Clients). `LoaderManager#setBlock` speichert ihn am Loader (`null` = `item.material`) und tauscht den Block sofort; `validate` tauscht andere Loader-Blöcke still zum gewählten, statt den Loader als fehlend zu behandeln. `Settings` lässt nur feste, ganze Blöcke ohne Schwerkraft und ohne Block-Entity zu.
 - **`MyLoadersMenu`**: die eigenen Loader.
 - **`AdminMenu`**: Statistik, Info, Filter, Spielerköpfe (auch offline; das Limit offline kennt nur Admin-Limit und Standard, weil Permissions nur bei Online-Spielern abfragbar sind).
-- **`PlayerLoadersMenu`**: Limit (links +1, rechts −1, Shift zurücksetzen), alle löschen, Sperren und die Loader des Spielers.
+- **`SizeMenu`**: Größe eines Loaders - Pfeile N/S/W/O (Links +1, Rechts −1), Mitte = alle Richtungen, oben das Budget des Owners, unten Grenze anzeigen. Mit Dummy nur die Mitte. Ändern über `AdminActions#resize`.
+- **`PlayerLoadersMenu`**: Budget (links +10, rechts −10, Shift zurücksetzen), Dummy-Limit (±1), alle löschen, Sperren und die Loader des Spielers.
 - Alle Aktionen laufen über `AdminActions`, das jeweils selbst die Permission prüft.
+
+## 7a. Lag-Schutz (`lag/LagMonitor`)
+- **Messung:** alle `sample-seconds` pro aktivem (und gesperrtem) Loader über alle Chunks seines Rechtecks; Ereignisse (Redstone, Trichter, Kolben, Spawns) zählt ein Chunk-Index, der bei jeder Messung und nach `resize` (`areaChanged`) neu gebaut wird.
+- **Grenzen pro Fläche:** `LagSettings#limitsFor(chunks)`: bis `small-loaders.max-chunks` (9) die festen `small-loaders.limits`, darüber `lag-protection.limits` × `chunks / limits-per-chunks` (`LagLimits#scaled`), mindestens die kleinen (`atLeast`); immer `rounded()` (ganze Zahlen, geprüfte Grenzen ≥ 1). Jede `Activity` eines Loaders ist gegen `limitsFor(loader.area())` gerechnet.
+- **Bewertung pro Loader:** `judge(loader, activity, …)` zählt Treffer (`strikes`) pro Loader-ID; nach `lock-after-samples` Messungen über einer Sperrgrenze (nur bei Server-Lag oder ab `force-lock-multiplier`) wird **nur dieser Loader** gesperrt. Auffällig (`conspicuous(loader)`) ist ein Loader über einer Warngrenze seiner Fläche. `lockOffendersBeforePause` sperrt vor einer Server-Pause jeden aktiven Loader über einer Sperrgrenze (außer im Cooldown nach dem Entsperren). Bis 2026-10-29 gab es einen Pool pro Owner (Summe aller Loader) - abgeschafft, weil eine Überschreitung nur den einen Loader betreffen soll.
 
 ## 8. squaremap (`map/MapHooks.java`, `map/SquaremapHook.java`)
 - `compileOnly("xyz.jpenilla:squaremap-api:1.4.3")` und `softdepend: [squaremap]`. Dadurch startet squaremap vorher, ist aber nicht Pflicht.
@@ -151,24 +164,32 @@ Der Release-Ablauf entspricht MRsleep, siehe **[RELEASES.md](RELEASES.md)**: Ver
 | 6 | Zwei überlappende Loader, einen löschen | gemeinsame Chunks bleiben geladen |
 | 7 | Loader im Nether | Bereich geladen (`execute in minecraft:the_nether if loaded …`) |
 | 8 | `/mrchunks ban <spieler>` | alle seine Loader weg, Items aus dem Inventar entfernt, `give` verweigert |
-| 9 | `/mrchunks limit <spieler> 5` | Kopf im Admin-Menü zeigt „5 (individuell)“ |
+| 9 | `/mrchunks limit <spieler> budget 200` | Kopf im Admin-Menü zeigt Budget 200 „(individuell)“, überzählige Loader gehen aus |
 | 10 | Erster Start mit squaremap | Log „squaremap eingerichtet: …“, Dimensionsnamen in `tiles/settings.json`, `players.json` leer |
-| 11 | `/mrchunks reload` nach Änderung von `radius` | alte Tickets weg, neue Bereichsgröße aktiv |
+| 11 | Loader-Menü → Größe, Osten +1 bei aktivem Loader | neue Chunk-Spalte geladen, Grenze und Karte folgen, Budget steigt um die Länge |
+| 12 | Vergrößern mit vollem Budget | abgelehnt mit Hinweis, Größe unverändert |
+| 13 | Dummy auf 3×3 oder Rechteck einschalten | abgelehnt („nur quadratisch ab 5×5“) |
 
 ## Einladungen & Ausschluss
 - **Daten:** `LoaderManager` hält `loaderMembers` (Loader-ID → Spieler → gültig bis) und `ownerMembers` (Owner → Spieler → gültig bis; gilt für alle Loader des Owners, auch künftige). `Long.MAX_VALUE` = dauerhaft. In `data.yml` unter `members.loaders.<id>.<uuid>` bzw. `members.owners.<owner>.<uuid>`. Abgelaufene Einträge fallen beim Lesen (`members`) und beim Speichern weg, die eines gelöschten Loaders mit dem Loader.
-- **Rechte (`AdminActions`):** `canToggle` = `canManage` (Owner\/Admin) oder `isMember`. Umbenennen, Löschen und `canManageInvites` bleiben Owner (`mrchunks.invite`) und Admins (`mrchunks.admin.manage`) vorbehalten. Beim Aktivieren durch Eingeladene gilt das Aktiv-Limit des Owners, der Owner wird benachrichtigt. Eingeladene dürfen das Menü öffnen (`canView`).
+- **Rechte (`AdminActions`):** `canToggle` = `canManage` (Owner\/Admin) oder `isMember`. Umbenennen, Löschen und `canManageInvites` bleiben Owner (`mrchunks.invite`) und Admins (`mrchunks.admin.manage`) vorbehalten. Beim Aktivieren durch Eingeladene gilt das Budget des Owners, der Owner wird benachrichtigt. Eingeladene dürfen das Menü öffnen (`canView`).
 - **Menüs:** `InvitePickerMenu` (Köpfe der Online-Spieler, Dauer per Uhr wählbar, „Namen eingeben“ öffnet `InviteDialog`), `MembersMenu` (Liste, Klick = entfernen, bei einem Loader werden die Einladungen für alle Loader grau mit angezeigt), `InviteDialog` (Paper-Dialog mit Namensfeld und Dauer-Auswahl aus `invites.durations`), `SharedLoadersMenu` („Mit mir geteilt“). Einstieg: Button **Mitglieder** im `LoaderMenu`, **Mitglieder für alle Loader** und **Mit mir geteilt** in `MyLoadersMenu`.
 - **`mrchunks.exempt` (streng):** blockiert `give`, Setzen, Einladen des Spielers und seine Rechte als Eingeladener. `enforceExempt` löscht beim Join und bei `/mrchunks reload` seine Loader und Items. Permissions sind nur online bekannt, Offline-Spieler werden beim nächsten Join bereinigt.
 
 ## 10. Dummy-Spieler (`dummy/*`)
 - **Warum Server-Interna:** Paper hat keine API für künstliche Spieler. `NmsDummyBackend` (Paket `dummy.nms`, gebaut mit paperweight-userdev gegen das Dev-Bundle aus `paperApi`) erzeugt einen echten `ServerPlayer` und loggt ihn über `PlayerList.placeNewPlayer` mit einer `FakeConnection` ein (offener `EmbeddedChannel`, verwirft jedes Paket). Abmelden wie bei einem Disconnect: `ServerPlayer#disconnect` + `PlayerList#remove`. `Dummies` lädt das Backend per `Class.forName` - passt es nicht zur Server-Version (`LinkageError` o.ä.), sind Dummies aus und nur das wird gemeldet. **Nach jedem MC-Update hier zuerst prüfen.**
 - **Lebenszyklus:** `Loader#dummy` (in `data.yml`) ist der Wunsch des Owners; `Dummies#sync(loader)` sorgt dafür, dass der Dummy genau dann da ist, wenn der Loader aktiv, nicht gesperrt oder pausiert, seine Welt geladen und `dummies.enabled` an ist. `LoaderManager` ruft `sync` bei an/aus, Löschen, Pause, Welt laden und `applyAll`. Gespawnt wird einen Tick später (nicht mitten in fremden Events), ein Wächter alle 5 s holt verschwundene, getötete oder abgesetzte Dummies zurück.
-- **Eigenschaften:** Kreativmodus (unverwundbar, Mobs ignorieren ihn, keine Phantome), nie mit `doTick` getickt (bewegt sich nicht, isst nicht, sammelt nichts, keine Statistiken), `setPersistent(false)` (Paper speichert keine Spielerdaten), `setSleepingIgnored(true)`, Sicht-/Simulationsdistanz = Loader-Radius, Sende-Distanz 2. Sitzt auf einem unsichtbaren `ItemDisplay` (`dummies.sit`). UUID = Namens-UUID aus der Loader-ID, Name `[D<nr>]<owner>` (Klammern gibt es in echten Namen nicht, also nie eine Namensgleichheit).
-- **Für den Rest unsichtbar:** Join/Quit/Advancement/Tod ohne Meldung, Tab-Liste per `Player#unlistPlayer`, Serverliste (`PaperServerListPingEvent`) und „Server voll“ (`PlayerServerFullCheckEvent`) ohne Dummies. Kick, Teleport, Absetzen, Spielmodus-Wechsel und Schaden durch andere werden abgebrochen. Markierung für andere Plugins: Metadata `NPC` (Citizens-Konvention) und PDC-Schlüssel `mrchunks:dummy`; MRsleep, MRadmin und MRpvp prüfen beides (jeweils Klasse `Npcs`).
+- **Eigenschaften:** Kreativmodus (unverwundbar, Mobs ignorieren ihn, keine Phantome), nie mit `doTick` getickt (bewegt sich nicht, isst nicht, sammelt nichts, keine Statistiken), `setPersistent(false)` (Paper speichert keine Spielerdaten), `setSleepingIgnored(true)`, Simulationsdistanz = Reichweite des Loaders (mind. 2), Sichtdistanz eins mehr, Sende-Distanz 2. Ein Dummy sitzt nur auf Loadern, die `Dummies#fits` erfüllen (zentriertes Quadrat, Reichweite ≥ 2), sonst würde er Chunks außerhalb des Bereichs simulieren. Sitzt auf einem unsichtbaren `ItemDisplay` (`dummies.sit`). UUID = Namens-UUID aus der Loader-ID, Name `[D<nr>]<owner>` (Klammern gibt es in echten Namen nicht, also nie eine Namensgleichheit).
+- **Für den Rest unsichtbar:** Join/Quit/Advancement/Tod ohne Meldung, Tab-Liste per `Player#unlistPlayer`, Serverliste (`PaperServerListPingEvent`) und „Server voll“ (`PlayerServerFullCheckEvent`) ohne Dummies. Kick, Teleport, Absetzen, Spielmodus-Wechsel und Schaden durch andere werden abgebrochen. Markierung für andere Plugins: Metadata `NPC` (Citizens-Konvention) und PDC-Schlüssel `mrchunks:dummy`; MRsleep und MRpvp prüfen beides (jeweils Klasse `Npcs`), MRadmin fragt über die Modul-API (`MRadminModule#isNpc`).
 - **Skin:** Eigenschaft `textures` des Owners - beim Join des Owners aktualisiert, sonst einmal per `PlayerProfile#update` geholt, gespeichert in `skins.yml`.
 
 ## 11. Verknüpfte Accounts
 - **Daten:** `LoaderManager.links` (Zweit → Haupt, keine Ketten). `main(uuid)` liefert den Haupt-Account, `group(uuid)` alle Accounts. Loader gehören immer dem Haupt-Account: `AdminActions.accountOf(player)` ist überall maßgeblich, wo früher die UUID des Spielers stand (Owner-Prüfung, Setzen, Zählen, Einladungen, Menüs). Limits werden immer für den Haupt-Account berechnet, `groupBan` prüft die ganze Gruppe, `notifyOwner` erreicht alle Online-Accounts der Gruppe.
 - **Ablauf:** `LinkRequests#request` (Haupt-Account fragt) → Dialog und Chat-Buttons beim anderen (läuft nach `linked-accounts.request-seconds` ab) → `AdminActions#link` prüft alles erneut (`linkProblem`) → `LoaderManager#link` übernimmt Loader (mit neuen Nummern) und Einladungen für alle Loader und entfernt Einladungen innerhalb der Gruppe.
 - **Limit offline:** Weil der Zweit-Account das Budget des (vielleicht offline) Haupt-Accounts nutzt, merkt sich `limit()` Permission-Limits in `known-limits` und verwendet sie, solange der Account offline ist.
+
+## 12. MRadmin (`api/MRadminLink`, `api/MRadminModule`)
+- **`MRadminLink`** hat keine MRadmin-Typen und fängt `LinkageError` ab - ohne MRadmin läuft MRchunks normal. **`MRadminModule`** wird nur geladen, wenn MRadmin läuft, und baut gegen `mradminApi` aus `gradle.properties` (zur Zeit `api-1.2.0`).
+- **Was MRchunks liefert:** Dashboard-Knopf und Menüs (`summary`, `openMenu`, `playerSummary`, `openPlayerMenu`), auffällige Loader im Serverzustand (`health`, `openHealth`), Web-Daten und -Aktionen (`WebData`), Hinweise und Markierungen (`alerts`, `flags`), seit API 3 auch die Startseiten-Kachel (`tile`), die Push-Art `chunks-locked` (`pushKinds`), den Namen der Ticket-Kategorie `chunkloader-lock` (`reportCategories`), die geladenen Chunks (`loadedChunks`) und die Dummies als NPCs (`isNpc`). Die Texte dafür kommen aus den Sprachdateien in `server-language`.
+- **Tickets:** `reportLock` / `resolveLock` bei Lag-Sperre und Entsperren.
+- Ein älteres MRadmin (API < 3) ruft die neuen Methoden nie auf; die Web-Anfrage `chunks` bleibt für solche Versionen.

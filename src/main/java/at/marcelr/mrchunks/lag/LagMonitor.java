@@ -44,9 +44,12 @@ import static at.marcelr.mrchunks.Messages.tag;
  * Measures what happens in the area of every active loader and locks loaders that cause lag.
  * <p>
  * Events (redstone, hopper transfers, pistons, spawns) are counted per loader through a chunk index that is rebuilt
- * at every sample; entities and dropped items are counted at the sample itself. A loader is locked when its area is
- * over a lock limit {@code lock-after-samples} times in a row - by default only while the server is actually lagging,
- * or without lag once it reaches {@code force-lock-multiplier} times the limit.
+ * at every sample; entities and dropped items are counted at the sample itself.
+ * <p>
+ * Every loader is judged on its own against the limits of its area (see {@link Settings.LagSettings#limitsFor}): up to
+ * 3x3 fixed limits, above that they grow with the area, never below the 3x3 ones. When a loader is over a lock limit
+ * {@code lock-after-samples} times in a row - by default only while the server is actually lagging, or without lag
+ * once it reaches {@code force-lock-multiplier} times the limit - only that loader is locked.
  * Listeners are only registered for metrics that have a limit, so switching e.g. hoppers off costs nothing.
  */
 public final class LagMonitor implements Listener {
@@ -64,11 +67,15 @@ public final class LagMonitor implements Listener {
     private final Map<Integer, long[]> counts = new HashMap<>();
     private long windowStart = System.currentTimeMillis();
 
+    /** loader id -> last measurement, judged against the limits of the loader's area */
     private final Map<Integer, Activity> activity = new HashMap<>();
+    /** loader id -> samples in a row over a lock limit */
     private final Map<Integer, Integer> strikes = new HashMap<>();
     /** loader id -> samples judged since an admin lifted its lock (cooldown, removed after lock-after-samples) */
     private final Map<Integer, Integer> sinceUnlock = new HashMap<>();
     private final Map<Integer, Long> lastWarn = new HashMap<>();
+    /** Loader ids that were conspicuous at the last sample (the web map is redrawn when they change). */
+    private java.util.Set<Integer> lastConspicuous = java.util.Set.of();
 
     public LagMonitor(MRChunks plugin) {
         this.plugin = plugin;
@@ -193,7 +200,6 @@ public final class LagMonitor implements Listener {
 
     /** Which active loader covers which chunk (overlapping areas count for every loader that keeps them loaded). */
     private void rebuildIndex() {
-        int radius = plugin.settings().loaders().radius();
         Map<UUID, Map<Long, List<Integer>>> build = new HashMap<>();
         for (Loader loader : loaders().all()) {
             // Locked loaders too: admins want to see whether things calmed down before lifting the lock.
@@ -201,10 +207,9 @@ public final class LagMonitor implements Listener {
                 continue;
             }
             Map<Long, List<Integer>> chunks = build.computeIfAbsent(loader.worldId(), k -> new HashMap<>());
-            for (int dx = -radius; dx <= radius; dx++) {
-                for (int dz = -radius; dz <= radius; dz++) {
-                    chunks.computeIfAbsent(Loader.chunkKey(loader.chunkX() + dx, loader.chunkZ() + dz), k -> new ArrayList<>(1))
-                            .add(loader.id());
+            for (int cx = loader.minChunkX(); cx <= loader.maxChunkX(); cx++) {
+                for (int cz = loader.minChunkZ(); cz <= loader.maxChunkZ(); cz++) {
+                    chunks.computeIfAbsent(Loader.chunkKey(cx, cz), k -> new ArrayList<>(1)).add(loader.id());
                 }
             }
         }
@@ -215,6 +220,13 @@ public final class LagMonitor implements Listener {
             result.put(world, packed);
         });
         index = result;
+    }
+
+    /** A loader's area changed: events are counted for its new chunks from now on. */
+    public void areaChanged() {
+        if (task != null) {
+            rebuildIndex();
+        }
     }
 
     // --------------------------------------------------------------- sampling
@@ -230,25 +242,23 @@ public final class LagMonitor implements Listener {
             return;
         }
         double seconds = Math.max(1, (now - windowStart) / 1000.0);
-        int radius = plugin.settings().loaders().radius();
         boolean serverLags = Bukkit.getAverageTickTime() >= s.serverLagMspt();
 
-        for (Loader loader : loaders().all()) {
+        java.util.Set<Integer> judged = new java.util.HashSet<>();
+        for (Loader loader : new ArrayList<>(loaders().all())) {
             boolean locked = loaders().lagLocked(loader);
-            if (!loader.active()) {
-                strikes.remove(loader.id());
-                if (!locked) {
-                    activity.remove(loader.id());
-                    continue;
-                }
+            if (!loader.active() && !locked) {
+                activity.remove(loader.id());
+                continue;
             }
             World world = loader.world();
             if (world == null) {
                 continue;
             }
-            Activity a = measure(loader, world, radius, seconds, now);
+            Activity a = measure(loader, world, seconds, now);
             if (loader.active()) {
                 activity.put(loader.id(), a);
+                judged.add(loader.id());
                 judge(loader, a, serverLags, now);
             } else if (a.loadedChunks() > 0) {
                 // Locked: measured while someone keeps (part of) the area loaded, never judged. Otherwise the last
@@ -256,22 +266,32 @@ public final class LagMonitor implements Listener {
                 activity.put(loader.id(), a);
             }
         }
+        strikes.keySet().retainAll(judged);
         activity.keySet().removeIf(id -> loaders().byId(id) == null);
+        // The web map colours conspicuous loaders: redraw it when that changed.
+        java.util.Set<Integer> conspicuousNow = new java.util.HashSet<>();
+        for (Loader loader : loaders().all()) {
+            if (conspicuous(loader)) {
+                conspicuousNow.add(loader.id());
+            }
+        }
+        if (!conspicuousNow.equals(lastConspicuous)) {
+            lastConspicuous = conspicuousNow;
+            plugin.maps().refreshSoon();
+        }
         counts.clear();
         windowStart = now;
         rebuildIndex();
     }
 
     /** Counts entities and items in the loaded chunks of the area and the events since the last sample. */
-    private Activity measure(Loader loader, World world, int radius, double seconds, long now) {
+    private Activity measure(Loader loader, World world, double seconds, long now) {
         Map<Metric, Double> values = new EnumMap<>(Metric.class);
         int entities = 0;
         int items = 0;
         int loaded = 0;
-        for (int dx = -radius; dx <= radius; dx++) {
-            for (int dz = -radius; dz <= radius; dz++) {
-                int cx = loader.chunkX() + dx;
-                int cz = loader.chunkZ() + dz;
+        for (int cx = loader.minChunkX(); cx <= loader.maxChunkX(); cx++) {
+            for (int cz = loader.minChunkZ(); cz <= loader.maxChunkZ(); cz++) {
                 if (!world.isChunkLoaded(cx, cz)) {
                     continue;
                 }
@@ -296,39 +316,38 @@ public final class LagMonitor implements Listener {
                 values.put(metric, c == null ? 0 : c[metric.ordinal()] / seconds);
             }
         }
-        int size = radius * 2 + 1;
-        return Activity.of(values, settings().limits(), now, loaded, size * size);
+        return Activity.of(values, settings().limitsFor(loader.area()), now, loaded, loader.area());
     }
 
+    /** One loader over a lock limit often enough: lock it. Over a warn limit: a note in Discord (at most hourly). */
     private void judge(Loader loader, Activity a, boolean serverLags, long now) {
         Settings.LagSettings s = settings();
-        int id = loader.id();
         // Cooldown after an unlock: exactly lock-after-samples measurements, which the strikes below need anyway.
-        sinceUnlock.computeIfPresent(id, (k, n) -> n + 1 >= s.lockAfterSamples() ? null : n + 1);
+        sinceUnlock.computeIfPresent(loader.id(), (k, n) -> n + 1 >= s.lockAfterSamples() ? null : n + 1);
         // Far enough over a lock limit (force-lock-multiplier), the loader is locked even while the server copes.
         boolean forced = s.forceLockMultiplier() > 0 && a.lockRatio() >= s.forceLockMultiplier();
         if (a.lockRatio() >= 1 && (!s.onlyWhenServerLags() || serverLags || forced)) {
-            int count = strikes.merge(id, 1, Integer::sum);
+            int count = strikes.merge(loader.id(), 1, Integer::sum);
             if (count >= s.lockAfterSamples()) {
                 lock(loader, a, now);
                 return;
             }
         } else {
-            strikes.remove(id);
+            strikes.remove(loader.id());
         }
-        if (a.conspicuous() && now - lastWarn.getOrDefault(id, 0L) >= WARN_INTERVAL) {
-            lastWarn.put(id, now);
-            Metric worst = a.worst();
+        if (a.conspicuous() && now - lastWarn.getOrDefault(loader.id(), 0L) >= WARN_INTERVAL) {
+            lastWarn.put(loader.id(), now);
+            Metric metric = a.worst();
             plugin.discord().log("loader-lag-warning", plugin.adminActions().discordTags(loader,
-                    "metric", plugin.messages().plain("lag-metric-" + worst.key()),
-                    "value", format(a.value(worst)), "limit", format(s.limits().warn(worst))));
+                    "metric", plugin.messages().plain("lag-metric-" + metric.key()),
+                    "value", format(a.value(metric)), "limit", format(s.limitsFor(loader.area()).warn(metric))));
         }
     }
 
     // ------------------------------------------------------------------ locks
 
     private void lock(Loader loader, Activity a, long now) {
-        LagLimits limits = settings().limits();
+        LagLimits limits = settings().limitsFor(loader.area());
         // The metric that is furthest over its lock limit.
         Metric metric = a.worst();
         double best = -1;
@@ -370,7 +389,7 @@ public final class LagMonitor implements Listener {
     /** The lock as readable plain text (several lines): loader, time, reason, all measured values, server state. */
     private String details(Loader loader, LagLock lock, Activity a) {
         Messages messages = plugin.messages();
-        LagLimits limits = settings().limits();
+        LagLimits limits = settings().limitsFor(loader.area());
         List<String> lines = new ArrayList<>();
         for (Component line : messages.lore("lock-details", tags(loader, lock),
                 tag("tps", String.format(java.util.Locale.ROOT, "%.1f", Math.min(20, Bukkit.getTPS()[0]))),
@@ -399,10 +418,10 @@ public final class LagMonitor implements Listener {
     }
 
     /**
-     * Called right before a server pause releases all chunks: active loaders that are over a lock limit now are
-     * locked at once (the server lags for sure). Otherwise the pause would hide them - their chunks unload, the lag
-     * is gone, the pause ends and it starts again, without the cause ever being locked. Loaders still in their
-     * cooldown after an unlock are left alone.
+     * Called right before a server pause releases all chunks: every loader over a lock limit now is locked at once
+     * (the server lags for sure). Otherwise the pause would hide them - their chunks unload, the lag is gone, the pause
+     * ends and it starts again, without the cause ever being locked. Loaders still in their cooldown after an unlock
+     * are left alone.
      */
     public void lockOffendersBeforePause() {
         if (!settings().enabled()) {
@@ -410,16 +429,14 @@ public final class LagMonitor implements Listener {
         }
         long now = System.currentTimeMillis();
         double seconds = Math.max(1, (now - windowStart) / 1000.0);
-        int radius = plugin.settings().loaders().radius();
         for (Loader loader : new ArrayList<>(loaders().all())) {
             World world = loader.world();
-            if (!loader.active() || loaders().lagLocked(loader) || sinceUnlock.containsKey(loader.id())
-                    || world == null) {
+            if (!loader.active() || world == null) {
                 continue;
             }
-            Activity a = measure(loader, world, radius, seconds, now);
+            Activity a = measure(loader, world, seconds, now);
             activity.put(loader.id(), a);
-            if (a.lockRatio() >= 1) {
+            if (a.lockRatio() >= 1 && !sinceUnlock.containsKey(loader.id())) {
                 lock(loader, a, now);
             }
         }
@@ -445,12 +462,23 @@ public final class LagMonitor implements Listener {
         return activity.get(loader.id());
     }
 
+    /** Over a warn limit of its own area (last measurement). */
+    public boolean conspicuous(Loader loader) {
+        Activity a = activity.get(loader.id());
+        return a != null && a.conspicuous();
+    }
+
+    /** Like {@link #conspicuous(Loader)}, but over a lock limit. */
+    public boolean overLock(Loader loader) {
+        Activity a = activity.get(loader.id());
+        return a != null && a.lockRatio() >= 1;
+    }
+
     /** Conspicuous and locked loaders, the worst first. */
     public List<Loader> conspicuous() {
         List<Loader> result = new ArrayList<>();
         for (Loader loader : loaders().all()) {
-            Activity a = activity.get(loader.id());
-            if (loaders().lagLocked(loader) || (a != null && a.conspicuous())) {
+            if (loaders().lagLocked(loader) || conspicuous(loader)) {
                 result.add(loader);
             }
         }

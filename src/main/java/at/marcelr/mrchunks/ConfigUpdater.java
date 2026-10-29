@@ -22,7 +22,7 @@ import java.util.logging.Level;
  */
 public final class ConfigUpdater {
 
-    public static final int CURRENT_VERSION = 11;
+    public static final int CURRENT_VERSION = 17;
     public static final String BOM = "\uFEFF";
     /** Texts whose content changed with new features; the new default replaces the old value. */
     private static final Set<String> REPLACED_KEYS = Set.of();
@@ -79,6 +79,24 @@ public final class ConfigUpdater {
                 }
                 template.set("language", "auto");
             }
+            // v12: chunk budget instead of fixed limits. Existing loaders keep their size (old radius = default-reach),
+            // nobody gets less: the budget is the old active limit in loaders of the old size, and the lag limits keep
+            // applying to the old area.
+            if (version < 12 && existing.contains("loaders.radius")) {
+                int radius = Math.clamp(existing.getInt("loaders.radius", 3), 0, 10);
+                int area = (2 * radius + 1) * (2 * radius + 1);
+                template.set("loaders.default-reach", radius);
+                template.set("loaders.max-reach", Math.max(radius, template.getInt("loaders.max-reach", 7)));
+                template.set("loaders.default-budget", Math.max(0, existing.getInt("loaders.default-active-limit", 3)) * area);
+                template.set("lag-protection.limits-per-chunks", area);
+            }
+            // v16: the map colours show the state (active green, conspicuous and paused yellow) - only the old defaults
+            // are replaced, own colours stay.
+            if (version < 16) {
+                replaceDefault(existing, template, "squaremap.color", "owner", "status");
+                replaceDefault(existing, template, "squaremap.paused-color", "#F39C12", "#F1C40F");
+                replaceDefault(existing, template, "squaremap.warn-color", "#E67E22", "#F1C40F");
+            }
             template.set("config-version", CURRENT_VERSION);
             // Keep long messages on one line instead of folding them.
             template.options().width(10_000);
@@ -90,6 +108,14 @@ public final class ConfigUpdater {
                     + carried + " settings carried over, backup: " + backup.getName() + ").");
         } catch (IOException | InvalidConfigurationException e) {
             plugin.getLogger().log(Level.WARNING, "Could not update config.yml: " + e.getMessage());
+        }
+    }
+
+    /** Sets {@code value} if the old file still had the old default {@code old} (any other value was carried over). */
+    private static void replaceDefault(YamlConfiguration existing, YamlConfiguration template, String key, String old,
+                                       String value) {
+        if (old.equalsIgnoreCase(existing.getString(key, old).trim())) {
+            template.set(key, value);
         }
     }
 

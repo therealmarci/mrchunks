@@ -136,12 +136,11 @@ public final class BorderDisplay implements Listener {
     /** Horizontal bars per chunk along all four edges at every line height, plus a post at each chunk corner. */
     private void buildParts(Session session, Loader loader) {
         Settings.BorderSettings border = plugin.settings().border();
-        int radius = plugin.settings().loaders().radius();
         float t = (float) border.thickness();
-        int minChunkX = loader.chunkX() - radius;
-        int maxChunkX = loader.chunkX() + radius;
-        int minChunkZ = loader.chunkZ() - radius;
-        int maxChunkZ = loader.chunkZ() + radius;
+        int minChunkX = loader.minChunkX();
+        int maxChunkX = loader.maxChunkX();
+        int minChunkZ = loader.minChunkZ();
+        int maxChunkZ = loader.maxChunkZ();
         double minX = minChunkX << 4;
         double maxX = (maxChunkX + 1) << 4;
         double minZ = minChunkZ << 4;

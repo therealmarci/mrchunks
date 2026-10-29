@@ -74,7 +74,8 @@ public final class MapHooks implements Listener {
             plugin.getLogger().log(Level.WARNING, "squaremap integration failed (is a matching squaremap version installed?)", e);
             return;
         }
-        if (setup.pending()) {
+        // Every start: is squaremap's config still as MRchunks recommends it (values changed by hand stay)?
+        if (plugin.settings().squaremap().autoConfigure()) {
             runSetup(Bukkit.getConsoleSender(), false);
         }
         detectPublicIp();
@@ -83,17 +84,16 @@ public final class MapHooks implements Listener {
     }
 
     /**
-     * Writes the recommended squaremap settings and reloads squaremap.
-     * @param force also run if it already ran before (/mrchunks map setup)
+     * Brings the recommended squaremap settings up to date and reloads squaremap if something changed.
+     * @param force also overwrite values changed by hand (/mrchunks map setup)
      */
     public void runSetup(CommandSender sender, boolean force) {
-        if (!force && !setup.pending()) {
-            return;
-        }
         try {
-            List<SquaremapSetup.Change> changes = setup.apply();
+            List<SquaremapSetup.Change> changes = setup.apply(force);
             if (changes.isEmpty()) {
-                plugin.messages().send(sender, "map-setup-nothing");
+                if (force) {
+                    plugin.messages().send(sender, "map-setup-nothing");
+                }
                 return;
             }
             Messages messages = plugin.messages();

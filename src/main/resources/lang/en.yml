@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Do not change - tells the plugin which texts need to be renewed on updates.
-lang-version: 12
+lang-version: 18
 
 # Discord log texts (Discord markdown). Placeholders: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. On/off and colour are set in config.yml.
@@ -20,6 +20,7 @@ discord:
   loader-deleted: "🗑️ **{player}** deleted **{name}** ({world} {x}, {y}, {z})."
   loader-toggled: "🔁 **{name}** of **{player}** is now **{state}** (changed by {admin})."
   loader-renamed: "✏️ **{old}** of **{player}** is now called **{name}** (changed by {admin})."
+  loader-resized: "📐 **{name}** of **{player}** is now **{size}** chunks (before {old}, changed by {admin})."
   loader-restored: "🧱 The block of **{name}** ({player}, {world} {x}, {y}, {z}) was missing and has been restored."
   loader-removed-missing: "❔ **{name}** of **{player}** was deleted because its block was missing."
   admin-delete: "🛠️ **{admin}** deleted **{name}** of **{player}**."
@@ -40,10 +41,10 @@ discord:
   accounts-unlinked: "⛓️ The link of **{player}** to **{owner}** was removed (by {admin})."
 
 # --- Chunk loader item ---------------------------------------------------------
-# Placeholders: <size> (e.g. 7), <chunks> (e.g. 49)
+# Placeholders: <size> (size of new loaders, e.g. 7), <chunks> (e.g. 49)
 item-name: "<green><bold>Chunk Loader"
 item-lore:
-  - "<gray>Keeps <white><size>x<size> chunks</white> around it loaded."
+  - "<gray>Keeps <white><size>x<size> chunks</white> around it loaded <dark_gray>(size in the menu)."
   - "<gray>Just place it - done."
   - ""
   - "<dark_gray>Right-click the block: menu"
@@ -56,9 +57,17 @@ map-dimension-nether: "Nether"
 map-dimension-end: "End"
 # Name of the layer in the map's layer selection.
 map-layer-name: "Chunk Loaders"
-# Texts on the map (HTML allowed). Placeholders: {name} {number} {player} {world} {x} {y} {z} {size} {chunks} {state}
+# More layers with squaremap.split-layers: true (the active loaders are in map-layer-name)
+map-layer-inactive: "Chunk Loaders (off)"
+map-layer-locked: "Chunk Loaders (locked)"
+# Texts on the map (HTML allowed). Placeholders: {name} {number} {player} {world} {x} {y} {z} {width} {length} {chunks}
+# {state} (active/off/paused), {status} (like {state}, with the reason for locked and conspicuous loaders), {dummy}
 map-hover-tooltip: "{name} - {player}"
-map-click-tooltip: "<b>{name}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br>Area: {size}x{size} chunks<br>Status: {state}"
+map-click-tooltip: "<b>{name}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br>Size: {width}x{length} chunks ({chunks} of the budget)<br>Status: {status}{dummy}"
+# Status with reason (placeholders {metric} {value} {limit}) and the addition for a sitting dummy
+map-tooltip-locked: "<span style=\"color:#E74C3C\">locked</span> ({metric} {value}, limit {limit})"
+map-tooltip-warn: "<span style=\"color:#E67E22\">conspicuous</span> ({metric} {value}, warn limit {limit})"
+map-tooltip-dummy: "<br>A dummy sits on the loader"
 # Name of the chunk grid in the map's layer menu.
 map-grid-label: "Chunk Grid"
 
@@ -88,14 +97,6 @@ date-format: "yyyy-MM-dd HH:mm"
 
 # --- /chunkloader ------------------------------------------------------------
 # Command help (/chunkloader): every line only appears if the player may use the command.
-help-header: "<prefix><gray>Chunk loader commands:"
-help-give: "<green>/chunkloader give [amount]</green> <dark_gray>- <gray>Get chunk loaders into your inventory"
-help-remove: "<green>/chunkloader remove [amount|all]</green> <dark_gray>- <gray>Remove chunk loader items from your inventory"
-help-list: "<green>/chunkloader list</green> <dark_gray>- <gray>Your chunk loaders and those shared with you (menu)"
-help-map: "<green>/chunkloader map</green> <dark_gray>- <gray>Link to the web map"
-help-info: "<green>/chunkloader info</green> <dark_gray>- <gray>This help"
-help-version: "<green>/chunkloader version</green> <dark_gray>- <gray>Plugin version"
-help-menu-hint: "<dark_gray>Right-click a chunk loader to open its menu: on/off, members, border, rename, delete."
 give-ok: "<prefix><green>You received <white><count></white> chunk loader(s). <gray>(<used>/<limit> used)"
 give-none-left: "<prefix><red>You have no chunk loaders left <gray>(<placed> placed, <held> in inventory, limit <limit>)."
 give-partial: "<prefix><yellow>There was only room for <white><count></white> chunk loader(s)."
@@ -110,15 +111,16 @@ map-link-label: "<aqua><u><url></u></aqua>"
 map-unavailable: "<prefix><gray>There is currently no public web map for this server."
 
 # --- Placing / block ---------------------------------------------------------
-placed: "<prefix><green><white><name></white> placed - <white><chunks></white> chunks now stay loaded. <gray>(<placed>/<limit> placed, <active>/<active-limit> active)"
-placed-inactive: "<prefix><yellow><white><name></white> placed, but <white>disabled</white>: you already have <white><active>/<active-limit></white> active chunk loaders. <gray>Turn another one off in the menu to activate this one."
+placed: "<prefix><green><white><name></white> placed - <white><width>x<length></white> chunks now stay loaded. <gray>(<placed>/<limit> placed, budget <used>/<budget> chunks)"
+placed-smaller: "<prefix><green><white><name></white> placed - <yellow>only <white><width>x<length></white> chunks</yellow>, your budget has no room for more right now. <gray>(budget <used>/<budget>, size in the loader's menu)"
+placed-inactive: "<prefix><yellow><white><name></white> placed, but <white>disabled</white>: your chunk budget is used up <gray>(<used>/<budget>). Turn another loader off or make one smaller to activate this one."
 # loaders.overlap: placeholders <loaders> (list of overlap-entry-own/-other), <shared> (chunks covered twice)
 place-overlap-warning: "<prefix><yellow>Note: the area of <white><name></white> overlaps <white><loaders></white> - <white><shared></white> chunks are covered twice. <gray>The border is shown."
 place-overlap-denied-own: "<prefix><red>You can't place a chunk loader here: its area would overlap your <white><name></white>."
 place-overlap-denied: "<prefix><red>You can't place a chunk loader here: its area would overlap <white><name></white> of <white><player></white>."
 overlap-entry-own: "<name>"
 overlap-entry-other: "<name> (<player>)"
-active-limit-reached: "<prefix><red>You already have <white><active>/<active-limit></white> active chunk loaders. <gray>Disable another one first."
+budget-exceeded: "<prefix><red><white><name></white> needs <white><chunks></white> chunks, only <white><free></white> are free <gray>(budget <used>/<budget>). Turn another loader off or make one smaller."
 place-limit: "<prefix><red>You have reached your limit of <white><limit></white> chunk loaders."
 place-world-disabled: "<prefix><red>Chunk loaders are not allowed in this world."
 break-denied: "<prefix><red>Chunk loaders are indestructible. <gray>Right-click the block to open the menu and delete it."
@@ -149,6 +151,7 @@ lock-details:
   - "Locked: <time>"
   - "Reason: <metric> <value> (lock limit <limit>)"
   - "Server: <tps> TPS, <mspt> ms per tick"
+  - "Unlocking (team): in the loader's menu or with /mrchunks unlock <player> <number>"
   - "Measured in the loader's whole area:"
 lock-details-metric: "- <metric>: <value> (warn <warn>, lock <lock>)"
 pause-started: "<prefix><yellow>⏸ The server is lagging <gray>(<white><tps></white> TPS)</gray> - all chunk loaders are paused.</yellow> <gray>They load again automatically once the server has recovered (from <resume> TPS)."
@@ -241,7 +244,7 @@ admin-usage: |-
   <green>/mrchunks unlock <player> <no></green> <dark_gray>- <gray>Lift a lag lock
   <green>/mrchunks dummy <player> <no></green> <dark_gray>- <gray>Dummy player on/off
   <green>/mrchunks lag</green> <dark_gray>- <gray>Conspicuous and locked chunk loaders
-  <green>/mrchunks limit <player> <place|active|dummy> <amount|reset></green> <dark_gray>- <gray>Placeable / simultaneously active loaders / dummies
+  <green>/mrchunks limit <player> <budget|dummy> <amount|reset></green> <dark_gray>- <gray>Chunk budget / dummies
   <green>/mrchunks ban <player> [duration] [reason]</green> <dark_gray>- <gray>Ban (deletes all their loaders)
   <green>/mrchunks unban <player></green> <dark_gray>- <gray>Lift a ban
   <green>/mrchunks bans</green> <dark_gray>- <gray>All bans
@@ -255,11 +258,10 @@ reloaded: "<prefix><green>Configuration reloaded."
 limit-set: "<prefix><green><type> of <white><player></white> is now <white><limit></white>."
 limit-reset: "<prefix><green><type> of <white><player></white> reset <gray>(now applies: <limit>)."
 limit-notify: "<prefix><green>Your <type> is now <white><limit></white>."
-limit-type-place: "limit (placeable loaders)"
-limit-type-active: "active limit (loaders active at once)"
+limit-type-budget: "chunk budget"
 limit-type-dummy: "dummy limit (dummies switched on)"
-active-limit-enforced: "<prefix><yellow><white><count></white> chunk loader(s) of <white><player></white> were disabled because the new active limit is lower."
-active-limit-enforced-notify: "<prefix><yellow><white><count></white> of your chunk loaders were disabled because your active limit was lowered."
+budget-enforced: "<prefix><yellow><white><count></white> chunk loader(s) of <white><player></white> were disabled because the new budget is lower."
+budget-enforced-notify: "<prefix><yellow><white><count></white> of your chunk loaders were disabled because your chunk budget was lowered."
 ban-set: "<prefix><green><white><player></white> is banned <dark_gray>(<duration>, reason: <reason>)<green>. <white><count></white> chunk loader(s) deleted."
 ban-notify: "<prefix><red>You were banned from chunk loaders <dark_gray>(<duration>, reason: <reason>)<red>. Your chunk loaders were deleted."
 unban-set: "<prefix><green>Ban of <white><player></white> lifted."
@@ -280,6 +282,7 @@ map-setup-change-tracker: "no player locations on the map"
 map-setup-change-sidebar: "world selection always visible"
 map-setup-change-name: "<world> is called \"<name>\""
 map-setup-change-nether: "<world> is shown from inside"
+map-setup-change-removed: "old setting <setting> removed"
 map-state-active: "active"
 map-state-missing: "not installed"
 map-state-disabled: "disabled in the config"
@@ -337,12 +340,12 @@ gui-loader-lore:
   - "<dark_gray>No. <number> · Owner: <gray><player>"
   - "<gray>World: <white><world>"
   - "<gray>Position: <white><x> <y> <z>"
-  - "<gray>Chunks: <white><size>x<size></white> <dark_gray>(centre <cx>, <cz>)"
+  - "<gray>Size: <white><width>x<length></white> chunks <dark_gray>(block in chunk <cx>, <cz>)"
   - "<gray>Status: <state>"
   - "<gray>Placed: <white><created>"
 gui-loader-locked:
   - ""
-  - "<red>🔒 Locked because of lag"
+  - "<red>Locked because of lag"
   - "<gray>since <white><time></white>: <metric> <white><value></white> <dark_gray>(limit <limit>)"
   - "<gray>Only an admin can lift the lock."
 gui-loader-paused:
@@ -367,8 +370,8 @@ gui-toggle-off-lore:
   - "<gray>kept loaded. The block stays."
 gui-toggle-on-name: "<green>Enable"
 gui-toggle-on-lore:
-  - "<gray>Keeps the <white><size>x<size></white> chunks"
-  - "<gray>loaded again."
+  - "<gray>Keeps the <white><width>x<length></white> chunks"
+  - "<gray>loaded again <dark_gray>(costs <chunks> of the budget)."
 gui-locked-name: "<red><bold>Locked because of lag"
 gui-locked-lore:
   - "<gray>Since <white><time></white>: <metric> <white><value></white>"
@@ -412,6 +415,10 @@ gui-border-lore:
 gui-border-hide-name: "<aqua>Hide border"
 gui-border-hide-lore:
   - "<gray>Hides the border that is shown."
+gui-settings-name: "<aqua>Settings"
+gui-settings-lore:
+  - "<gray>Size, block, name and delete."
+gui-title-settings: "<dark_gray>Settings » <dark_green><name>"
 gui-members-name: "<aqua>Members <gray>(<count>)"
 gui-members-lore:
   - "<gray>Invite players who may switch"
@@ -577,8 +584,8 @@ gui-reload-name: "<aqua>Reload configuration"
 gui-player-name: "<white><player>"
 gui-player-lore:
   - "<gray>Placed: <white><placed></white>/<white><limit></white>"
-  - "<gray>Active: <white><active></white>/<white><active-limit></white>"
-  - "<gray>Limit: <limit-source>"
+  - "<gray>Active: <white><active></white> <dark_gray>| <gray>Budget: <white><used>/<budget></white> chunks"
+  - "<gray>Budget from: <limit-source>"
   - "<gray>Status: <status>"
 # Summary on the MRchunks button in MRadmin's admin compass. Placeholders: <loaders> <active> <chunks> <bans>
 # Ticket in MRadmin when a chunk loader is locked because of lag (subject) or the lock is lifted (note).
@@ -588,6 +595,20 @@ report-lock-lifted: "The lock was lifted by <admin>. The chunk loader is still o
 web-alert-paused: "Chunk loaders paused - the server TPS is at <tps>"
 web-alert-locked: "<count> chunk loader(s) locked because of lag"
 web-alert-warn: "<count> chunk loader(s) above the warning limit"
+# Tile on the start page of MRadmin's web interface (plain text). Placeholders: <loaders> (all), <active>
+web-tile-label: "Chunk loaders"
+web-tile-unit: "/ <loaders> active"
+web-tile-paused: "⏸ Paused"
+web-tile-locked: "Locked"
+web-tile-warn: "Conspicuous"
+web-tile-chunks: "Loaded chunks"
+web-tile-headline: "<active> chunk loaders active"
+web-tile-link: "Go to the chunk loaders"
+# Kind of push notification in MRadmin (name and explanation)
+web-push-locked: "Locked chunk loaders"
+web-push-locked-hint: "MRchunks locks a chunk loader because of lag."
+# Ticket category in MRadmin for lag locks
+report-lock-category: "Chunk loader lock"
 mradmin-summary:
   - "<gray>Chunk loaders: <white><loaders></white> <dark_gray>(<white><active></white> active)"
   - "<gray>Loaded chunks: <white><chunks>"
@@ -613,8 +634,7 @@ gui-banned: "<red>banned, <duration> <dark_gray>(<reason>)"
 gui-limit-default: "<white>default"
 gui-limit-permission: "<white>permission"
 gui-limit-custom: "<light_purple>custom"
-gui-limit-name: "<light_purple>Placeable: <white><limit></white> <gray>loaders"
-gui-active-limit-name: "<aqua>Active at once: <white><limit></white> <gray>loaders"
+gui-budget-name: "<light_purple>Budget: <white><limit></white> <gray>chunks <dark_gray>(<used> used)"
 gui-dummy-limit-name: "<light_purple>Dummies: <white><limit></white>"
 gui-player-dummies: "<gray>Dummies: <white><dummies></white>/<white><dummy-limit>"
 gui-player-linked-second: "<gray>Second account of <white><main>"
@@ -624,8 +644,8 @@ gui-unlink-lore:
   - "<gray>Removes the link of <white><player></white>."
   - "<gray>The chunk loaders stay with the main account."
 gui-limit-lore:
-  - "<gray>Left-click: <white>+1"
-  - "<gray>Right-click: <white>-1"
+  - "<gray>Left-click: <white>+<step>"
+  - "<gray>Right-click: <white>-<step>"
   - "<gray>Shift-click: <white>reset"
 gui-ban-name: "<red>Ban: <white><time>"
 gui-ban-lore:
@@ -636,3 +656,143 @@ gui-delete-all-name: "<red>Delete all chunk loaders"
 gui-delete-all-lore:
   - "<gray>Deletes all <white><placed></white> chunk loaders"
   - "<gray>of <white><player></white> (without a ban)."
+
+# --- Size and chunk budget ------------------------------------------------------
+# Placeholders as for chunk loaders (<name>, <width>, <length>, <chunks> ...), plus <used> <budget> <free> (the owner's
+# budget in chunks), <max> (largest edge length), <cost> (what growing costs), <reach> (chunks in one direction)
+gui-items-budget:
+  - "<gray>Budget: <white><used>/<budget></white> chunks <dark_gray>| <gray>free: <white><free>"
+gui-size-name: "<aqua>Size: <white><width>x<length></white> <gray>chunks"
+gui-size-lore:
+  - "<gray>Costs <white><chunks></white> chunks of the budget"
+  - "<gray>while the loader is on."
+  - ""
+  - "<yellow>» Click to change"
+gui-size-view-lore:
+  - "<gray>Costs <white><chunks></white> chunks of the budget"
+  - "<gray>while the loader is on."
+  - ""
+  - "<yellow>» Click to view"
+gui-title-size: "<dark_gray>Size » <dark_green><name>"
+gui-size-budget-name: "<green>Budget: <white><used>/<budget></white> <gray>chunks"
+gui-size-budget-lore:
+  - "<gray>Still free: <white><free></white> chunks"
+  - "<gray>This loader: <white><width>x<length></white> = <white><chunks></white> chunks"
+  - "<dark_gray>Switched-off loaders cost nothing."
+  - "<dark_gray>At most <max>x<max> chunks per loader."
+gui-size-north: "<green>⬆ North: <white><reach></white> <gray>chunks"
+gui-size-south: "<green>⬇ South: <white><reach></white> <gray>chunks"
+gui-size-west: "<green>⬅ West: <white><reach></white> <gray>chunks"
+gui-size-east: "<green>➡ East: <white><reach></white> <gray>chunks"
+gui-size-direction-lore:
+  - "<gray>This many chunks the loader loads in this"
+  - "<gray>direction beyond its own chunk."
+  - ""
+  - "<yellow>Left-click: <white>+1"
+  - "<yellow>Right-click: <white>-1"
+gui-size-dummy-even: "<light_purple>With a dummy only evenly (centred)"
+gui-size-all-name: "<aqua><width>x<length> <gray>chunks <dark_gray>(<chunks>)"
+gui-size-all-lore:
+  - "<gray>All four directions at once."
+  - ""
+  - "<yellow>Left-click: <white>+1 everywhere"
+  - "<yellow>Right-click: <white>-1 everywhere"
+gui-size-border-lore:
+  - "<gray>Shows the border in the world -"
+  - "<gray>it follows every change of the size."
+resize-min: "<prefix><red>It cannot get smaller - in this direction <white><name></white> only loads its own chunk."
+resize-max: "<prefix><red>It cannot get bigger - at most <white><max>x<max></white> chunks per chunk loader."
+resize-dummy: "<prefix><red>A dummy sits on <white><name></white>: the size only changes evenly in all directions and stays at least 5x5. <gray>Switch the dummy off to change it freely."
+resize-budget: "<prefix><red>Your chunk budget is not enough: growing costs <white><cost></white> chunks, <white><free></white> are free <gray>(<used>/<budget>). Turn another loader off or make one smaller."
+resize-overlap-own: "<prefix><red>The area would overlap your chunk loader <white><name></white> - not allowed on this server."
+resize-overlap: "<prefix><red>The area would overlap the chunk loader <white><name></white> of <white><player></white> - not allowed on this server."
+owner-notify-resized: "<prefix><gray>Your chunk loader <white><name></white> was changed to <white><width>x<length></white> chunks by <white><admin></white>."
+dummy-needs-square: "<prefix><red>A dummy only works on a square chunk loader with the block in the middle, at least 5x5 <gray>(<white><name></white> is <width>x<length>). Change the size evenly in the menu."
+gui-dummy-square-lore:
+  - "<gray>A dummy needs a <white>square</white> loader"
+  - "<gray>with the block in the middle, at"
+  - "<gray>least <white>5x5</white> - change the size"
+  - "<gray>evenly."
+  - ""
+  - "<gray>Your dummies: <white><dummies>/<dummy-limit>"
+gui-dummy-square-waiting-lore:
+  - "<yellow>● Switched on, but not sitting: the"
+  - "<yellow>  loader has to be square (block in the"
+  - "<yellow>  middle) and at least 5x5."
+  - ""
+  - "<gray>Your dummies: <white><dummies>/<dummy-limit>"
+
+# --- Own page on the web (MRadmin, /web) - plain text, no colours ----------------------------------------------------
+self-title: "Chunk loaders"
+self-loaders: "Placed"
+self-active: "Active"
+self-budget: "Budget"
+self-budget-value: "<used> / <budget> chunks"
+self-dummies: "Dummies"
+self-banned: "You are banned from chunk loaders (<duration>, reason: <reason>)."
+self-banned-short: "⛔ Banned from chunk loaders"
+self-notice-locked: "<count> chunk loader(s) locked for lag - an admin has to unlock them."
+self-notice-near: "<count> chunk loader(s) close to the lag limit - slow your farms down a bit, or they get locked."
+self-notice-budget: "Budget exceeded: <used> / <budget> chunks - turn a loader off or make it smaller."
+self-table: "Your chunk loaders"
+self-empty: "You have no chunk loaders yet. Get one in game with /chunkloader."
+self-state-on: "on"
+self-state-off: "off"
+self-state-locked: "locked (lag)"
+self-state-paused: "paused (server lags)"
+self-state-warn: "conspicuous"
+self-on: "Switch on"
+self-off: "Switch off"
+self-rename: "Rename"
+self-rename-label: "New name (empty = default name)"
+self-dummy-on: "Dummy on"
+self-dummy-off: "Dummy off"
+self-delete: "Delete"
+self-delete-confirm: "Really delete <name>? This cannot be undone."
+self-invite: "Invite"
+self-members: "Members of all loaders"
+self-members-empty: "Nobody invited."
+self-permanent: "permanent"
+self-uninvite: "Remove"
+self-card-place: "<world> · <x>, <z>"
+self-card-size: "Size"
+self-card-chunks: "Chunks"
+self-card-dummy: "Dummy"
+self-card-map: "Map around the loader"
+self-dummy-present: "present"
+self-dummy-waiting: "waiting"
+self-shared-sub: "by <owner> · <place>"
+self-load: "Load"
+self-load-value: "<percent> %"
+self-limits: "Limits"
+self-limits-measured: "Measured <ago> ago, <loaded>/<total> chunks loaded."
+self-limits-hint: "warning from <warn> · lock from <lock>"
+self-limits-none: "Not measured yet - measuring happens while the area is loaded (e.g. someone is nearby or the loader runs)."
+self-limits-off: "Lag protection is switched off on this server."
+self-locked-detail: "Locked for <metric>: <value> (limit <limit>), since <since>. Only an admin can lift the lock."
+self-members-text: "Invited players may switch all your loaders on and off - nothing else. Invites for a single loader are in its card."
+self-until: "until <date>"
+self-online: "online"
+self-invite-title: "Invite a player"
+self-invite-text: "Also players who are offline right now - they only need to have been on the server once."
+self-invite-player: "Player name"
+self-invite-duration: "Duration"
+self-members-loader: "Members of this loader"
+self-members-loader-text: "These players may only switch this loader on and off."
+self-members-loader-empty: "Nobody is invited to just this loader."
+self-members-list: "Invited (<count>)"
+self-shared: "Shared with you"
+self-map: "Map of your chunk loaders"
+self-map-open: "Open the big map"
+self-err-not-found: "This chunk loader does not exist anymore."
+self-err-locked: "The loader is locked because of lag - only an admin can lift the lock."
+self-err-budget: "Your budget is not enough: <chunks> chunks needed, <free> free."
+self-err-dummy-square: "A dummy only works on a square loader of at least 5x5 with the block in the middle."
+self-err-dummy-limit: "You already have <dummies>/<limit> dummies."
+self-err-dummies-off: "Dummies are switched off on this server."
+self-err-player: "The server does not know the player \"<player>\"."
+self-err-invite-self: "You cannot invite yourself or your linked accounts."
+self-err-invite-full: "At most <max> invited players."
+self-err-invites-off: "Invites are switched off."
+self-err-banned: "You are banned from chunk loaders."
+self-err-no-permission: "You do not have the permission for that."

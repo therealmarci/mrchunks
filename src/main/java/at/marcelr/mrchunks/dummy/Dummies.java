@@ -70,6 +70,8 @@ public final class Dummies implements Listener {
     private static final String BACKEND = "at.marcelr.mrchunks.dummy.nms.NmsDummyBackend";
     /** Profile names must not be longer (the client rejects them). */
     private static final int MAX_NAME = 16;
+    /** Smallest simulation distance the server allows a player - a dummy always simulates at least 5x5 chunks. */
+    public static final int MIN_REACH = 2;
 
     private final MRChunks plugin;
     private final File skinFile;
@@ -167,10 +169,19 @@ public final class Dummies implements Listener {
         return s == null ? null : s.player();
     }
 
+    /**
+     * Whether a dummy can sit on the loader: a dummy simulates a square around itself, so the area must be a square
+     * with the loader block in the middle, and at least {@link #MIN_REACH} chunks in every direction - otherwise it
+     * would simulate chunks outside the area (beyond what the owner's budget pays for).
+     */
+    public static boolean fits(Loader loader) {
+        return loader.centred() && loader.reach(Loader.Direction.NORTH) >= MIN_REACH;
+    }
+
     /** Whether the loader's dummy should be in the world right now. */
     private boolean wanted(Loader loader) {
         World world = loader.world();
-        return !shuttingDown && enabled() && loader.dummy() && loader.active() && world != null
+        return !shuttingDown && enabled() && loader.dummy() && loader.active() && fits(loader) && world != null
                 && plugin.loaders().exists(loader) && !plugin.loaders().paused() && plugin.loaders().isWorldAllowed(world);
     }
 
@@ -181,6 +192,9 @@ public final class Dummies implements Listener {
         if (current != null && (!wanted || !current.owner().equals(loader.owner()))) {
             despawn(loader.id());
             current = null;
+        }
+        if (current != null) {
+            distances(current.player(), loader); // the loader may have been resized
         }
         if (wanted && current == null && pending.add(loader.id())) {
             Bukkit.getScheduler().runTask(plugin, () -> {
@@ -254,6 +268,7 @@ public final class Dummies implements Listener {
                         p.setPersistent(false);
                     });
             setUp(player);
+            distances(player, loader);
         } catch (Throwable t) {
             ids.remove(id);
             backend = null;
@@ -266,21 +281,28 @@ public final class Dummies implements Listener {
         }
         Entity seat = plugin.settings().dummies().seat() ? seat(world, x, y, z, player) : null;
         spawned.put(loader.id(), new Spawned(player, owner, seat));
+        plugin.maps().refreshSoon(); // dummy icon on the web map
         plugin.getLogger().info("Dummy " + name + " sits on " + Texts.consoleName(plugin, loader) + ".");
     }
 
-    /** Creative (invulnerable, ignored by mobs), no sleeping, nothing to pick up, small view and send distance. */
+    /** Creative (invulnerable, ignored by mobs), no sleeping, nothing to pick up, small send distance. */
     private void setUp(Player player) {
-        int radius = plugin.settings().loaders().radius();
         player.setGameMode(GameMode.CREATIVE);
         player.setInvulnerable(true);
         player.setSleepingIgnored(true);
         player.setCollidable(false);
         player.setCanPickupItems(false);
         player.setAffectsSpawning(true);
-        player.setSimulationDistance(Math.clamp(radius, 2, 32));
-        player.setViewDistance(Math.clamp(radius + 1, 2, 32));
         player.setSendViewDistance(2);
+    }
+
+    /** Simulates exactly the loader's (square) area, view distance one more. */
+    private static void distances(Player player, Loader loader) {
+        int reach = loader.reach(Loader.Direction.NORTH);
+        if (player.getSimulationDistance() != Math.clamp(reach, MIN_REACH, 32)) {
+            player.setSimulationDistance(Math.clamp(reach, MIN_REACH, 32));
+            player.setViewDistance(Math.clamp(reach + 1, MIN_REACH, 32));
+        }
     }
 
     /** An invisible seat on the block; the dummy rides it, so it sits and cannot be pushed away. */
@@ -335,6 +357,9 @@ public final class Dummies implements Listener {
         } finally {
             internal = false;
             ids.remove(s.player().getUniqueId());
+            if (!shuttingDown) {
+                plugin.maps().refreshSoon();
+            }
         }
     }
 

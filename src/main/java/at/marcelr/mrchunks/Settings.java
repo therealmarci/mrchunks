@@ -55,10 +55,24 @@ public record Settings(
      * Lag protection: every {@code sampleSeconds} the area of each active loader is measured. A loader is locked when
      * a metric is over its lock limit {@code lockAfterSamples} times in a row (and, with {@code onlyWhenServerLags},
      * only while the server's average tick time is at least {@code serverLagMspt}). From {@code forceLockMultiplier}
-     * times a lock limit on (0 = off) the server state does not matter. Durations in ms.
+     * times a lock limit on (0 = off) the server state does not matter. Durations in ms. Limits: see {@link #limitsFor}.
      */
     public record LagSettings(boolean enabled, int sampleSeconds, int lockAfterSamples, boolean onlyWhenServerLags,
-                              double serverLagMspt, double forceLockMultiplier, LagLimits limits) {
+                              double serverLagMspt, double forceLockMultiplier, LagLimits limits, int limitsPerChunks,
+                              LagLimits smallLimits, int smallChunks) {
+
+        /**
+         * The limits for an area of {@code chunks} chunks (a loader, or all active loaders of an owner together), in
+         * whole numbers: up to {@code smallChunks} (3x3) the fixed {@code smallLimits}; above, the configured ones
+         * scaled from {@code limitsPerChunks} chunks to the area - so the same budget allows the same load - but never
+         * below the small ones.
+         */
+        public LagLimits limitsFor(int chunks) {
+            if (chunks <= smallChunks) {
+                return smallLimits.rounded();
+            }
+            return limits.scaled((double) chunks / limitsPerChunks).atLeast(smallLimits).rounded();
+        }
     }
 
     /** Marker for a permanent ban. */
@@ -69,17 +83,23 @@ public record Settings(
     /** What happens when a new loader's area overlaps existing ones (loaders.overlap). */
     public enum OverlapMode { ALLOW, WARN, DENY_OWN, DENY_ALL }
 
-    public record LoaderSettings(int radius, int defaultLimit, int defaultActiveLimit, Set<String> disabledWorlds,
-                                 LoadMethod loadMethod, OverlapMode overlap,
+    /**
+     * @param defaultBudget chunks a player may keep loaded with all their active loaders together
+     * @param defaultReach  reach of a new loader in every direction (3 = 7x7)
+     * @param maxReach      highest reach per direction a loader can be enlarged to
+     * @param maxLoaders    loaders a player may place (the same for everyone)
+     */
+    public record LoaderSettings(int defaultBudget, int defaultReach, int maxReach, int maxLoaders,
+                                 Set<String> disabledWorlds, LoadMethod loadMethod, OverlapMode overlap,
                                  boolean restoreMissingBlocks, int checkIntervalSeconds) {
 
-        /** Edge length of the loaded square in chunks, e.g. 7 for radius 3. */
-        public int size() {
-            return radius * 2 + 1;
+        /** Edge length of a new loader's square in chunks, e.g. 7 for reach 3. */
+        public int defaultSize() {
+            return defaultReach * 2 + 1;
         }
 
-        public int chunkCount() {
-            return size() * size();
+        public int defaultArea() {
+            return defaultSize() * defaultSize();
         }
     }
 
@@ -99,7 +119,18 @@ public record Settings(
                                     String endName, boolean hidePlayers, String layerName, boolean defaultHidden, boolean showInactive,
                                     java.awt.Color color, java.awt.Color inactiveColor, java.awt.Color pausedColor, double fillOpacity,
                                     boolean showIcon, String hoverTooltip, String clickTooltip, int updateSeconds,
-                                    String address, boolean reverseProxy, boolean detectPublicIp, GridSettings grid) {
+                                    String address, boolean reverseProxy, boolean detectPublicIp, GridSettings grid,
+                                    StatusSettings status) {
+    }
+
+    /**
+     * Extras of the chunk loader layer: own colours for locked and conspicuous loaders ({@code colors}), one layer
+     * each for active, switched-off and locked loaders ({@code splitLayers}, names from the language file), a dummy
+     * icon on loaders with a dummy, and the texts of the click tooltip for these states.
+     */
+    public record StatusSettings(boolean colors, java.awt.Color lockedColor, java.awt.Color warnColor,
+                                 boolean splitLayers, String inactiveLayerName, String lockedLayerName,
+                                 boolean dummyIcon, String tooltipLocked, String tooltipWarn, String tooltipDummy) {
     }
 
     public record GridSettings(boolean enabled, boolean defaultVisible, String color, double opacity,
@@ -122,10 +153,12 @@ public record Settings(
 
     /** Texts (item, map, ban reason) come from the language file, everything else from config.yml. */
     public static Settings from(FileConfiguration c, Messages texts, Logger log) {
+        int maxReach = Math.clamp(c.getInt("loaders.max-reach", 7), 0, 32);
         LoaderSettings loaders = new LoaderSettings(
-                Math.clamp(c.getInt("loaders.radius", 3), 0, 10),
-                Math.max(0, c.getInt("loaders.default-limit", 3)),
-                Math.max(0, c.getInt("loaders.default-active-limit", 3)),
+                Math.max(0, c.getInt("loaders.default-budget", 147)),
+                Math.clamp(c.getInt("loaders.default-reach", 3), 0, maxReach),
+                maxReach,
+                Math.clamp(c.getInt("loaders.max-loaders", 30), 0, 1000),
                 c.getStringList("loaders.disabled-worlds").stream()
                         .map(s -> s.toLowerCase(Locale.ROOT)).collect(Collectors.toUnmodifiableSet()),
                 parseEnum(c.getString("loaders.load-method"), LoadMethod.TICKET, "loaders.load-method", log),
@@ -167,7 +200,7 @@ public record Settings(
                 Math.clamp(c.getInt("border.above", 5), 0, 64),
                 Math.clamp(c.getInt("border.line-spacing", 3), 1, 16));
 
-        String rawColor = c.getString("squaremap.color", "owner");
+        String rawColor = c.getString("squaremap.color", "status");
         SquaremapSettings squaremap = new SquaremapSettings(
                 c.getBoolean("squaremap.enabled", true),
                 c.getBoolean("squaremap.auto-configure", true),
@@ -178,9 +211,11 @@ public record Settings(
                 texts.optional("map-layer-name"),
                 c.getBoolean("squaremap.default-hidden", false),
                 c.getBoolean("squaremap.show-inactive", true),
-                rawColor.equalsIgnoreCase("owner") ? null : parseColor(rawColor, "squaremap.color", log),
+                rawColor.equalsIgnoreCase("owner") ? null : rawColor.equalsIgnoreCase("status")
+                        ? parseColor(c.getString("squaremap.active-color", "#2ECC71"), "squaremap.active-color", log)
+                        : parseColor(rawColor, "squaremap.color", log),
                 parseColor(c.getString("squaremap.inactive-color", "#8A958E"), "squaremap.inactive-color", log),
-                parseColor(c.getString("squaremap.paused-color", "#F39C12"), "squaremap.paused-color", log),
+                parseColor(c.getString("squaremap.paused-color", "#F1C40F"), "squaremap.paused-color", log),
                 Math.clamp(c.getDouble("squaremap.fill-opacity", 0.25), 0.0, 1.0),
                 c.getBoolean("squaremap.show-icon", true),
                 texts.optional("map-hover-tooltip"),
@@ -198,7 +233,18 @@ public record Settings(
                         c.getBoolean("squaremap.chunk-grid.region-lines", true),
                         hexColor(c.getString("squaremap.chunk-grid.region-color", "#FFD54F"), "#FFD54F"),
                         c.getBoolean("squaremap.chunk-grid.labels", true),
-                        texts.optional("map-grid-label")));
+                        texts.optional("map-grid-label")),
+                new StatusSettings(
+                        c.getBoolean("squaremap.status-colors", true),
+                        parseColor(c.getString("squaremap.locked-color", "#E74C3C"), "squaremap.locked-color", log),
+                        parseColor(c.getString("squaremap.warn-color", "#F1C40F"), "squaremap.warn-color", log),
+                        c.getBoolean("squaremap.split-layers", true),
+                        texts.optional("map-layer-inactive"),
+                        texts.optional("map-layer-locked"),
+                        c.getBoolean("squaremap.show-dummy-icon", true),
+                        texts.optional("map-tooltip-locked"),
+                        texts.optional("map-tooltip-warn"),
+                        texts.optional("map-tooltip-dummy")));
 
         String source = c.getString("update-checker.source", "github").toLowerCase(Locale.ROOT);
         if (!source.equals("modrinth") && !source.equals("github")) {
@@ -225,20 +271,6 @@ public record Settings(
                 durations(c.getStringList("invites.durations"), List.of("1d", "7d", "30d", "permanent"), "invites.durations", log),
                 Math.clamp(c.getInt("invites.max-members", 10), 1, 100));
 
-        LagLimits defaults = LagLimits.defaults();
-        Map<Metric, Double> warn = new EnumMap<>(Metric.class);
-        Map<Metric, Double> lock = new EnumMap<>(Metric.class);
-        for (Metric metric : Metric.values()) {
-            String path = "lag-protection.limits." + metric.key();
-            double w = Math.max(0, c.getDouble(path + ".warn", defaults.warn(metric)));
-            double l = Math.max(0, c.getDouble(path + ".lock", defaults.lock(metric)));
-            if (l > 0 && w > l) {
-                log.warning(path + ": warn (" + w + ") is above lock (" + l + "), using warn = lock.");
-                w = l;
-            }
-            warn.put(metric, w);
-            lock.put(metric, l);
-        }
         LagSettings lag = new LagSettings(
                 c.getBoolean("lag-protection.enabled", true),
                 Math.clamp(c.getInt("lag-protection.sample-seconds", 30), 5, 600),
@@ -246,7 +278,10 @@ public record Settings(
                 c.getBoolean("lag-protection.only-when-server-lags", true),
                 Math.clamp(c.getDouble("lag-protection.server-lag-mspt", 40), 1, 1000),
                 forceLockMultiplier(c.getDouble("lag-protection.force-lock-multiplier", 2), log),
-                new LagLimits(Map.copyOf(warn), Map.copyOf(lock)));
+                limits(c, "lag-protection.limits", LagLimits.defaults(), log),
+                Math.clamp(c.getInt("lag-protection.limits-per-chunks", 49), 1, 10_000),
+                limits(c, "lag-protection.small-loaders.limits", LagLimits.smallDefaults(), log),
+                Math.clamp(c.getInt("lag-protection.small-loaders.max-chunks", 9), 0, 10_000));
 
         double below = Math.clamp(c.getDouble("server-pause.below-tps", 15), 1, 19.9);
         double resume = Math.clamp(c.getDouble("server-pause.resume-tps", 18), 1, 20);
@@ -332,6 +367,24 @@ public record Settings(
             log.warning("Invalid value '" + raw + "' for " + path + ", using " + fallback.name().toLowerCase(Locale.ROOT) + ".");
             return fallback;
         }
+    }
+
+    /** Warn and lock limit per metric under {@code path} (warn above lock is lowered to lock). */
+    private static LagLimits limits(FileConfiguration c, String path, LagLimits defaults, Logger log) {
+        Map<Metric, Double> warn = new EnumMap<>(Metric.class);
+        Map<Metric, Double> lock = new EnumMap<>(Metric.class);
+        for (Metric metric : Metric.values()) {
+            String key = path + "." + metric.key();
+            double w = Math.max(0, c.getDouble(key + ".warn", defaults.warn(metric)));
+            double l = Math.max(0, c.getDouble(key + ".lock", defaults.lock(metric)));
+            if (l > 0 && w > l) {
+                log.warning(key + ": warn (" + w + ") is above lock (" + l + "), using warn = lock.");
+                w = l;
+            }
+            warn.put(metric, w);
+            lock.put(metric, l);
+        }
+        return new LagLimits(Map.copyOf(warn), Map.copyOf(lock));
     }
 
     /** Exactly three quick-select ban durations; invalid entries fall back to the defaults. */
