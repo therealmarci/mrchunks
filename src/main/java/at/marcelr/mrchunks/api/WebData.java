@@ -304,6 +304,7 @@ final class WebData {
         m.put("reach", reach);
         m.put("dummy", loader.dummy());
         m.put("dummyPresent", plugin.dummies().dummyOf(loader) != null);
+        m.put("conspicuous", plugin.adminActions().conspicuous(loader));
         m.put("status", LoaderStatus.of(plugin, loader).name().toLowerCase(Locale.ROOT));
         m.put("created", loader.created());
         LagLock lock = plugin.loaders().lagLock(loader);
@@ -370,6 +371,8 @@ final class WebData {
             case "unlock" -> plugin.adminActions().webUnlock(admin, loader);
             case "delete" -> plugin.adminActions().webDelete(admin, loader);
             case "dummy" -> plugin.adminActions().webToggleDummy(admin, loader);
+            case "conspicuousToggle" -> plugin.adminActions().webConspicuousToggle(admin, loader);
+            case "conspicuousDummy" -> plugin.adminActions().webConspicuousDummy(admin, loader);
             case "resize" -> {
                 // direction north|south|west|east or all, delta +1 / -1
                 String raw = String.valueOf(args.get("direction")).toUpperCase(Locale.ROOT);

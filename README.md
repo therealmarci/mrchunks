@@ -176,7 +176,7 @@ Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Perm
 
 | Gruppe | Standard | Enthält |
 |---|---|---|
-| `mrchunks.groups.support` | OP | Admin-Menü (alle Loader und ihren Status sehen), zu Loadern teleportieren |
+| `mrchunks.groups.support` | OP | Admin-Menü (alle Loader und ihren Status sehen), zu Loadern teleportieren, **auffällige** Loader (über einer Warngrenze) und ihren Dummy aus- und wieder einschalten |
 | `mrchunks.groups.staff` | OP | Support + fremde Loader an/aus schalten, ihre Einladungen verwalten, Accounts verknüpfen und lösen |
 | `mrchunks.groups.admin` | OP | Alles: Staff + löschen, umbenennen, Größe fremder Loader ändern, Dummies, Lag-Sperren aufheben, Budget und Dummy-Limit, Sperren, Webkarte, Discord, Reload, Update-Hinweis |
 
@@ -191,7 +191,8 @@ Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Perm
 | Permission | Standard | Wofür |
 |---|---|---|
 | `mrchunks.admin.gui` | OP | Admin-Menü öffnen (Aktionen darin brauchen ihre eigene Permission) |
-| `mrchunks.admin.toggle` | OP | **Fremde** Loader an/aus schalten (im Rahmen des Budgets des Owners) |
+| `mrchunks.admin.toggle` | OP | **Fremde** Loader an/aus schalten (im Rahmen des Budgets des Owners, enthält `toggle.conspicuous`) |
+| `mrchunks.admin.toggle.conspicuous` | OP | **Fremde** Loader und ihren Dummy aus- und wieder einschalten, solange sie auffällig sind (über einer Warngrenze des Lag-Schutzes; nach dem Ausschalten bis zum nächsten Neustart). Einschalten bleibt im Budget bzw. Dummy-Limit des Owners. Im Spiel und in der MRadmin-Weboberfläche |
 | `mrchunks.admin.invites` | OP | Einladungen **fremder** Loader verwalten |
 | `mrchunks.admin.link` | OP | Accounts anderer verknüpfen und lösen |
 | `mrchunks.admin.manage` | OP | **Fremde** Loader löschen, umbenennen, Größe ändern, Block wählen, Dummies, Lag-Sperren aufheben (enthält `toggle`, `invites`, `link`, `resize`) |
@@ -328,8 +329,9 @@ MRchunks zeigt alle Chunkloader auf **[squaremap](https://modrinth.com/plugin/sq
 3. **Adresse festlegen** (`squaremap.address`), damit Spieler über den Knopf **Webkarte** einen funktionierenden Link bekommen. Leer lassen = MRchunks ermittelt sie selbst (`http://<server-ip>:8080/`). Port 8080 muss dann beim Hoster freigegeben sein.
 
 Auf der Karte gibt es Ebenen, die jeder Besucher oben links ein- und ausschaltet:
-- **Chunkloader** (aktive Loader in einer Farbe pro Owner), **Chunkloader (aus)** (grau) und **Chunkloader (gesperrt)** (rot) - mit `squaremap.split-layers: false` alles in einer Ebene. Gesperrte Loader sind immer zu sehen.
-- **Farbe nach Status** (`squaremap.status-colors`): gesperrte Loader rot, auffällige (über einer Warngrenze) orange, während einer Server-Pause orange-gelb. Farben unter `locked-color`, `warn-color`, `paused-color`.
+- **Chunkloader** (aktive Loader, grün), **Chunkloader (aus)** (grau) und **Chunkloader (gesperrt)** (rot) - mit `squaremap.split-layers: false` alles in einer Ebene. Gesperrte Loader sind immer zu sehen.
+- **Farbe nach Zustand** wie in der Weboberfläche: aktiv grün, aus grau, gesperrt rot, auffällig (über einer Warngrenze) und während einer Server-Pause gelb (`squaremap.color: status`, Farben unter `active-color`, `inactive-color`, `locked-color`, `warn-color`, `paused-color`). `color: owner` gibt aktiven Loadern stattdessen eine eigene Farbe pro Spieler; `status-colors: false` färbt gesperrte und auffällige Loader wie die anderen.
+- **Andere Welten ausblenden:** squaremap zeigt jede Welt. Eine Welt blendest du in `plugins/squaremap/config.yml` aus (`world-settings` → `"minecraft:<welt>"` → `map.enabled: false`). Die Arena-Welt von MRpvp blendet MRpvp selbst aus.
 - **Beim Anklicken:** Owner, Position, Größe und Kosten im Budget, Status - bei gesperrten und auffälligen Loadern mit Grund (z.B. „gesperrt (Entities 900, Grenze 800)“) - und ob ein Dummy sitzt. Text in den Sprachdateien (`map-click-tooltip`, `map-tooltip-*`).
 - **Dummy-Symbol:** Sitzt ein Dummy auf dem Loader, zeigt die Karte eine kleine Figur statt des Loader-Symbols (`squaremap.show-dummy-icon`).
 - **Chunkraster** (Chunk-Linien, Regionsgrenzen, Koordinaten).

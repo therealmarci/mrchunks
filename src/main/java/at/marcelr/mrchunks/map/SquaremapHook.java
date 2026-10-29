@@ -295,7 +295,7 @@ final class SquaremapHook {
     }
 
     /**
-     * Locked (red), switched off (grey), paused (orange), conspicuous (own colour), otherwise the owner's colour.
+     * Locked (red), switched off (grey), paused and conspicuous (yellow), otherwise squaremap.color (status = green).
      * Without status-colors locked and conspicuous loaders look like the others.
      */
     private Color colorOf(Loader loader, Settings.SquaremapSettings settings, boolean locked) {

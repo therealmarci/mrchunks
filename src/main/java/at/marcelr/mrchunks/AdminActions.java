@@ -9,8 +9,10 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static at.marcelr.mrchunks.Messages.tag;
@@ -27,6 +29,8 @@ public final class AdminActions {
     public static final String PERM_MANAGE = "mrchunks.admin.manage";
     /** Staff: switch other players' loaders on and off (within the owner's budget). */
     public static final String PERM_TOGGLE = "mrchunks.admin.toggle";
+    /** Support: switch a conspicuous loader (over a warn limit) and its dummy off - and on again. */
+    public static final String PERM_TOGGLE_CONSPICUOUS = "mrchunks.admin.toggle.conspicuous";
     /** Players: change the size of their own loaders. */
     public static final String PERM_RESIZE = "mrchunks.resize";
     /** Admins: change the size of other players' loaders. */
@@ -46,6 +50,11 @@ public final class AdminActions {
     public static final String PERM_EXEMPT = "mrchunks.exempt";
 
     private final MRChunks plugin;
+    /**
+     * Loaders switched off while conspicuous: without a measurement they are not conspicuous any more, but support
+     * must be able to switch them on again. Until the next start.
+     */
+    private final Set<Integer> offWhileConspicuous = new HashSet<>();
 
     public AdminActions(MRChunks plugin) {
         this.plugin = plugin;
@@ -102,7 +111,32 @@ public final class AdminActions {
 
     /** Switching on/off: owner, admins - and invited players (only this, never deleting or renaming). */
     public boolean canToggle(CommandSender sender, Loader loader) {
-        return canManage(sender, loader) || isMember(sender, loader) || sender.hasPermission(PERM_TOGGLE);
+        return canManage(sender, loader) || isMember(sender, loader) || sender.hasPermission(PERM_TOGGLE)
+                || conspicuousControl(sender, loader);
+    }
+
+    /** Over a warn limit (or switched off while it was) - then support may switch it and its dummy. */
+    public boolean conspicuous(Loader loader) {
+        return plugin.lag().conspicuous(loader) || offWhileConspicuous.contains(loader.id());
+    }
+
+    private boolean conspicuousControl(CommandSender sender, Loader loader) {
+        return sender.hasPermission(PERM_TOGGLE_CONSPICUOUS) && conspicuous(loader);
+    }
+
+    /** Dummy on/off: owner, admins - and support while the loader is conspicuous. */
+    public boolean canToggleDummy(CommandSender sender, Loader loader) {
+        return canManage(sender, loader) || conspicuousControl(sender, loader);
+    }
+
+    /** Switches a loader and remembers when it went off while conspicuous. */
+    private void setActive(Loader loader, boolean active) {
+        if (active) {
+            offWhileConspicuous.remove(loader.id());
+        } else if (plugin.lag().conspicuous(loader)) {
+            offWhileConspicuous.add(loader.id());
+        }
+        loaders().setActive(loader, active);
     }
 
     /** Managing the invites of a loader / of all loaders of {@code owner}: the owner (mrchunks.invite) or admins. */
@@ -132,7 +166,7 @@ public final class AdminActions {
             messages().send(sender, "budget-exceeded", Texts.loader(plugin, loader), budgetTags(owner));
             return;
         }
-        loaders().setActive(loader, active);
+        setActive(loader, active);
         String state = Texts.state(plugin, active);
         messages().send(sender, "toggled", Texts.loader(plugin, loader), tag("state", state));
         if (active && loaders().paused()) {
@@ -331,7 +365,7 @@ public final class AdminActions {
 
     /** Switches the loader's dummy player on or off: owner (within their dummy limit) or admins. */
     public void toggleDummy(CommandSender sender, Loader loader) {
-        if (!canManage(sender, loader)) {
+        if (!canToggleDummy(sender, loader)) {
             messages().send(sender, isOwner(sender, loader) ? "no-permission" : "not-owner");
             return;
         }
@@ -491,7 +525,7 @@ public final class AdminActions {
         if (active && !loaders().fitsBudget(org.bukkit.Bukkit.getOfflinePlayer(loader.owner()), loader.area())) {
             return "over-budget";
         }
-        loaders().setActive(loader, active);
+        setActive(loader, active);
         String state = Texts.state(plugin, active);
         notifyOwner(loader.owner(), "owner-notify-toggled", Texts.loader(plugin, loader), tag("state", state), tag("admin", admin));
         plugin.getLogger().info(admin + " (web) switched " + Texts.consoleName(plugin, loader) + (active ? " on." : " off."));
@@ -510,6 +544,22 @@ public final class AdminActions {
         plugin.discord().log("loader-lag-unlocked", discordTags(loader, "admin", admin));
         plugin.mradmin().lagUnlocked(loader, admin);
         return null;
+    }
+
+    /** Support (mrchunks.admin.toggle.conspicuous): only while the loader is conspicuous. */
+    public String webConspicuousToggle(String admin, Loader loader) {
+        return conspicuous(loader) ? webToggle(admin, loader) : "loader-not-conspicuous";
+    }
+
+    /** Support: the dummy of a conspicuous loader - switching on stays within the owner's dummy limit. */
+    public String webConspicuousDummy(String admin, Loader loader) {
+        if (!conspicuous(loader)) {
+            return "loader-not-conspicuous";
+        }
+        if (!loader.dummy() && !loaders().canAddDummy(org.bukkit.Bukkit.getOfflinePlayer(loader.owner()))) {
+            return "dummy-limit-reached";
+        }
+        return webToggleDummy(admin, loader);
     }
 
     public String webToggleDummy(String admin, Loader loader) {

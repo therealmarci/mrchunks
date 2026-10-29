@@ -16,7 +16,7 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 15
+config-version: 16
 
 # Language of the texts (chat, menus, items). The texts are in plugins/MRchunks/lang/<language>.yml.
 #   auto = every player gets the language set in their Minecraft client:
@@ -294,16 +294,19 @@ squaremap:
   default-hidden: false
   # Also show switched-off chunk loaders (grey).
   show-inactive: true
-  # Colour of the areas: "owner" = an own, constant colour per player, or a fixed value like "#2ECC71".
-  color: owner
+  # Colour of the areas, so the map shows the state of every chunk loader at a glance:
+  # "status" = active-color for active chunk loaders (switched off grey, locked red, conspicuous and paused yellow),
+  # "owner" = an own, constant colour per player, or a fixed value like "#2ECC71".
+  color: status
+  active-color: "#2ECC71"
   inactive-color: "#8A958E"
   # Colour of active chunk loaders during a server pause (see server-pause).
-  paused-color: "#F39C12"
+  paused-color: "#F1C40F"
   # Colour by status: locked chunk loaders (lag protection) and conspicuous ones (above a warn limit) get their own
   # colour, so problems stand out on the map. false = they look like the others.
   status-colors: true
   locked-color: "#E74C3C"
-  warn-color: "#E67E22"
+  warn-color: "#F1C40F"
   # true = three layers that visitors switch on and off separately in the layer menu (top left): active,
   #        switched-off and locked chunk loaders (names in the language file, map-layer-*). Locked ones are always
   #        shown, also with show-inactive: false.

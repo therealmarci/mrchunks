@@ -200,7 +200,7 @@ public record Settings(
                 Math.clamp(c.getInt("border.above", 5), 0, 64),
                 Math.clamp(c.getInt("border.line-spacing", 3), 1, 16));
 
-        String rawColor = c.getString("squaremap.color", "owner");
+        String rawColor = c.getString("squaremap.color", "status");
         SquaremapSettings squaremap = new SquaremapSettings(
                 c.getBoolean("squaremap.enabled", true),
                 c.getBoolean("squaremap.auto-configure", true),
@@ -211,9 +211,11 @@ public record Settings(
                 texts.optional("map-layer-name"),
                 c.getBoolean("squaremap.default-hidden", false),
                 c.getBoolean("squaremap.show-inactive", true),
-                rawColor.equalsIgnoreCase("owner") ? null : parseColor(rawColor, "squaremap.color", log),
+                rawColor.equalsIgnoreCase("owner") ? null : rawColor.equalsIgnoreCase("status")
+                        ? parseColor(c.getString("squaremap.active-color", "#2ECC71"), "squaremap.active-color", log)
+                        : parseColor(rawColor, "squaremap.color", log),
                 parseColor(c.getString("squaremap.inactive-color", "#8A958E"), "squaremap.inactive-color", log),
-                parseColor(c.getString("squaremap.paused-color", "#F39C12"), "squaremap.paused-color", log),
+                parseColor(c.getString("squaremap.paused-color", "#F1C40F"), "squaremap.paused-color", log),
                 Math.clamp(c.getDouble("squaremap.fill-opacity", 0.25), 0.0, 1.0),
                 c.getBoolean("squaremap.show-icon", true),
                 texts.optional("map-hover-tooltip"),
@@ -235,7 +237,7 @@ public record Settings(
                 new StatusSettings(
                         c.getBoolean("squaremap.status-colors", true),
                         parseColor(c.getString("squaremap.locked-color", "#E74C3C"), "squaremap.locked-color", log),
-                        parseColor(c.getString("squaremap.warn-color", "#E67E22"), "squaremap.warn-color", log),
+                        parseColor(c.getString("squaremap.warn-color", "#F1C40F"), "squaremap.warn-color", log),
                         c.getBoolean("squaremap.split-layers", true),
                         texts.optional("map-layer-inactive"),
                         texts.optional("map-layer-locked"),

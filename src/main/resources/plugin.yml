@@ -34,12 +34,13 @@ permissions:
       mrchunks.link: true
       mrchunks.block: true
   mrchunks.groups.support:
-    description: "Group support: player + admin menu (see all loaders and their status), teleport to loaders."
+    description: "Group support: player + admin menu (see all loaders and their status), teleport to loaders, switch conspicuous loaders (over a warn limit) and their dummy off and on."
     default: op
     children:
       mrchunks.player: true
       mrchunks.admin.gui: true
       mrchunks.admin.teleport: true
+      mrchunks.admin.toggle.conspicuous: true
   mrchunks.groups.staff:
     description: "Group staff: support + switch other players' loaders on and off, manage their invites, link and unlink accounts."
     default: op
@@ -101,6 +102,11 @@ permissions:
     default: op
   mrchunks.admin.toggle:
     description: Switch other players' chunk loaders on and off (within the owner's chunk budget).
+    default: op
+    children:
+      mrchunks.admin.toggle.conspicuous: true
+  mrchunks.admin.toggle.conspicuous:
+    description: Switch other players' chunk loaders and their dummy off and on while they are conspicuous (over a warn limit of the lag protection).
     default: op
   mrchunks.admin.invites:
     description: Manage the invites of other players' chunk loaders.

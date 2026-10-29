@@ -115,7 +115,7 @@ public final class LoaderMenu extends Menu {
         }
 
         if (plugin.dummies().enabled()) {
-            dummyButton(loader, manage, tags);
+            dummyButton(loader, tags);
         }
 
         // Size, block, name and delete live in the settings; everyone who can open this menu may look at them.
@@ -157,7 +157,7 @@ public final class LoaderMenu extends Menu {
     }
 
     /** Dummy player on/off with the owner's dummies in use and whether it sits there right now. */
-    private void dummyButton(Loader loader, boolean manage, TagResolver tags) {
+    private void dummyButton(Loader loader, TagResolver tags) {
         TagResolver all = TagResolver.resolver(tags,
                 plugin.adminActions().dummyTags(Bukkit.getOfflinePlayer(loader.owner())));
         String lore;
@@ -172,7 +172,7 @@ public final class LoaderMenu extends Menu {
             lore = "gui-dummy-waiting-lore";
         }
         button(14, loader.dummy() ? Material.ARMOR_STAND : Material.LEATHER_HELMET,
-                loader.dummy() ? "gui-dummy-off-name" : "gui-dummy-on-name", lore, manage,
+                loader.dummy() ? "gui-dummy-off-name" : "gui-dummy-on-name", lore, plugin.adminActions().canToggleDummy(viewer, loader),
                 () -> plugin.adminActions().toggleDummy(viewer, loader), all);
     }
 
