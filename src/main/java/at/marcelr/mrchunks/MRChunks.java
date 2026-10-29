@@ -25,7 +25,7 @@ public final class MRChunks extends JavaPlugin {
     private FileConfiguration config;
     private Settings settings;
     /** lang-version 2: version display with MC version; 3: loaders by name/number; 4: squaremap.address; 5: merged admin commands; 6: shorter window titles; 7: lag protection (admin usage); 8: /chunkloader is only the menu (invite notice); 9: get/return as two buttons; 11: dummies and linked accounts (admin usage). */
-    private final Messages messages = new Messages(17, Map.ofEntries(
+    private final Messages messages = new Messages(18, Map.ofEntries(
             Map.entry(2, Set.of("version", "gui-info-name")),
             Map.entry(3, Set.of("discord.loader-placed", "discord.loader-deleted", "discord.loader-toggled",
                     "discord.loader-restored", "discord.loader-removed-missing", "discord.admin-delete",
