@@ -9,7 +9,7 @@
 | Server | Paper 26.3 (oder ein Fork wie Purpur), Java 25 |
 | Benötigt | nichts - LuckPerms ist empfohlen, [squaremap](https://modrinth.com/plugin/squaremap) für die Webkarte, MRadmin optional |
 | Sprachen | Deutsch, Englisch - jeder Spieler automatisch in der Sprache seines Minecraft-Clients |
-| Status | Vorabversion (0.x) - Config, Befehle und Permissions können sich bis 1.0.0 noch ändern |
+| Status | stabil (1.x) |
 
 ## Was kann MRchunks?
 - **Chunkloader-Blöcke:** Einmal platziert, bleibt der Bereich drumherum dauerhaft geladen - in allen Dimensionen, auch wenn der Spieler offline ist.

@@ -9,6 +9,8 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+## [1.0.0] - 2026-10-29
+
 > [!WARNING]
 > **Chunk-Budget statt fester Limits:** Die Permissions `mrchunks.limit.<n>`, `mrchunks.limit.unlimited`, `mrchunks.active.<n>` und `mrchunks.active.unlimited` gibt es nicht mehr, ebenso `/mrchunks limit <spieler> place|active`. Stattdessen gibt es ein Chunk-Budget: `mrchunks.budget.<n>`, `mrchunks.budget.unlimited` und `/mrchunks limit <spieler> budget <n>`. **Bitte die LuckPerms-Gruppen umstellen**, z.B. `/lp group vip permission unset mrchunks.active.5` und `/lp group vip permission set mrchunks.budget.245 true` (5 aktive 7×7-Loader × 49 Chunks). Config und gespeicherte Admin-Limits werden automatisch umgerechnet, vorhandene Loader behalten ihre Größe - niemand verliert etwas.
 
