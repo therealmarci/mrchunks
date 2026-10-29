@@ -16,7 +16,7 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 16
+config-version: 17
 
 # Language of the texts (chat, menus, items). The texts are in plugins/MRchunks/lang/<language>.yml.
 #   auto = every player gets the language set in their Minecraft client:
@@ -283,10 +283,11 @@ border:
 # Without squaremap there is no web map - apart from that MRchunks works completely normally.
 squaremap:
   enabled: true
-  # On the first start with squaremap, MRchunks sets up its config once to fit:
-  # map updates every 5 seconds, no player locations, world selection always visible,
-  # the Nether from the inside instead of the bedrock ceiling and the dimension names from the language file (map-dimension-*).
-  # Afterwards you can change everything freely in plugins/squaremap/config.yml. Run again: /mrchunks map setup
+  # MRchunks keeps squaremap's config fitting, checked on every start: map updates every 5 seconds, no player
+  # locations, world selection always visible, the Nether from the inside instead of the bedrock ceiling and the names
+  # of the main dimensions from the language file (map-dimension-*). Missing values and values MRchunks wrote itself
+  # are brought up to date (squaremap is reloaded then); values you changed in plugins/squaremap/config.yml stay.
+  # Overwrite your own changes too: /mrchunks map setup. false = MRchunks never touches squaremap's config.
   auto-configure: true
   # Show players neither on the map nor in the sidebar.
   hide-players: true

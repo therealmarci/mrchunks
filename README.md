@@ -319,7 +319,7 @@ Webhook anlegen (*Kanal bearbeiten → Integrationen → Webhooks*), `discord.en
 ## Webkarte (squaremap)
 MRchunks zeigt alle Chunkloader auf **[squaremap](https://modrinth.com/plugin/squaremap)**, einer Webkarte mit echtem Minecraft-Gelände. Ohne squaremap gibt es keine Webkarte - alles andere funktioniert trotzdem.
 
-1. squaremap in `plugins/` legen und den Server neu starten. **MRchunks erkennt es und richtet es einmalig passend ein** (schnelle Aktualisierung, keine Spieler auf der Karte, Weltauswahl Overworld/Nether/End). Danach kannst du squaremap frei anpassen.
+1. squaremap in `plugins/` legen und den Server neu starten. **MRchunks erkennt es und richtet es passend ein** (schnelle Aktualisierung, keine Spieler auf der Karte, Weltauswahl Overworld/Nether/End). Bei jedem Start prüft MRchunks, ob diese Einstellungen noch aktuell sind, und bringt fehlende oder von ihm selbst geschriebene Werte auf den neuesten Stand. **Was du selbst in `plugins/squaremap/config.yml` änderst, bleibt.** `/mrchunks map setup` überschreibt auch deine Änderungen, `squaremap.auto-configure: false` lässt die squaremap-Config ganz in Ruhe.
 2. **Einmal alles rendern**, damit bestehende Gebiete erscheinen:
    ```text
    /squaremap fullrender minecraft:overworld
