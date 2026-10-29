@@ -77,7 +77,7 @@ Hast du mehr als 45 Loader, erscheinen Pfeile zum Blättern.
 | Magmablock | Über einer Warnschwelle des [Lag-Schutzes](#lag-schutz) |
 | Redstone-Block | Wegen Lag gesperrt |
 | Oranger Beton | [Durch Lags deaktiviert](#gestaffelte-abschaltung): bleibt an, lädt von selbst wieder |
-| Spinnennetz | Pausiert, weil der ganze Server laggt |
+| Spinnennetz | Pausiert, weil der ganze Server laggt oder das Team alle Loader pausiert hat |
 
 ### Was läuft in geladenen Chunks?
 - **Läuft:** Redstone, Trichter, Öfen, Tiere und andere Entities, Pflanzenwachstum - alles, was Zufalls-Ticks braucht.
@@ -205,6 +205,8 @@ Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Perm
 | `mrchunks.admin.discord` | OP | `/mrchunks discord` |
 | `mrchunks.admin.reload` | OP | `/mrchunks reload` |
 | `mrchunks.admin.update` | OP | Update-Hinweis beim Betreten des Servers |
+| `mrchunks.admin.pause` | OP | Alle Chunkloader vorübergehend pausieren und die Pause aufheben (MRadmin-Weboberfläche) |
+| `mrchunks.admin.monitoring` | OP | Gestaffelte Abschaltung samt harter Grenze aus- und einschalten (MRadmin-Weboberfläche) |
 
 > [!WARNING]
 > **Wildcards:** `*` und `mrchunks.*` enthalten in LuckPerms **alles** - auch `mrchunks.exempt` (Loader werden gelöscht!) und die `unlimited`-Rechte. Für solche Gruppen:
@@ -289,12 +291,17 @@ Viele Loader können den Server **zusammen** ausbremsen, auch wenn jeder für si
 | bis 40 | alles in Ordnung |
 | über 40 | **Warnung** an das Team im Chat und in Discord. Sie bleibt mindestens 5 Minuten bestehen. |
 | über 45 | Der Loader mit der **höchsten Auslastung** (Anteil an seinen Grenzen) wird **„Durch Lags deaktiviert“**. Pro Minute folgt der nächste, bis die MSPT wieder bei 40 oder darunter liegt. |
+| ab 70 | **Harte Grenze:** **alle** aktiven Loader werden sofort durch Lags deaktiviert (gemessen über 10 Sekunden, reagiert also schnell). Sie kommen danach genauso einzeln zurück. |
 
 - **Durch Lags deaktiviert** ist **keine Sperre**: Der Loader bleibt eingeschaltet, gibt aber seine Chunks frei (und sein Dummy verschwindet). Er bleibt **mindestens 5 Minuten** aus.
 - **Zurück:** Liegt die MSPT danach wieder bei 40 oder darunter, laden die Loader **einzeln nacheinander** wieder (einer pro Minute, der zuletzt abgeschaltete zuerst). Steigt die Last dabei wieder, stoppt die Rückkehr.
-- **Zu oft:** Wird derselbe Loader **innerhalb von 60 Minuten mehr als zweimal** abgeschaltet, wird er beim dritten Mal **gesperrt** (nur Admins können entsperren, mit MRadmin bekommt der Owner ein Ticket).
+- **Zu oft:** Wird derselbe Loader **innerhalb von 60 Minuten mehr als zweimal** abgeschaltet, wird er beim dritten Mal **gesperrt** (nur Admins können entsperren, mit MRadmin bekommt der Owner ein Ticket). Abschaltungen durch die harte Grenze zählen dafür nicht.
 - **Wer erfährt es:** Der Owner (offline beim nächsten Einloggen), das Team (`mrchunks.admin.gui`) im Chat und der Discord-Log. `/mrchunks lag` zeigt die aktuelle Serverlast und alle abgeschalteten Loader.
-- Ein Neustart bringt alle abgeschalteten Loader zurück. Alles einstellbar unter `staged-shutdown` (`warn-mspt`, `shutdown-mspt`, `average-seconds`, `step-seconds`, `min-minutes`, `max-shutdowns`, `window-minutes`).
+- Ein Neustart bringt alle abgeschalteten Loader zurück. Alles einstellbar unter `staged-shutdown` (`warn-mspt`, `shutdown-mspt`, `average-seconds`, `step-seconds`, `min-minutes`, `max-shutdowns`, `window-minutes`, `hard-cap-mspt` (`0` = keine harte Grenze), `hard-cap-seconds`).
+- **Im MRadmin-Web ausschalten:** Unter **Chunkloader → Steuerung** kann ein Admin die gestaffelte Abschaltung samt harter Grenze aus- und wieder einschalten (`mrchunks.admin.monitoring`). Ausgeschaltet laden alle abgeschalteten Loader sofort wieder; die Grenzen pro Loader (oben) gelten weiter. Die Einstellung bleibt auch nach einem Neustart.
+
+### Alle Loader pausieren (Team)
+Unter **Chunkloader → Steuerung** im MRadmin-Web kann ein Admin **alle Chunkloader vorübergehend pausieren** (`mrchunks.admin.pause`), z.B. bei Problemen oder vor einer Wartung. Alle Chunks werden sofort freigegeben, die Loader bleiben aber eingeschaltet und laden wieder, sobald die Pause im Web aufgehoben wird. Die Pause bleibt auch nach einem Neustart bestehen. Owner aktiver Loader und das Team werden im Chat informiert, dazu ein Discord-Log. Im Menü steht „⏸ Vom Team pausiert“.
 
 ### Server-Pause
 Laggt der **ganze Server** - egal warum -, pausiert MRchunks **alle** Loader:

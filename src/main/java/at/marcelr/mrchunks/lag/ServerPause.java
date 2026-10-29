@@ -63,7 +63,7 @@ public final class ServerPause {
     }
 
     public boolean paused() {
-        return plugin.loaders().paused();
+        return plugin.loaders().serverPaused();
     }
 
     /** Start of the current pause in ms, or 0. */

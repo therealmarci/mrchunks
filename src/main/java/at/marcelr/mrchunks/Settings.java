@@ -56,10 +56,12 @@ public record Settings(
      * Staged shutdown: the average tick time over {@code averageSeconds} is compared with {@code warnMspt} (warning)
      * and {@code shutdownMspt} (one loader after the other is disabled by lag, every {@code stepSeconds}). Warnings
      * and shutdowns last at least {@code minMinutes}; more than {@code maxShutdowns} shutdowns of one loader within
-     * {@code windowMinutes} lock it.
+     * {@code windowMinutes} lock it. From {@code hardCapMspt} (average over {@code hardCapSeconds}, 0 = off) all
+     * loaders are disabled at once.
      */
     public record ShedSettings(boolean enabled, int averageSeconds, double warnMspt, double shutdownMspt,
-                               int stepSeconds, int minMinutes, int maxShutdowns, int windowMinutes) {
+                               int stepSeconds, int minMinutes, int maxShutdowns, int windowMinutes,
+                               double hardCapMspt, int hardCapSeconds) {
     }
 
     /**
@@ -315,15 +317,24 @@ public record Settings(
                     + "), using shutdown-mspt = warn-mspt.");
             shutdownMspt = warnMspt;
         }
+        int averageSeconds = Math.clamp(c.getInt("staged-shutdown.average-seconds", 60), 5, 600);
+        double hardCap = Math.max(0, c.getDouble("staged-shutdown.hard-cap-mspt", 70));
+        if (hardCap > 0 && hardCap < shutdownMspt) {
+            log.warning("staged-shutdown: hard-cap-mspt (" + hardCap + ") is below shutdown-mspt (" + shutdownMspt
+                    + "), using hard-cap-mspt = shutdown-mspt.");
+            hardCap = shutdownMspt;
+        }
         ShedSettings shed = new ShedSettings(
                 c.getBoolean("staged-shutdown.enabled", true),
-                Math.clamp(c.getInt("staged-shutdown.average-seconds", 60), 5, 600),
+                averageSeconds,
                 warnMspt,
                 shutdownMspt,
                 Math.clamp(c.getInt("staged-shutdown.step-seconds", 60), 5, 3600),
                 Math.clamp(c.getInt("staged-shutdown.min-minutes", 5), 1, 1440),
                 Math.clamp(c.getInt("staged-shutdown.max-shutdowns", 2), 0, 100),
-                Math.clamp(c.getInt("staged-shutdown.window-minutes", 60), 1, 10_080));
+                Math.clamp(c.getInt("staged-shutdown.window-minutes", 60), 1, 10_080),
+                hardCap,
+                Math.clamp(c.getInt("staged-shutdown.hard-cap-seconds", 10), 1, averageSeconds));
 
         DummySettings dummies = new DummySettings(
                 c.getBoolean("dummies.enabled", false),

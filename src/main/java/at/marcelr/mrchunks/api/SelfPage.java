@@ -323,7 +323,7 @@ final class SelfPage {
             case LOCKED -> m.plain("self-state-locked");
             case INACTIVE -> m.plain("self-state-off");
             case SHED -> m.plain("self-state-shed");
-            case PAUSED -> m.plain("self-state-paused");
+            case PAUSED -> m.plain(plugin.loaders().adminPause() != null ? "self-state-admin-paused" : "self-state-paused");
             case WARN -> m.plain("self-state-warn");
             case OK -> m.plain("self-state-on");
         };

@@ -85,9 +85,10 @@ public final class LoadShedder implements Listener {
         samples = new double[settings().averageSeconds()];
         filled = 0;
         next = 0;
-        if (!settings().enabled()) {
+        if (!active()) {
             restoreAll();
             warnedSince = 0;
+            history.clear();
             return;
         }
         task = Bukkit.getScheduler().runTaskTimer(plugin, this::check, 20L, 20L);
@@ -108,11 +109,18 @@ public final class LoadShedder implements Listener {
         samples[next] = Bukkit.getAverageTickTime();
         next = (next + 1) % samples.length;
         filled = Math.min(filled + 1, samples.length);
+        long now = System.currentTimeMillis();
+        // Hard cap: reacts within seconds and takes all loaders off the grid at once.
+        if (s.hardCapMspt() > 0 && filled >= s.hardCapSeconds() && !loaders().paused()) {
+            double recent = recent(s.hardCapSeconds());
+            if (recent >= s.hardCapMspt()) {
+                hardCap(recent, now);
+            }
+        }
         if (filled < samples.length) {
             return; // a full window first (after start and reload)
         }
         double mspt = average();
-        long now = System.currentTimeMillis();
         long min = s.minMinutes() * 60_000L;
 
         if (mspt > s.warnMspt()) {
@@ -147,6 +155,60 @@ public final class LoadShedder implements Listener {
             sum += sample;
         }
         return sum / samples.length;
+    }
+
+    /** Average of the last {@code seconds} samples (the caller makes sure there are that many). */
+    private double recent(int seconds) {
+        double sum = 0;
+        for (int i = 1; i <= seconds; i++) {
+            sum += samples[Math.floorMod(next - i, samples.length)];
+        }
+        return sum / seconds;
+    }
+
+    /**
+     * Hard cap: every loader that holds chunks is disabled by lag at once. They come back one by one like after a
+     * staged shutdown; this does not count towards the lock after repeated shutdowns.
+     */
+    private void hardCap(double mspt, long now) {
+        List<Loader> hit = new ArrayList<>();
+        for (Loader loader : loaders().all()) {
+            if (loader.active() && !loaders().shed(loader) && !loaders().lagLocked(loader) && loaders().loading(loader)) {
+                hit.add(loader);
+            }
+        }
+        if (hit.isEmpty()) {
+            return;
+        }
+        int chunks = loaders().loadedChunkCount();
+        Set<java.util.UUID> told = new HashSet<>();
+        for (Loader loader : hit) {
+            loaders().shed(loader, now);
+            Player owner = Bukkit.getPlayer(loader.owner());
+            if (owner == null) {
+                untold.add(loader.id());
+            } else if (told.add(owner.getUniqueId())) {
+                plugin.messages().send(owner, "shed-hard-owner", tags(mspt));
+            }
+        }
+        lastAbove = now;
+        lastStep = now;
+        if (warnedSince == 0) {
+            warnedSince = now;
+        }
+        Settings.ShedSettings s = settings();
+        plugin.getLogger().warning("Server tick time is " + format(mspt) + " ms (hard cap " + format(s.hardCapMspt())
+                + " ms) - all " + hit.size() + " active chunk loaders are disabled by lag (" + chunks
+                + " chunks released). They come back one by one once the server is at " + format(s.warnMspt()) + " ms.");
+        TagResolver tags = TagResolver.resolver(tags(mspt), tag("count", hit.size()), tag("chunks", chunks),
+                tag("cap", format(s.hardCapMspt())));
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player.hasPermission(PERM_TEAM) && !told.contains(player.getUniqueId())) {
+                plugin.messages().send(player, "shed-hard-team", tags);
+            }
+        }
+        plugin.discord().log("server-lag-hard-cap", "mspt", format(mspt), "cap", format(s.hardCapMspt()),
+                "count", hit.size(), "chunks", chunks, "warn", format(s.warnMspt()), "min", s.minMinutes());
     }
 
     /** The loader holding chunks with the highest load (share of its lock limits), the bigger one if equal. */
@@ -290,6 +352,20 @@ public final class LoadShedder implements Listener {
     }
 
     // ----------------------------------------------------------------- access
+
+    /** Switched on in the config and not switched off by the team (MRadmin web). */
+    public boolean active() {
+        return settings().enabled() && loaders().monitoringOff() == null;
+    }
+
+    /**
+     * The team switches the staged shutdown (with the hard cap) on or off ({@code by} = who). Off brings every loader
+     * disabled by lag back at once; the setting is saved and holds after a restart.
+     */
+    public void setMonitoring(boolean on, String by) {
+        loaders().setMonitoringOff(on ? null : by);
+        start();
+    }
 
     /** The average tick time over the window (ms), or the current one while the window is not full yet. */
     public double mspt() {

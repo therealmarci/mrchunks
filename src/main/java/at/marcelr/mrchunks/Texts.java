@@ -60,6 +60,15 @@ public final class Texts {
     }
 
     /** Like {@link #name} but always English, for console logs. */
+    /** Placeholders of the pause by the team: admin (who), time (since when). Empty if there is none. */
+    public static TagResolver adminPause(MRChunks plugin) {
+        LoaderManager.Switch pause = plugin.loaders().adminPause();
+        if (pause == null) {
+            return TagResolver.empty();
+        }
+        return TagResolver.resolver(tag("admin", pause.by()), lazy("time", () -> date(plugin.messages(), pause.since())));
+    }
+
     public static String consoleName(MRChunks plugin, Loader loader) {
         String owner = LoaderManager.name(loader.owner());
         return (loader.name() != null ? "\"" + loader.name() + "\"" : plugin.messages().console("loader-default-name", "number", loader.number()))

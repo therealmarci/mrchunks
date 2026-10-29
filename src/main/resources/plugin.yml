@@ -50,7 +50,7 @@ permissions:
       mrchunks.admin.invites: true
       mrchunks.admin.link: true
   mrchunks.groups.admin:
-    description: "Group admin: everything of MRchunks - delete, rename, resize, dummies, lift lag locks, budget and limits, bans, web map, Discord, reload, update notice."
+    description: "Group admin: everything of MRchunks - delete, rename, resize, dummies, lift lag locks, budget and limits, bans, pause all loaders, staged shutdown on/off, web map, Discord, reload, update notice."
     default: op
     children:
       mrchunks.groups.staff: true
@@ -62,6 +62,8 @@ permissions:
       mrchunks.admin.discord: true
       mrchunks.admin.reload: true
       mrchunks.admin.update: true
+      mrchunks.admin.pause: true
+      mrchunks.admin.monitoring: true
 
   # ------------------------------------------------------------------ Single permissions
   mrchunks.version:
@@ -133,6 +135,12 @@ permissions:
     default: op
   mrchunks.admin.ban:
     description: Ban and unban players from chunk loaders.
+    default: op
+  mrchunks.admin.pause:
+    description: Pause all chunk loaders for a while and lift that pause again (MRadmin web interface).
+    default: op
+  mrchunks.admin.monitoring:
+    description: Switch the staged shutdown (with the hard cap) on and off (MRadmin web interface).
     default: op
   mrchunks.admin.map:
     description: /mrchunks map [setup] - status of the web map, set up squaremap.

@@ -347,6 +347,9 @@ final class SquaremapHook {
         if (loader.active() && plugin.loaders().shed(loader)) {
             return plugin.messages().plain("state-shed");
         }
+        if (loader.active() && plugin.loaders().adminPause() != null) {
+            return plugin.messages().plain("state-admin-paused");
+        }
         return loader.active() && plugin.loaders().paused()
                 ? plugin.messages().plain("state-paused") : Texts.state(plugin, loader.active());
     }

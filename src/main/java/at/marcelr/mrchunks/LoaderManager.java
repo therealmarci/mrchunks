@@ -52,7 +52,11 @@ public final class LoaderManager {
     /** method the current tickets were created with (they must be removed the same way) */
     private Settings.LoadMethod appliedMethod;
     /** Server pause (see {@link at.marcelr.mrchunks.lag.ServerPause}): no tickets at all, loaders keep their state. */
-    private boolean paused;
+    private boolean serverPaused;
+    /** All loaders paused by the team (MRadmin web), until lifted; saved, so it also holds after a restart. */
+    private Switch adminPause;
+    /** Staged shutdown and hard cap switched off by the team (MRadmin web); saved. */
+    private Switch monitoringOff;
     /** Loaders whose chunks are in {@link #coverage} right now (so uncovering never takes chunks of others). */
     private final Set<Integer> covered = new HashSet<>();
     /**
@@ -77,6 +81,10 @@ public final class LoaderManager {
     private final Map<UUID, Map<UUID, Long>> ownerMembers = new HashMap<>();
     /** loader id -> lag lock (only admins can lift it) */
     private final Map<Integer, LagLock> lagLocks = new HashMap<>();
+
+    /** A switch the team flipped in the web interface: who and since when (ms). */
+    public record Switch(String by, long since) {
+    }
 
     /** Exclusion from chunk loaders. {@code until == Long.MAX_VALUE} means permanent. */
     public record Ban(long until, String reason, String by) {
@@ -499,27 +507,62 @@ public final class LoaderManager {
 
     // ------------------------------------------------------------- tickets
 
+    /** Whether no loader holds chunks right now: server pause or paused by the team. */
     public boolean paused() {
-        return paused;
+        return serverPaused || adminPause != null;
+    }
+
+    /** Only the automatic server pause (TPS). */
+    public boolean serverPaused() {
+        return serverPaused;
+    }
+
+    /** Who paused all loaders in the web interface, or null. */
+    public Switch adminPause() {
+        return adminPause;
     }
 
     /**
      * Pausing releases every ticket, resuming adds them again for all active loaders. Loaders keep their on/off
-     * state; loaders switched on during the pause start loading when it ends.
+     * state; loaders switched on during the pause start loading when it ends. Server pause and the pause by the team
+     * are separate: loaders load again only when neither holds.
      */
     public void setPaused(boolean paused) {
-        if (this.paused == paused) {
+        boolean before = paused();
+        serverPaused = paused;
+        pauseChanged(before);
+    }
+
+    /** Pauses all loaders for the team ({@code by} = who) or, with null, lifts that pause. */
+    public void setAdminPause(String by) {
+        boolean before = paused();
+        adminPause = by == null ? null : new Switch(by, System.currentTimeMillis());
+        save();
+        pauseChanged(before);
+    }
+
+    private void pauseChanged(boolean before) {
+        boolean now = paused();
+        if (before == now) {
             return;
         }
-        if (paused) {
+        if (now) {
             releaseAll();
-            this.paused = true;
             syncDummies();
         } else {
-            this.paused = false;
             applyAll();
         }
         plugin.maps().refreshSoon();
+    }
+
+    /** Who switched the staged shutdown off in the web interface, or null (on as configured). */
+    public Switch monitoringOff() {
+        return monitoringOff;
+    }
+
+    public void setMonitoringOff(String by) {
+        monitoringOff = by == null ? null : new Switch(by, System.currentTimeMillis());
+        save();
     }
 
     /** Adds tickets for all active loaders of all loaded worlds (on enable / after reload). */
@@ -560,7 +603,7 @@ public final class LoaderManager {
 
     private void cover(Loader loader) {
         World world = loader.world();
-        if (world == null || paused || shed.containsKey(loader.id())) {
+        if (world == null || paused() || shed.containsKey(loader.id())) {
             return; // applied later by applyWorld when the world loads, by applyAll when the pause ends, or unshed
         }
         if (!covered.add(loader.id())) {
@@ -1075,12 +1118,16 @@ public final class LoaderManager {
         loaderMembers.clear();
         ownerMembers.clear();
         lagLocks.clear();
+        adminPause = null;
+        monitoringOff = null;
         nextId = 1;
         if (!dataFile.exists()) {
             return;
         }
         YamlConfiguration data = YamlConfiguration.loadConfiguration(dataFile);
         nextId = Math.max(1, data.getInt("next-id", 1));
+        adminPause = readSwitch(data, "admin-pause");
+        monitoringOff = readSwitch(data, "monitoring-off");
         // Loaders from before per-loader sizes keep the size they had (loaders.radius, carried over as default-reach).
         int defaultReach = plugin.settings().loaders().defaultReach();
         boolean migrated = false;
@@ -1321,10 +1368,23 @@ public final class LoaderManager {
                 data.set("members.owners." + owner + "." + uuid, until);
             }
         }));
+        writeSwitch(data, "admin-pause", adminPause);
+        writeSwitch(data, "monitoring-off", monitoringOff);
         try {
             data.save(dataFile);
         } catch (IOException e) {
             plugin.getLogger().log(Level.WARNING, "Could not save data.yml", e);
+        }
+    }
+
+    private static Switch readSwitch(YamlConfiguration data, String path) {
+        return data.isConfigurationSection(path) ? new Switch(data.getString(path + ".by", "?"), data.getLong(path + ".since")) : null;
+    }
+
+    private static void writeSwitch(YamlConfiguration data, String path, Switch value) {
+        if (value != null) {
+            data.set(path + ".by", value.by());
+            data.set(path + ".since", value.since());
         }
     }
 
