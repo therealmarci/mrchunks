@@ -43,6 +43,26 @@ class LanguageFilesTest {
         }
     }
 
+    /** Every hover text sits in single quotes and is closed again - an apostrophe inside would cut it off. */
+    @Test
+    void hoverTextsAreWellFormed() throws IOException {
+        Pattern hover = Pattern.compile("<hover:show_text:'[^']*'>");
+        for (String language : Set.of("de", "en")) {
+            try (InputStream in = LanguageFilesTest.class.getResourceAsStream("/lang/" + language + ".yml")) {
+                assertNotNull(in, "lang/" + language + ".yml");
+                int number = 0;
+                for (String line : new String(in.readAllBytes(), StandardCharsets.UTF_8).split("\r?\n")) {
+                    number++;
+                    int opened = line.split("<hover:", -1).length - 1;
+                    int closed = line.split("</hover>", -1).length - 1;
+                    int complete = (int) hover.matcher(line).results().count();
+                    assertEquals(opened, complete, language + ".yml:" + number + " hover text not closed with '>");
+                    assertEquals(opened, closed, language + ".yml:" + number + " <hover> without </hover>");
+                }
+            }
+        }
+    }
+
     private static Set<String> keys(String language) throws IOException {
         try (InputStream in = LanguageFilesTest.class.getResourceAsStream("/lang/" + language + ".yml")) {
             assertNotNull(in, "lang/" + language + ".yml");

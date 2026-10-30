@@ -9,6 +9,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+### Behoben & geändert
+- **Kurze Chat- und Menütexte:** Alle Chatnachrichten sind jetzt eine knappe Zeile; Einzelheiten (Grenzwerte, Gründe, Tipps) erscheinen, wenn man mit der Maus darüberfährt. In der Konsole stehen sie in Klammern dahinter. Auch die Beschreibungen in den Menüs sind kürzer (`lang-version` 20 - eigene Änderungen an diesen Texten in `lang/de.yml` und `lang/en.yml` werden dabei ersetzt).
+
 ### Neu
 - **Voraussichtliche Rückkehr abgeschalteter Loader:** Bei Loadern, die „Durch Lags deaktiviert“ sind, steht jetzt, wann sie **voraussichtlich** wieder laden - im Loader-Menü, in `/mrchunks lag`, auf der Spielerseite (auch direkt auf der Karte) und in MRadmin. Gerechnet wird mit Reihenfolge (der zuletzt abgeschaltete zuerst), Mindestzeit und Abstand zwischen zwei Rückkehrern (`staged-shutdown.min-minutes`, `step-seconds`) - z.B. nach der harten Grenze kommt jeder Loader mit seiner eigenen Uhrzeit. Vorausgesetzt ist, dass sich der Server bis dahin erholt hat.
 - **Auslastung für MRadmin:** Die Weboberfläche bekommt pro Loader seine Auslastung (Anteil an der Sperrgrenze beim schlechtesten Messwert) - danach wählt die gestaffelte Abschaltung, wen sie zuerst abschaltet.
