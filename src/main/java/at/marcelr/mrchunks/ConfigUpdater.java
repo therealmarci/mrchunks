@@ -22,7 +22,7 @@ import java.util.logging.Level;
  */
 public final class ConfigUpdater {
 
-    public static final int CURRENT_VERSION = 19;
+    public static final int CURRENT_VERSION = 20;
     public static final String BOM = "\uFEFF";
     /** Texts whose content changed with new features; the new default replaces the old value. */
     private static final Set<String> REPLACED_KEYS = Set.of();
@@ -99,10 +99,33 @@ public final class ConfigUpdater {
             }
             // v18: halved entity limits (staged shutdown protects the performance) - only the old defaults are replaced.
             if (version < 18) {
-                replaceDefault(existing, template, "lag-protection.limits.entities.warn", 300, 150);
-                replaceDefault(existing, template, "lag-protection.limits.entities.lock", 800, 400);
-                replaceDefault(existing, template, "lag-protection.small-loaders.limits.entities.warn", 100, 50);
-                replaceDefault(existing, template, "lag-protection.small-loaders.limits.entities.lock", 250, 125);
+                // Entities halved in 18, the final values of 20 straight away (see below).
+                replaceDefault(existing, template, "lag-protection.limits.entities.warn", 300, 100);
+                replaceDefault(existing, template, "lag-protection.limits.entities.lock", 800, 250);
+                replaceDefault(existing, template, "lag-protection.small-loaders.limits.entities.warn", 100, 40);
+                replaceDefault(existing, template, "lag-protection.small-loaders.limits.entities.lock", 250, 100);
+            }
+            if (version < 20) {
+                // Final limits (mrchunks#17): about 2 ms warning / 5 ms lock per 7x7 loader. Only old defaults.
+                int[][] limits = {
+                    // 7x7 warn old -> new, lock old -> new; then up to 3x3 the same
+                    {150, 100, 400, 250, 50, 40, 125, 100},
+                    {200, 150, 1000, 500, 80, 60, 300, 200},
+                    {500, 400, 2000, 1500, 150, 120, 600, 450},
+                    {300, 200, 1200, 800, 100, 80, 400, 300},
+                    {40, 30, 150, 100, 15, 10, 50, 35},
+                    {20, 15, 80, 50, 8, 6, 25, 20},
+                };
+                String[] metrics = {"entities", "items", "redstone", "hoppers", "pistons", "spawns"};
+                for (int i = 0; i < metrics.length; i++) {
+                    int[] l = limits[i];
+                    String big = "lag-protection.limits." + metrics[i];
+                    String small = "lag-protection.small-loaders.limits." + metrics[i];
+                    replaceDefault(existing, template, big + ".warn", l[0], l[1]);
+                    replaceDefault(existing, template, big + ".lock", l[2], l[3]);
+                    replaceDefault(existing, template, small + ".warn", l[4], l[5]);
+                    replaceDefault(existing, template, small + ".lock", l[6], l[7]);
+                }
             }
             template.set("config-version", CURRENT_VERSION);
             // Keep long messages on one line instead of folding them.

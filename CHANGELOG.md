@@ -17,7 +17,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ### Behoben & geändert
 - **Spielerseite: Reihenfolge im Bereich Chunkloader (MRadmin-Issue #14):** Jetzt eigene Loader, dann die Loader, zu denen man eingeladen ist, dann die Einladungen für alle Loader, ganz unten die Karte.
-- **Entity-Grenzen halbiert:** `lag-protection.limits.entities` jetzt Warnung 150 / Sperre 400 (vorher 300 / 800), für kleine Loader bis 3×3 (`lag-protection.small-loaders.limits.entities`) 50 / 125 (vorher 100 / 250). Bestehende Server bekommen die neuen Werte nur, wenn sie die alten Standardwerte noch nicht geändert hatten (`config-version` 19).
+- **Finale Grenzwerte für den Lag-Schutz (Issue #17):** Alle Grenzen neu gerechnet - ein 7×7-Loader darf bis zur Warnung etwa 2 ms und bis zur Sperre etwa 5 ms Tick-Zeit kosten (vorher waren vor allem Entities viel zu großzügig). `lag-protection.limits` pro 49 Chunks (Warnung / Sperre): Entities 100 / 250 (vorher 300 / 800), Items 150 / 500 (200 / 1000), Redstone 400 / 1500 (500 / 2000), Trichter 200 / 800 (300 / 1200), Kolben 30 / 100 (40 / 150), Spawns 15 / 50 (20 / 80). Kleine Loader bis 3×3 (`lag-protection.small-loaders.limits`): Entities 40 / 100 (100 / 250), Items 60 / 200 (80 / 300), Redstone 120 / 450 (150 / 600), Trichter 80 / 300 (100 / 400), Kolben 10 / 35 (15 / 50), Spawns 6 / 20 (8 / 25). Bestehende Server bekommen nur die Werte neu, die noch auf dem alten Standard standen (`config-version` 20).
 
 ## [1.0.0] - 2026-10-29
 

@@ -68,7 +68,7 @@ class LoaderAreaTest {
     void limitsScaleWithTheArea() {
         LagLimits per49 = LagLimits.defaults();
         LagLimits nine = per49.scaled(9 / 49.0);
-        assertEquals(400 * 9 / 49.0, nine.lock(Metric.ENTITIES), 1e-9);
+        assertEquals(250 * 9 / 49.0, nine.lock(Metric.ENTITIES), 1e-9);
         // Three 7x7 loaders together get three times the limits of one.
         assertEquals(3 * per49.warn(Metric.HOPPERS), per49.scaled(147 / 49.0).warn(Metric.HOPPERS), 1e-9);
         // Splitting the same chunks into small loaders never allows more in total.

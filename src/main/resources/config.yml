@@ -16,7 +16,7 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 19
+config-version: 20
 
 # Language of the texts (chat, menus, items). The texts are in plugins/MRchunks/lang/<language>.yml.
 #   auto = every player gets the language set in their Minecraft client:
@@ -180,29 +180,29 @@ lag-protection:
   limits-per-chunks: 49
   limits:
     # Entities (mobs, animals, minecarts, armour stands ... including items on the ground, without players)
-    entities: { warn: 150, lock: 400 }
+    entities: { warn: 100, lock: 250 }
     # Items lying on the ground
-    items: { warn: 200, lock: 1000 }
+    items: { warn: 150, lock: 500 }
     # Redstone signal changes per second (clocks, large circuits)
-    redstone: { warn: 500, lock: 2000 }
+    redstone: { warn: 400, lock: 1500 }
     # Item transfers of hoppers, droppers, hopper minecarts ... per second
-    hoppers: { warn: 300, lock: 1200 }
+    hoppers: { warn: 200, lock: 800 }
     # Piston movements per second
-    pistons: { warn: 40, lock: 150 }
+    pistons: { warn: 30, lock: 100 }
     # New mobs and items per second
-    spawns: { warn: 20, lock: 80 }
+    spawns: { warn: 15, lock: 50 }
   # Small loaders up to max-chunks chunks (9 = 3x3) get these fixed limits instead - scaled down from the ones above
   # they would be too tight for a small farm. Bigger areas use the scaled limits, but never less than these.
   # All limits are rounded to whole numbers.
   small-loaders:
     max-chunks: 9
     limits:
-      entities: { warn: 50, lock: 125 }
-      items: { warn: 80, lock: 300 }
-      redstone: { warn: 150, lock: 600 }
-      hoppers: { warn: 100, lock: 400 }
-      pistons: { warn: 15, lock: 50 }
-      spawns: { warn: 8, lock: 25 }
+      entities: { warn: 40, lock: 100 }
+      items: { warn: 60, lock: 200 }
+      redstone: { warn: 120, lock: 450 }
+      hoppers: { warn: 80, lock: 300 }
+      pistons: { warn: 10, lock: 35 }
+      spawns: { warn: 6, lock: 20 }
 
 # Server pause: if the whole server lags (no matter whether because of chunk loaders or something else), ALL chunk
 # loaders release their chunks until it has recovered - afterwards they load again automatically. Whether a loader is
