@@ -301,6 +301,7 @@ Viele Loader können den Server **zusammen** ausbremsen, auch wenn jeder für si
 - **Zu oft:** Wird derselbe Loader **innerhalb von 60 Minuten mehr als zweimal** abgeschaltet, wird er beim dritten Mal **gesperrt** (nur Admins können entsperren, mit MRadmin bekommt der Owner ein Ticket). Abschaltungen durch die harte Grenze zählen dafür nicht.
 - **Wer erfährt es:** Der Owner (offline beim nächsten Einloggen), das Team (`mrchunks.admin.gui`) im Chat und der Discord-Log. `/mrchunks lag` zeigt die aktuelle Serverlast und alle abgeschalteten Loader.
 - Ein Neustart bringt alle abgeschalteten Loader zurück. Alles einstellbar unter `staged-shutdown` (`warn-mspt`, `shutdown-mspt`, `average-seconds`, `step-seconds`, `min-minutes`, `max-shutdowns`, `window-minutes`, `hard-cap-mspt` (`0` = keine harte Grenze), `hard-cap-seconds`).
+- **Nach dem Serverstart:** Beim Hochfahren ist die Tick-Zeit kurz sehr hoch (Welten laden). Darum warten Lag-Schutz, gestaffelte Abschaltung, harte Grenze und Server-Pause nach dem Start **3 Minuten**, bevor sie etwas bewerten (`lag-protection.startup-delay-seconds`, Standard `180`, `0` = sofort). `/mrchunks lag` zeigt, wie lange noch.
 - **Im MRadmin-Web ausschalten:** Unter **Chunkloader → Steuerung** kann ein Admin die gestaffelte Abschaltung samt harter Grenze aus- und wieder einschalten (`mrchunks.admin.monitoring`). Ausgeschaltet laden alle abgeschalteten Loader sofort wieder; die Grenzen pro Loader (oben) gelten weiter. Die Einstellung bleibt auch nach einem Neustart.
 
 ### Alle Loader pausieren (Team)

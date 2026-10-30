@@ -234,8 +234,8 @@ public final class LagMonitor implements Listener {
     private void sample() {
         Settings.LagSettings s = settings();
         long now = System.currentTimeMillis();
-        if (loaders().paused()) {
-            // Server pause: the loaders hold nothing, so whatever happens in their areas is not their doing.
+        if (loaders().paused() || plugin.startupGrace()) {
+            // Server pause or startup: the loaders hold nothing / every tick is slow, so nothing is judged.
             strikes.clear();
             counts.clear();
             windowStart = now;

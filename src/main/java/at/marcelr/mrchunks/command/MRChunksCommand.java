@@ -204,6 +204,9 @@ public final class MRChunksCommand implements TabExecutor {
         if (!plugin.settings().lag().enabled()) {
             messages().send(sender, "lag-disabled");
         }
+        if (plugin.startupGrace() && plugin.startupGraceLeft() > 0) {
+            messages().send(sender, "startup-delay-status", tag("seconds", String.valueOf(plugin.startupGraceLeft())));
+        }
         if (plugin.loaders().adminPause() != null) {
             messages().send(sender, "admin-pause-status", Texts.adminPause(plugin));
         }

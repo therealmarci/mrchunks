@@ -80,6 +80,10 @@ public final class ServerPause {
         Settings.PauseSettings s = settings();
         double tps = tps();
         long now = System.currentTimeMillis();
+        if (!paused() && plugin.startupGrace()) {
+            belowSince = 0; // the server is still warming up
+            return;
+        }
         if (!paused()) {
             aboveSince = 0;
             if (tps >= s.belowTps()) {
