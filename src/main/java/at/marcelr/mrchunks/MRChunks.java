@@ -59,6 +59,9 @@ public final class MRChunks extends JavaPlugin {
     private final DiscordWebhook discord = new DiscordWebhook(this);
     private final AdminActions adminActions = new AdminActions(this);
     private LoaderManager loaders;
+    /** When the server ran its first tick (0 = still starting); the lag checks wait startup-delay-seconds from there. */
+    private long serverReadyAt;
+    private boolean graceOverLogged;
     private LoaderItem loaderItem;
     private BorderDisplay border;
     private UpdateChecker updateChecker;
@@ -96,6 +99,9 @@ public final class MRChunks extends JavaPlugin {
         lag.start();
         pause.start();
         shedder.start();
+        // The first tick runs once the server is fully started (worlds loaded); before that and for a while after it
+        // the tick time is far too high and would switch off or lock loaders on every boot.
+        Bukkit.getScheduler().runTask(this, () -> serverReadyAt = System.currentTimeMillis());
 
         updateChecker = new UpdateChecker(this);
         updateChecker.start();
@@ -239,6 +245,35 @@ public final class MRChunks extends JavaPlugin {
         return adminActions;
     }
 
+
+    /**
+     * True while the server is starting and for lag-protection.startup-delay-seconds afterwards: lag protection,
+     * staged shutdown, hard cap and server pause do not judge anything then (loading the worlds makes every tick slow).
+     */
+    public boolean startupGrace() {
+        if (serverReadyAt == 0) {
+            return true;
+        }
+        long left = serverReadyAt + settings.lag().startupDelaySeconds() * 1000L - System.currentTimeMillis();
+        if (left > 0) {
+            return true;
+        }
+        if (!graceOverLogged) {
+            graceOverLogged = true;
+            if (settings.lag().startupDelaySeconds() > 0) {
+                getLogger().info("Startup delay over - lag protection, staged shutdown and server pause are active.");
+            }
+        }
+        return false;
+    }
+
+    /** Seconds left of the startup delay (0 = over). */
+    public long startupGraceLeft() {
+        if (serverReadyAt == 0) {
+            return settings.lag().startupDelaySeconds();
+        }
+        return Math.max(0, (serverReadyAt + settings.lag().startupDelaySeconds() * 1000L - System.currentTimeMillis() + 999) / 1000);
+    }
     public LoaderManager loaders() {
         return loaders;
     }

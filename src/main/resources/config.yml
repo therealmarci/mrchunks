@@ -16,7 +16,7 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 20
+config-version: 21
 
 # Language of the texts (chat, menus, items). The texts are in plugins/MRchunks/lang/<language>.yml.
 #   auto = every player gets the language set in their Minecraft client:
@@ -160,6 +160,10 @@ lag-protection:
   enabled: true
   # Measure every this many seconds.
   sample-seconds: 30
+  # After a server start, wait this many seconds (from the first tick) before judging anything: loading the worlds
+  # makes the tick time spike and would otherwise switch off or lock loaders on every boot. Also applies to the
+  # staged shutdown (incl. hard cap) and the server pause. 0 = no delay.
+  startup-delay-seconds: 180
   # This many measurements in a row above "lock" before locking (3 x 30 s = 1.5 minutes).
   # This also applies after unlocking: it can lock again after this many new measurements at the earliest.
   lock-after-samples: 3

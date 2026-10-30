@@ -154,6 +154,7 @@ lag-unlocked: "<prefix><green>Lag lock of <white><name></white> lifted.</green> 
 lag-unlocked-owner: "<prefix><green>The lag lock of <white><name></white> was lifted by <white><admin></white>.</green> <gray>You can switch it on again - please make sure the farm no longer lags."
 lag-not-locked: "<prefix><gray><white><name></white> is not locked."
 lag-disabled: "<prefix><yellow>Lag protection is switched off (lag-protection.enabled) - nothing is measured."
+startup-delay-status: "<prefix><gray>Server just started: lag protection, staged shutdown and server pause wait another <white><seconds> s</white> (lag-protection.startup-delay-seconds)."
 lag-list-header: "<prefix><gray>Conspicuous and locked chunk loaders:"
 lag-list-entry: "<dark_gray>- <gold><name></gold> <gray>of <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray><metric>: <white><value></white> <dark_gray>(warn limit <limit>)"
 lag-list-locked: "<dark_gray>- <red>🔒 <name></red> <gray>of <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray>locked since <time>: <metric> <value>"

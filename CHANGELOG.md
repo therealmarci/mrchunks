@@ -9,6 +9,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+### Behoben & geändert
+- **Keine Abschaltungen und Sperren mehr direkt nach dem Serverstart:** Beim Hochfahren ist die Tick-Zeit kurz sehr hoch - das hat bei jedem Start Loader durch Lags deaktiviert (und mit der Zeit gesperrt). Jetzt warten Lag-Schutz, gestaffelte Abschaltung, harte Grenze und Server-Pause nach dem Start eine Weile, bevor sie etwas bewerten. Neuer Config-Schlüssel `lag-protection.startup-delay-seconds` (Standard `180`, `0` = sofort), `/mrchunks lag` zeigt die Restzeit (`config-version` 21).
+
 ## [1.0.1] - 2026-10-30
 
 ### Neu

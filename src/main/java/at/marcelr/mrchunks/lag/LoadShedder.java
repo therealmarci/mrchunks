@@ -105,6 +105,11 @@ public final class LoadShedder implements Listener {
     // ------------------------------------------------------------------ check
 
     private void check() {
+        if (plugin.startupGrace()) {
+            filled = 0; // startup samples would spoil the averages
+            next = 0;
+            return;
+        }
         Settings.ShedSettings s = settings();
         samples[next] = Bukkit.getAverageTickTime();
         next = (next + 1) % samples.length;

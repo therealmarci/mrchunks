@@ -72,7 +72,7 @@ public record Settings(
      */
     public record LagSettings(boolean enabled, int sampleSeconds, int lockAfterSamples, boolean onlyWhenServerLags,
                               double serverLagMspt, double forceLockMultiplier, LagLimits limits, int limitsPerChunks,
-                              LagLimits smallLimits, int smallChunks) {
+                              LagLimits smallLimits, int smallChunks, int startupDelaySeconds) {
 
         /**
          * The limits for an area of {@code chunks} chunks (a loader, or all active loaders of an owner together), in
@@ -294,7 +294,8 @@ public record Settings(
                 limits(c, "lag-protection.limits", LagLimits.defaults(), log),
                 Math.clamp(c.getInt("lag-protection.limits-per-chunks", 49), 1, 10_000),
                 limits(c, "lag-protection.small-loaders.limits", LagLimits.smallDefaults(), log),
-                Math.clamp(c.getInt("lag-protection.small-loaders.max-chunks", 9), 0, 10_000));
+                Math.clamp(c.getInt("lag-protection.small-loaders.max-chunks", 9), 0, 10_000),
+                Math.clamp(c.getInt("lag-protection.startup-delay-seconds", 180), 0, 3600));
 
         double below = Math.clamp(c.getDouble("server-pause.below-tps", 15), 1, 19.9);
         double resume = Math.clamp(c.getDouble("server-pause.resume-tps", 18), 1, 20);

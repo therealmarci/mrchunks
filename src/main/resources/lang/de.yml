@@ -154,6 +154,7 @@ lag-unlocked: "<prefix><green>Lag-Sperre von <white><name></white> aufgehoben.</
 lag-unlocked-owner: "<prefix><green>Die Lag-Sperre von <white><name></white> wurde von <white><admin></white> aufgehoben.</green> <gray>Du kannst ihn wieder einschalten - bitte sorg dafür, dass die Farm nicht mehr laggt."
 lag-not-locked: "<prefix><gray><white><name></white> ist nicht gesperrt."
 lag-disabled: "<prefix><yellow>Der Lag-Schutz ist ausgeschaltet (lag-protection.enabled) - es wird nichts gemessen."
+startup-delay-status: "<prefix><gray>Server gerade gestartet: Lag-Schutz, gestaffelte Abschaltung und Server-Pause warten noch <white><seconds> s</white> (lag-protection.startup-delay-seconds)."
 lag-list-header: "<prefix><gray>Auffällige und gesperrte Chunkloader:"
 lag-list-entry: "<dark_gray>- <gold><name></gold> <gray>von <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray><metric>: <white><value></white> <dark_gray>(Warngrenze <limit>)"
 lag-list-locked: "<dark_gray>- <red>🔒 <name></red> <gray>von <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray>gesperrt seit <time>: <metric> <value>"
