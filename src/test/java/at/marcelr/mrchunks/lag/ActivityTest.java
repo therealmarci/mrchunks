@@ -21,11 +21,11 @@ class ActivityTest {
 
     @Test
     void warnAndLockRatiosUseTheHighestMetric() {
-        // entities 250/100 warn = 2.5, 250/250 lock = 1; redstone 3000/400 = 7.5, 3000/1500 = 2
+        // entities 250/100 warn = 2.5, 250/250 lock = 1; redstone 3000/500 = 6, 3000/2000 = 1.5
         Activity a = Activity.of(Map.of(Metric.ENTITIES, 250.0, Metric.REDSTONE, 3000.0), LIMITS, 0, 49, 49);
         assertTrue(a.conspicuous());
-        assertEquals(7.5, a.warnRatio(), 1e-9);
-        assertEquals(2.0, a.lockRatio(), 1e-9);
+        assertEquals(6.0, a.warnRatio(), 1e-9);
+        assertEquals(1.5, a.lockRatio(), 1e-9);
         assertEquals(Metric.REDSTONE, a.worst());
     }
 

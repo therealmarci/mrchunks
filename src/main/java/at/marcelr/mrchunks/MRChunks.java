@@ -27,7 +27,7 @@ public final class MRChunks extends JavaPlugin {
     private FileConfiguration config;
     private Settings settings;
     /** lang-version 2: version display with MC version; 3: loaders by name/number; 4: squaremap.address; 5: merged admin commands; 6: shorter window titles; 7: lag protection (admin usage); 8: /chunkloader is only the menu (invite notice); 9: get/return as two buttons; 11: dummies and linked accounts (admin usage). */
-    private final Messages messages = new Messages(18, Map.ofEntries(
+    private final Messages messages = new Messages(20, Map.ofEntries(
             Map.entry(2, Set.of("version", "gui-info-name")),
             Map.entry(3, Set.of("discord.loader-placed", "discord.loader-deleted", "discord.loader-toggled",
                     "discord.loader-restored", "discord.loader-removed-missing", "discord.admin-delete",
@@ -55,7 +55,37 @@ public final class MRChunks extends JavaPlugin {
             Map.entry(15, Set.of("map-click-tooltip")),
             Map.entry(16, Set.of("self-members")),
             Map.entry(17, Set.of("self-members", "self-members-text", "self-invite-title", "self-invite-text")),
-            Map.entry(18, Set.of("web-tile-locked", "web-tile-warn", "gui-loader-locked"))));
+            Map.entry(18, Set.of("web-tile-locked", "web-tile-warn", "gui-loader-locked")),
+            Map.entry(19, Set.of("shed-toggle-hint", "shed-list-entry", "gui-loader-shed", "self-shed-detail")),
+            Map.entry(20, Set.of(
+                    "item-lore", "give-none-left", "exempt-cleared-notify", "placed", "placed-smaller", "placed-inactive",
+                    "place-overlap-warning", "place-overlap-denied-own", "place-overlap-denied", "budget-exceeded",
+                    "break-denied", "lag-locked-owner", "lag-locked-join", "lag-locked-staff", "lag-locked-repeat-owner",
+                    "lag-locked-repeat-join", "lag-locked-repeat-staff", "lag-locked-toggle", "lag-unlocked",
+                    "lag-unlocked-owner", "lag-disabled", "startup-delay-status", "pause-started", "pause-ended",
+                    "pause-toggle-hint", "pause-status", "shed-warning", "shed-hard-owner", "shed-hard-team",
+                    "admin-paused", "admin-resumed", "admin-pause-toggle-hint", "admin-pause-status", "monitoring-on",
+                    "monitoring-off", "monitoring-off-status", "shed-normal", "shed-owner", "shed-join", "shed-team",
+                    "shed-back-owner", "shed-back-team", "shed-toggle-hint", "shed-status", "shed-status-warning",
+                    "owner-notify-toggled", "owner-notify-deleted", "border-shown", "owner-notify-renamed", "invited",
+                    "invite-notify", "uninvite-notify", "invite-exempt", "dummy-on", "dummy-on-inactive", "dummy-off",
+                    "dummy-limit-reached", "owner-notify-dummy", "dummy-limit-enforced", "dummy-limit-enforced-notify",
+                    "link-request-sent", "link-request-received", "link-done", "link-main-is-second", "link-exempt",
+                    "link-removed", "link-removed-notify", "budget-enforced", "budget-enforced-notify", "ban-set",
+                    "ban-notify", "map-status-off", "map-setup-done", "discord-status-active", "gui-loader-locked",
+                    "gui-loader-paused", "gui-loader-shed", "gui-loader-admin-paused", "gui-loader-warn",
+                    "gui-toggle-off-lore", "gui-toggle-on-lore", "gui-locked-lore", "gui-unlock-lore",
+                    "gui-activity-locked-unknown", "gui-activity-stale", "gui-activity-partial", "gui-rename-lore",
+                    "gui-block-lore", "gui-border-lore", "gui-border-hide-lore", "gui-members-lore",
+                    "gui-members-all-lore", "gui-shared-lore", "gui-member-inherited-lore", "gui-invite-lore",
+                    "gui-invite-by-name-lore", "gui-delete-lore", "gui-dummy-on-lore", "gui-dummy-off-lore",
+                    "gui-dummy-waiting-lore", "gui-mine-empty-lore", "gui-items-lore", "gui-return-lore", "gui-map-lore",
+                    "players-only-menu", "gui-links-lore", "gui-links-info-lore", "gui-links-main-lore",
+                    "gui-links-add-lore", "gui-link-pick-lore", "gui-link-nobody-lore", "mradmin-pause-lore",
+                    "gui-unlink-lore", "gui-ban-lore", "gui-delete-all-lore", "gui-size-lore", "gui-size-view-lore",
+                    "gui-size-budget-lore", "gui-size-direction-lore", "gui-size-all-lore", "gui-size-border-lore",
+                    "resize-min", "resize-dummy", "resize-budget", "resize-overlap-own", "resize-overlap",
+                    "owner-notify-resized", "dummy-needs-square", "gui-dummy-square-lore", "gui-dummy-square-waiting-lore"))));
     private final DiscordWebhook discord = new DiscordWebhook(this);
     private final AdminActions adminActions = new AdminActions(this);
     private LoaderManager loaders;

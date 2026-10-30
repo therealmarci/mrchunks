@@ -9,6 +9,17 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+## [1.0.3] - 2026-10-30
+
+### Neu
+- **Voraussichtliche Rückkehr abgeschalteter Loader:** Bei Loadern, die „Durch Lags deaktiviert“ sind, steht jetzt, wann sie **voraussichtlich** wieder laden - im Loader-Menü, in `/mrchunks lag`, auf der Spielerseite (auch direkt auf der Karte) und in MRadmin. Gerechnet wird mit Reihenfolge (der zuletzt abgeschaltete zuerst), Mindestzeit und Abstand zwischen zwei Rückkehrern (`staged-shutdown.min-minutes`, `step-seconds`) - z.B. nach der harten Grenze kommt jeder Loader mit seiner eigenen Uhrzeit. Vorausgesetzt ist, dass sich der Server bis dahin erholt hat.
+- **Auslastung für MRadmin:** Die Weboberfläche bekommt pro Loader seine Auslastung (Anteil an der Sperrgrenze beim schlechtesten Messwert) - danach wählt die gestaffelte Abschaltung, wen sie zuerst abschaltet.
+
+### Behoben & geändert
+- **Redstone, Trichter und Kolben wieder mit den alten Grenzen:** Die in 1.0.1 gesenkten Grenzen waren zu knapp für normale Farmen. Wieder (Warnung / Sperre pro 49 Chunks): Redstone 500 / 2000, Trichter 300 / 1200, Kolben 40 / 150; bis 3×3: Redstone 150 / 600, Trichter 100 / 400, Kolben 15 / 50. Entities, Items und Spawns bleiben wie in 1.0.1. Bestehende Server bekommen die Werte nur, wenn noch die von 1.0.1 eingetragen sind.
+- **Sperre ohne Server-Lag erst beim Dreifachen:** Da die Grenzen niedriger sind, sperrt der Lag-Schutz ohne Server-Lag erst ab dem **Dreifachen** der Sperrgrenze (vorher Doppelten). `lag-protection.force-lock-multiplier` jetzt `3`; ersetzt nur den alten Standard `2` (`config-version` 22).
+- **Kurze Chat- und Menütexte:** Alle Chatnachrichten sind jetzt eine knappe Zeile; Einzelheiten (Grenzwerte, Gründe, Tipps) erscheinen, wenn man mit der Maus darüberfährt. In der Konsole stehen sie in Klammern dahinter. Auch die Beschreibungen in den Menüs sind kürzer (`lang-version` 20 - eigene Änderungen an diesen Texten in `lang/de.yml` und `lang/en.yml` werden dabei ersetzt).
+
 ## [1.0.2] - 2026-10-30
 
 ### Behoben & geändert

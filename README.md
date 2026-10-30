@@ -268,18 +268,18 @@ MRchunks misst alle 30 Sekunden, was im Bereich jedes **aktiven** Loaders passie
 |---|---|---|---|---|---|
 | `entities` | Mobs, Tiere, Loren, Items … | 40 | 100 | 100 | 250 |
 | `items` | Items am Boden | 60 | 200 | 150 | 500 |
-| `redstone` | Redstone-Änderungen pro Sekunde | 120 | 450 | 400 | 1500 |
-| `hoppers` | Trichter-Transfers pro Sekunde | 80 | 300 | 200 | 800 |
-| `pistons` | Kolben-Bewegungen pro Sekunde | 10 | 35 | 30 | 100 |
+| `redstone` | Redstone-Änderungen pro Sekunde | 150 | 600 | 500 | 2000 |
+| `hoppers` | Trichter-Transfers pro Sekunde | 100 | 400 | 300 | 1200 |
+| `pistons` | Kolben-Bewegungen pro Sekunde | 15 | 50 | 40 | 150 |
 | `spawns` | neue Mobs und Items pro Sekunde | 6 | 20 | 15 | 50 |
 
 **Beispiel Entities (Sperre):** ein 3×3-Loader 100, ein 5×5-Loader 128 (250 × 25/49), ein 7×7-Loader 250, ein 9×9-Loader 413 (250 × 81/49).
 
 > [!NOTE]
-> Die Standardwerte sind so gerechnet, dass ein 7×7-Loader bis zur Warnung etwa **2 ms** und bis zur Sperre etwa **5 ms** Tick-Zeit kostet (gemessen auf einem kleinen Server: rund 0,085 ms pro geladenem Loader-Chunk mit Farmen). Auf einem stärkeren Server kannst du sie in `lag-protection.limits` erhöhen.
+> Die Grenzen für Entities, Items und Spawns sind so gerechnet, dass ein 7×7-Loader bis zur Warnung etwa **2 ms** und bis zur Sperre etwa **5 ms** Tick-Zeit kostet (gemessen auf einem kleinen Server: rund 0,085 ms pro geladenem Loader-Chunk mit Farmen). Redstone, Trichter und Kolben sind großzügiger, damit normale Farmen und Sortieranlagen laufen. Auf einem stärkeren Server kannst du alles in `lag-protection.limits` erhöhen.
 
 - **Über „Warnung“:** Der Loader taucht in `/mrchunks lag` auf (und in MRadmin), dazu ein Discord-Log. Sonst passiert nichts.
-- **Über „Sperre“:** Gesperrt wird erst, wenn der Loader **mehrere Messungen hintereinander** darüber liegt (Standard 3, also 1,5 Minuten) **und der Server dabei laggt**. Dann wird **nur dieser Loader** gesperrt. Eine große Farm, mit der der Server gut zurechtkommt, wird nicht gesperrt. Beim Doppelten der Sperrgrenze wird auch ohne Server-Lag gesperrt.
+- **Über „Sperre“:** Gesperrt wird erst, wenn der Loader **mehrere Messungen hintereinander** darüber liegt (Standard 3, also 1,5 Minuten) **und der Server dabei laggt**. Dann wird **nur dieser Loader** gesperrt. Eine große Farm, mit der der Server gut zurechtkommt, wird nicht gesperrt. Beim **Dreifachen** der Sperrgrenze wird auch ohne Server-Lag gesperrt (`lag-protection.force-lock-multiplier`, Standard `3`).
 - **Gesperrt heißt:** Der Loader ist aus und kann nur von Admins entsperrt werden (Menü oder `/mrchunks unlock`). Der Owner wird informiert, mit MRadmin bekommt er automatisch ein **Ticket** mit allen Details.
 - Das Menü jedes aktiven Loaders zeigt die letzte Messung gegen die Grenzen dieses Loaders - so können Spieler ihre Farm selbst einschätzen.
 - Alle Grenzen stehen unter `lag-protection.limits` und `lag-protection.small-loaders.limits`, für wie viele Chunks sie gelten unter `lag-protection.limits-per-chunks` (49) und bis zu welcher Größe die festen gelten unter `lag-protection.small-loaders.max-chunks` (9). `0` schaltet eine Messung ab. Alle Grenzen werden auf ganze Zahlen gerundet.
