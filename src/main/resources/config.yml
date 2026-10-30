@@ -16,7 +16,7 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 21
+config-version: 22
 
 # Language of the texts (chat, menus, items). The texts are in plugins/MRchunks/lang/<language>.yml.
 #   auto = every player gets the language set in their Minecraft client:
@@ -175,9 +175,9 @@ lag-protection:
   server-lag-mspt: 40
   # Unconditional lock: from how many times the "lock" limit to lock even WITHOUT server lag (also only
   # after lock-after-samples measurements in a row). Only relevant with only-when-server-lags: true.
-  # 1 = as soon as "lock" is exceeded, 2 = from double the limit (e.g. 800 entities with lock 400), 1.5 works too.
+  # 1 = as soon as "lock" is exceeded, 3 = from three times the limit (e.g. 750 entities with lock 250), 1.5 works too.
   # 0 = off, then it never locks without server lag.
-  force-lock-multiplier: 2
+  force-lock-multiplier: 3
   # The limits below apply to this many chunks (49 = one 7x7 loader) and are scaled to the actual area:
   # a 5x5 loader (25 chunks) gets 25/49 of them, a 9x9 loader (81 chunks) 81/49 - for each loader on its own
   # (up to 3x3 see small-loaders).
@@ -188,11 +188,11 @@ lag-protection:
     # Items lying on the ground
     items: { warn: 150, lock: 500 }
     # Redstone signal changes per second (clocks, large circuits)
-    redstone: { warn: 400, lock: 1500 }
+    redstone: { warn: 500, lock: 2000 }
     # Item transfers of hoppers, droppers, hopper minecarts ... per second
-    hoppers: { warn: 200, lock: 800 }
+    hoppers: { warn: 300, lock: 1200 }
     # Piston movements per second
-    pistons: { warn: 30, lock: 100 }
+    pistons: { warn: 40, lock: 150 }
     # New mobs and items per second
     spawns: { warn: 15, lock: 50 }
   # Small loaders up to max-chunks chunks (9 = 3x3) get these fixed limits instead - scaled down from the ones above
@@ -203,9 +203,9 @@ lag-protection:
     limits:
       entities: { warn: 40, lock: 100 }
       items: { warn: 60, lock: 200 }
-      redstone: { warn: 120, lock: 450 }
-      hoppers: { warn: 80, lock: 300 }
-      pistons: { warn: 10, lock: 35 }
+      redstone: { warn: 150, lock: 600 }
+      hoppers: { warn: 100, lock: 400 }
+      pistons: { warn: 15, lock: 50 }
       spawns: { warn: 6, lock: 20 }
 
 # Server pause: if the whole server lags (no matter whether because of chunk loaders or something else), ALL chunk

@@ -22,7 +22,7 @@ import java.util.logging.Level;
  */
 public final class ConfigUpdater {
 
-    public static final int CURRENT_VERSION = 21;
+    public static final int CURRENT_VERSION = 22;
     public static final String BOM = "\uFEFF";
     /** Texts whose content changed with new features; the new default replaces the old value. */
     private static final Set<String> REPLACED_KEYS = Set.of();
@@ -111,12 +111,9 @@ public final class ConfigUpdater {
                     // 7x7 warn old -> new, lock old -> new; then up to 3x3 the same
                     {150, 100, 400, 250, 50, 40, 125, 100},
                     {200, 150, 1000, 500, 80, 60, 300, 200},
-                    {500, 400, 2000, 1500, 150, 120, 600, 450},
-                    {300, 200, 1200, 800, 100, 80, 400, 300},
-                    {40, 30, 150, 100, 15, 10, 50, 35},
                     {20, 15, 80, 50, 8, 6, 25, 20},
                 };
-                String[] metrics = {"entities", "items", "redstone", "hoppers", "pistons", "spawns"};
+                String[] metrics = {"entities", "items", "spawns"}; // redstone, hoppers, pistons went back in 22
                 for (int i = 0; i < metrics.length; i++) {
                     int[] l = limits[i];
                     String big = "lag-protection.limits." + metrics[i];
@@ -126,6 +123,27 @@ public final class ConfigUpdater {
                     replaceDefault(existing, template, small + ".warn", l[4], l[5]);
                     replaceDefault(existing, template, small + ".lock", l[6], l[7]);
                 }
+            }
+            if (version < 22) {
+                // Redstone, hoppers and pistons back to the limits before 20 (user: the new ones were too tight);
+                // only where the values of 20 are still set. Unconditional lock from three times the limit.
+                int[][] limits = {
+                    // 7x7 warn 20 -> old, lock 20 -> old; then up to 3x3 the same
+                    {400, 500, 1500, 2000, 120, 150, 450, 600},
+                    {200, 300, 800, 1200, 80, 100, 300, 400},
+                    {30, 40, 100, 150, 10, 15, 35, 50},
+                };
+                String[] metrics = {"redstone", "hoppers", "pistons"};
+                for (int i = 0; i < metrics.length; i++) {
+                    int[] l = limits[i];
+                    String big = "lag-protection.limits." + metrics[i];
+                    String small = "lag-protection.small-loaders.limits." + metrics[i];
+                    replaceDefault(existing, template, big + ".warn", l[0], l[1]);
+                    replaceDefault(existing, template, big + ".lock", l[2], l[3]);
+                    replaceDefault(existing, template, small + ".warn", l[4], l[5]);
+                    replaceDefault(existing, template, small + ".lock", l[6], l[7]);
+                }
+                replaceDefault(existing, template, "lag-protection.force-lock-multiplier", 2, 3);
             }
             template.set("config-version", CURRENT_VERSION);
             // Keep long messages on one line instead of folding them.

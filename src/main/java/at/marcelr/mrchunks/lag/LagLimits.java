@@ -57,9 +57,9 @@ public record LagLimits(Map<Metric, Double> warn, Map<Metric, Double> lock) {
         Map<Metric, Double> lock = new EnumMap<>(Metric.class);
         put(warn, lock, Metric.ENTITIES, 40, 100);
         put(warn, lock, Metric.ITEMS, 60, 200);
-        put(warn, lock, Metric.REDSTONE, 120, 450);
-        put(warn, lock, Metric.HOPPERS, 80, 300);
-        put(warn, lock, Metric.PISTONS, 10, 35);
+        put(warn, lock, Metric.REDSTONE, 150, 600);
+        put(warn, lock, Metric.HOPPERS, 100, 400);
+        put(warn, lock, Metric.PISTONS, 15, 50);
         put(warn, lock, Metric.SPAWNS, 6, 20);
         return new LagLimits(Map.copyOf(warn), Map.copyOf(lock));
     }
@@ -70,9 +70,9 @@ public record LagLimits(Map<Metric, Double> warn, Map<Metric, Double> lock) {
         Map<Metric, Double> lock = new EnumMap<>(Metric.class);
         put(warn, lock, Metric.ENTITIES, 100, 250);
         put(warn, lock, Metric.ITEMS, 150, 500);
-        put(warn, lock, Metric.REDSTONE, 400, 1500);
-        put(warn, lock, Metric.HOPPERS, 200, 800);
-        put(warn, lock, Metric.PISTONS, 30, 100);
+        put(warn, lock, Metric.REDSTONE, 500, 2000);
+        put(warn, lock, Metric.HOPPERS, 300, 1200);
+        put(warn, lock, Metric.PISTONS, 40, 150);
         put(warn, lock, Metric.SPAWNS, 15, 50);
         return new LagLimits(Map.copyOf(warn), Map.copyOf(lock));
     }

@@ -334,13 +334,16 @@ final class WebData {
         }
         if (plugin.loaders().shed(loader)) {
             long since = plugin.loaders().shedSince(loader);
-            m.put("shed", Map.of("since", since, "back", since + plugin.settings().shed().minMinutes() * 60_000L));
+            m.put("shed", Map.of("since", since, "back", plugin.shedder().expectedBack(loader)));
         }
         Activity a = plugin.settings().lag().enabled() ? plugin.lag().activity(loader) : null;
         if (a != null) {
             Metric worst = a.worst();
             m.put("worst", Map.of("metric", messages.plain("lag-metric-" + worst.key()), "value", a.value(worst),
                     "warn", plugin.settings().lag().limitsFor(loader.area()).warn(worst)));
+            // Load = share of the lock limit of the worst metric; the staged shutdown takes the highest first.
+            m.put("load", Math.round(a.lockRatio() * 1000) / 1000.0);
+            m.put("loadWarn", a.warnRatio() >= 1);
         }
         return m;
     }

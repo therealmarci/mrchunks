@@ -164,7 +164,7 @@ final class SelfPage {
         } else if (status == LoaderStatus.SHED) {
             details.add(new SelfBlock.Text(m.plain("self-shed-detail", "since",
                     Texts.date(m, plugin.loaders().shedSince(loader)), "back", Texts.date(m,
-                            plugin.loaders().shedSince(loader) + plugin.settings().shed().minMinutes() * 60_000L)), "warn"));
+                            plugin.shedder().expectedBack(loader))), "warn"));
         }
         details.add(limits(plugin, loader));
         if (actions && plugin.settings().invites().enabled() && viewer.has(INVITE)) {
@@ -322,7 +322,7 @@ final class SelfPage {
         return switch (status) {
             case LOCKED -> m.plain("self-state-locked");
             case INACTIVE -> m.plain("self-state-off");
-            case SHED -> m.plain("self-state-shed");
+            case SHED -> m.plain("self-state-shed-back", "back", Texts.date(m, plugin.shedder().expectedBack(loader)));
             case PAUSED -> m.plain(plugin.loaders().adminPause() != null ? "self-state-admin-paused" : "self-state-paused");
             case WARN -> m.plain("self-state-warn");
             case OK -> m.plain("self-state-on");

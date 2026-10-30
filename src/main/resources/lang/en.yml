@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Do not change - tells the plugin which texts need to be renewed on updates.
-lang-version: 18
+lang-version: 19
 
 # Discord log texts (Discord markdown). Placeholders: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. On/off and colour are set in config.yml.
@@ -190,10 +190,10 @@ shed-join: "<prefix><gold>📉 Your chunk loader <white><name></white> was disab
 shed-team: "<prefix><gold>📉 <white><name></white> of <white><player></white> was disabled by lag</gold> <gray>(server <white><mspt> ms</white>, load <load> %, <count>× in <minutes> minutes) <teleport>"
 shed-back-owner: "<prefix><green>📈 Your chunk loader <white><name></white> loads again</green> <gray>(server at <mspt> ms, was off for <time>)."
 shed-back-team: "<prefix><green>📈 <white><name></white> of <white><player></white> loads again</green> <gray>(server at <mspt> ms, was off for <time>)."
-shed-toggle-hint: "<prefix><gold>📉 <white><name></white> is disabled by lag right now</gold> <gray>- it loads again by itself, at the earliest <back>, once the server has recovered."
+shed-toggle-hint: "<prefix><gold>📉 <white><name></white> is disabled by lag right now</gold> <gray>- it loads again by itself, probably <back>, once the server has recovered."
 shed-status: "<prefix><gray>Server load: <white><mspt> ms</white> per tick on average <dark_gray>(warning from <warn> ms, switching off from <limit> ms)"
 shed-status-warning: "<prefix><gold>⚠ Server load: <white><mspt> ms</white> per tick on average</gold> <dark_gray>(warning from <warn> ms, switching off from <limit> ms)"
-shed-list-entry: "<dark_gray>- <gold>📉 <name></gold> <gray>of <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray>disabled by lag since <time>, back at the earliest <back>"
+shed-list-entry: "<dark_gray>- <gold>📉 <name></gold> <gray>of <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray>disabled by lag since <time>, probably back <back>"
 pause-over: "<prefix><green>The server pause is over - the chunk loaders load again."
 deleted: "<prefix><green><white><name></white> deleted."
 delete-confirm: "<prefix><yellow>Click again to delete <white><name></white>."
@@ -393,7 +393,7 @@ gui-loader-shed:
   - ""
   - "<gold>📉 Disabled by lag</gold> <gray>since <time>"
   - "<gray>The server was under heavy load. The loader stays"
-  - "<gray>on and loads again by itself at the earliest <back>."
+  - "<gray>on and loads again by itself, probably <back>."
 gui-loader-admin-paused:
   - ""
   - "<yellow>⏸ Paused by the team</yellow> <gray>since <time>"
@@ -793,7 +793,7 @@ self-state-on: "on"
 self-state-off: "off"
 self-state-locked: "locked (lag)"
 self-state-paused: "paused (server lags)"
-self-state-shed: "disabled by lag"
+self-state-shed-back: "disabled by lag · back about <back>"
 self-state-admin-paused: "paused (by the team)"
 self-state-warn: "conspicuous"
 self-on: "Switch on"
@@ -825,7 +825,7 @@ self-limits-hint: "warning from <warn> · lock from <lock>"
 self-limits-none: "Not measured yet - measuring happens while the area is loaded (e.g. someone is nearby or the loader runs)."
 self-limits-off: "Lag protection is switched off on this server."
 self-locked-detail: "Locked for <metric>: <value> (limit <limit>), since <since>. Only an admin can lift the lock."
-self-shed-detail: "Disabled by lag since <since>: the server was under heavy load. The loader stays on and loads again by itself at the earliest <back>, once the server has recovered."
+self-shed-detail: "Disabled by lag since <since>: the server was under heavy load. The loader stays on and loads again by itself, probably <back> (one after the other, once the server has recovered)."
 self-members-text: "Invited players may switch all your loaders on and off - nothing else. Invites for a single loader are in its card."
 self-until: "until <date>"
 self-online: "online"

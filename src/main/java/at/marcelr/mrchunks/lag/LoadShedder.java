@@ -383,11 +383,54 @@ public final class LoadShedder implements Listener {
     }
 
     /** Placeholders for texts about a disabled loader: loader, since, back (earliest return), mspt. */
+    /**
+     * When the loader is expected to load again: the loaders come back one by one (the last disabled first, each once
+     * its minimum time is over, step-seconds apart), assuming the server has recovered by then.
+     */
+    public long expectedBack(Loader loader) {
+        Long at = estimates().get(loader.id());
+        return at != null ? at : loaders().shedSince(loader) + settings().minMinutes() * 60_000L;
+    }
+
+    private Map<Integer, Long> estimates() {
+        Settings.ShedSettings s = settings();
+        long min = s.minMinutes() * 60_000L;
+        long step = s.stepSeconds() * 1000L;
+        List<long[]> queue = new ArrayList<>(); // { id, since } in the order they were disabled
+        for (int id : loaders().shedIds()) {
+            Loader shed = loaders().byId(id);
+            if (shed != null) {
+                queue.add(new long[] {id, loaders().shedSince(shed)});
+            }
+        }
+        Map<Integer, Long> result = new HashMap<>();
+        long t = Math.max(System.currentTimeMillis(), lastStep + step);
+        while (!queue.isEmpty()) {
+            int pick = -1;
+            long earliest = Long.MAX_VALUE;
+            for (int i = queue.size() - 1; i >= 0; i--) {
+                long ready = queue.get(i)[1] + min;
+                if (ready <= t) {
+                    pick = i;
+                    break;
+                }
+                earliest = Math.min(earliest, ready);
+            }
+            if (pick < 0) {
+                t = earliest;
+                continue;
+            }
+            result.put((int) queue.remove(pick)[0], t);
+            t += step;
+        }
+        return result;
+    }
+
     public TagResolver tags(Loader loader) {
         long since = loaders().shedSince(loader);
         return TagResolver.resolver(Texts.loader(plugin, loader), tags(mspt()),
                 Messages.lazy("time", () -> Texts.date(plugin.messages(), since)),
-                Messages.lazy("back", () -> Texts.date(plugin.messages(), since + settings().minMinutes() * 60_000L)));
+                Messages.lazy("back", () -> Texts.date(plugin.messages(), expectedBack(loader))));
     }
 
     private TagResolver tags(Loader loader, double mspt, int count, String load) {

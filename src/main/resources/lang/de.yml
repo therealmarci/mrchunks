@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Nicht ändern - damit erkennt das Plugin bei Updates, welche Texte erneuert werden müssen.
-lang-version: 18
+lang-version: 19
 
 # Texte der Discord-Logs (Markdown wie in Discord). Platzhalter: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. An/aus und Farbe stehen in der config.yml.
@@ -190,10 +190,10 @@ shed-join: "<prefix><gold>📉 Dein Chunkloader <white><name></white> wurde wäh
 shed-team: "<prefix><gold>📉 <white><name></white> von <white><player></white> wurde durch Lags deaktiviert</gold> <gray>(Server <white><mspt> ms</white>, Auslastung <load> %, <count>× in <minutes> Minuten) <teleport>"
 shed-back-owner: "<prefix><green>📈 Dein Chunkloader <white><name></white> lädt wieder</green> <gray>(Server bei <mspt> ms, war <time> aus)."
 shed-back-team: "<prefix><green>📈 <white><name></white> von <white><player></white> lädt wieder</green> <gray>(Server bei <mspt> ms, war <time> aus)."
-shed-toggle-hint: "<prefix><gold>📉 <white><name></white> ist gerade durch Lags deaktiviert</gold> <gray>- er lädt von selbst wieder, frühestens <back>, sobald der Server sich erholt hat."
+shed-toggle-hint: "<prefix><gold>📉 <white><name></white> ist gerade durch Lags deaktiviert</gold> <gray>- er lädt von selbst wieder, voraussichtlich <back>, sobald der Server sich erholt hat."
 shed-status: "<prefix><gray>Serverlast: <white><mspt> ms</white> pro Tick im Mittel <dark_gray>(Warnung ab <warn> ms, Abschalten ab <limit> ms)"
 shed-status-warning: "<prefix><gold>⚠ Serverlast: <white><mspt> ms</white> pro Tick im Mittel</gold> <dark_gray>(Warnung ab <warn> ms, Abschalten ab <limit> ms)"
-shed-list-entry: "<dark_gray>- <gold>📉 <name></gold> <gray>von <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray>durch Lags deaktiviert seit <time>, frühestens zurück <back>"
+shed-list-entry: "<dark_gray>- <gold>📉 <name></gold> <gray>von <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray>durch Lags deaktiviert seit <time>, voraussichtlich zurück <back>"
 pause-over: "<prefix><green>Die Server-Pause ist vorbei - die Chunkloader laden wieder."
 deleted: "<prefix><green><white><name></white> gelöscht."
 delete-confirm: "<prefix><yellow>Zum Löschen von <white><name></white> noch einmal klicken."
@@ -393,7 +393,7 @@ gui-loader-shed:
   - ""
   - "<gold>📉 Durch Lags deaktiviert</gold> <gray>seit <time>"
   - "<gray>Der Server war ausgelastet. Der Loader bleibt an"
-  - "<gray>und lädt frühestens <back> von selbst wieder."
+  - "<gray>und lädt voraussichtlich <back> wieder."
 gui-loader-admin-paused:
   - ""
   - "<yellow>⏸ Vom Team pausiert</yellow> <gray>seit <time>"
@@ -793,7 +793,7 @@ self-state-on: "an"
 self-state-off: "aus"
 self-state-locked: "gesperrt (Lag)"
 self-state-paused: "pausiert (Server laggt)"
-self-state-shed: "durch Lags deaktiviert"
+self-state-shed-back: "durch Lags deaktiviert · zurück ca. <back>"
 self-state-admin-paused: "pausiert (vom Team)"
 self-state-warn: "auffällig"
 self-on: "Einschalten"
@@ -825,7 +825,7 @@ self-limits-hint: "Warnung ab <warn> · Sperre ab <lock>"
 self-limits-none: "Noch keine Messung - gemessen wird, solange der Bereich geladen ist (z.B. wenn jemand in der Nähe ist oder der Loader läuft)."
 self-limits-off: "Der Lag-Schutz ist auf diesem Server ausgeschaltet."
 self-locked-detail: "Gesperrt wegen <metric>: <value> (Grenze <limit>), seit <since>. Nur ein Admin kann die Sperre aufheben."
-self-shed-detail: "Durch Lags deaktiviert seit <since>: Der Server war ausgelastet. Der Loader bleibt an und lädt frühestens <back> von selbst wieder, sobald der Server sich erholt hat."
+self-shed-detail: "Durch Lags deaktiviert seit <since>: Der Server war ausgelastet. Der Loader bleibt an und lädt voraussichtlich <back> von selbst wieder (einer nach dem anderen, sobald der Server sich erholt hat)."
 self-members-text: "Eingeladene dürfen alle deine Loader an- und ausschalten - mehr nicht. Einladungen für einen einzelnen Loader findest du in seiner Karte."
 self-until: "bis <date>"
 self-online: "online"

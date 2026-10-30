@@ -290,7 +290,7 @@ public record Settings(
                 Math.clamp(c.getInt("lag-protection.lock-after-samples", 3), 1, 100),
                 c.getBoolean("lag-protection.only-when-server-lags", true),
                 Math.clamp(c.getDouble("lag-protection.server-lag-mspt", 40), 1, 1000),
-                forceLockMultiplier(c.getDouble("lag-protection.force-lock-multiplier", 2), log),
+                forceLockMultiplier(c.getDouble("lag-protection.force-lock-multiplier", 3), log),
                 limits(c, "lag-protection.limits", LagLimits.defaults(), log),
                 Math.clamp(c.getInt("lag-protection.limits-per-chunks", 49), 1, 10_000),
                 limits(c, "lag-protection.small-loaders.limits", LagLimits.smallDefaults(), log),
