@@ -199,11 +199,21 @@ final class SelfPage {
         return plugin.messages().plain("self-card-place", "world", loader.worldName(), "x", loader.x(), "z", loader.z());
     }
 
+    /** Short time for a card: "14:32" today, otherwise "31.10. 14:32". */
+    private static String clock(long millis) {
+        java.time.ZonedDateTime at = java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneId.systemDefault());
+        boolean today = at.toLocalDate().equals(java.time.LocalDate.now());
+        return at.format(java.time.format.DateTimeFormatter.ofPattern(today ? "HH:mm" : "dd.MM. HH:mm"));
+    }
+
     private static List<SelfBlock.Stat> cardStats(MRChunks plugin, Loader loader) {
         Messages m = plugin.messages();
         List<SelfBlock.Stat> stats = new ArrayList<>();
         stats.add(new SelfBlock.Stat(m.plain("self-card-size"), loader.width() + "×" + loader.length(), ""));
         stats.add(new SelfBlock.Stat(m.plain("self-card-chunks"), String.valueOf(loader.area()), ""));
+        if (plugin.loaders().shed(loader)) {
+            stats.add(new SelfBlock.Stat(m.plain("self-card-back"), clock(plugin.shedder().expectedBack(loader)), "warn"));
+        }
         if (loader.dummy() && plugin.dummies().enabled()) {
             boolean present = plugin.dummies().dummyOf(loader) != null;
             stats.add(new SelfBlock.Stat(m.plain("self-card-dummy"), m.plain(present ? "self-dummy-present" : "self-dummy-waiting"),
@@ -322,7 +332,7 @@ final class SelfPage {
         return switch (status) {
             case LOCKED -> m.plain("self-state-locked");
             case INACTIVE -> m.plain("self-state-off");
-            case SHED -> m.plain("self-state-shed-back", "back", Texts.date(m, plugin.shedder().expectedBack(loader)));
+            case SHED -> m.plain("self-state-shed");
             case PAUSED -> m.plain(plugin.loaders().adminPause() != null ? "self-state-admin-paused" : "self-state-paused");
             case WARN -> m.plain("self-state-warn");
             case OK -> m.plain("self-state-on");
