@@ -16,6 +16,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 - **Alle Chunkloader pausieren (MRadmin-Web):** Unter **Chunkloader → Steuerung** pausiert ein Admin alle Loader vorübergehend und hebt die Pause wieder auf (neue Permission `mrchunks.admin.pause`, in `mrchunks.groups.admin`). Die Loader bleiben eingeschaltet, die Pause bleibt auch nach einem Neustart. Owner und Team werden informiert, Discord-Ereignisse `admin-pause-all` und `admin-resume-all`.
 
 ### Behoben & geändert
+- **Spielerseite: Reihenfolge im Bereich Chunkloader (MRadmin-Issue #14):** Jetzt eigene Loader, dann die Loader, zu denen man eingeladen ist, dann die Einladungen für alle Loader, ganz unten die Karte.
 - **Entity-Grenzen halbiert:** `lag-protection.limits.entities` jetzt Warnung 150 / Sperre 400 (vorher 300 / 800), für kleine Loader bis 3×3 (`lag-protection.small-loaders.limits.entities`) 50 / 125 (vorher 100 / 250). Bestehende Server bekommen die neuen Werte nur, wenn sie die alten Standardwerte noch nicht geändert hatten (`config-version` 19).
 
 ## [1.0.0] - 2026-10-29

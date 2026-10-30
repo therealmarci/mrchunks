@@ -114,11 +114,8 @@ final class SelfPage {
         }
         blocks.add(new SelfBlock.Cards(m.plain("self-table"), cards, m.plain("self-empty")));
 
-        // Invites for all loaders right under the own loaders (one tile: invite on top, list below); those for one
-        // loader are in its opened card.
-        if (plugin.settings().invites().enabled() && viewer.has(INVITE) && ban == null) {
-            blocks.add(invites(plugin, owner, null));
-        }
+        // Order (user wish, mradmin#14): own loaders, loaders shared with the player, invite settings for all
+        // loaders (invite on top, list below), map. Invites for one loader are in its opened card.
         List<Loader> shared = loaders.sharedWith(viewer.player());
         if (!shared.isEmpty()) {
             List<SelfBlock.Card> sharedCards = new ArrayList<>();
@@ -126,6 +123,9 @@ final class SelfPage {
                 sharedCards.add(sharedCard(plugin, loader, ban == null, mapUrl));
             }
             blocks.add(new SelfBlock.Cards(m.plain("self-shared"), sharedCards, ""));
+        }
+        if (plugin.settings().invites().enabled() && viewer.has(INVITE) && ban == null) {
+            blocks.add(invites(plugin, owner, null));
         }
         if (!mapUrl.isEmpty()) {
             blocks.add(new SelfBlock.Embed(m.plain("self-map"), mapUrl, 520, m.plain("self-map-open")));
