@@ -52,7 +52,18 @@ public final class LoaderManager {
     /** method the current tickets were created with (they must be removed the same way) */
     private Settings.LoadMethod appliedMethod;
     /** Server pause (see {@link at.marcelr.mrchunks.lag.ServerPause}): no tickets at all, loaders keep their state. */
-    private boolean paused;
+    private boolean serverPaused;
+    /** All loaders paused by the team (MRadmin web), until lifted; saved, so it also holds after a restart. */
+    private Switch adminPause;
+    /** Staged shutdown and hard cap switched off by the team (MRadmin web); saved. */
+    private Switch monitoringOff;
+    /** Loaders whose chunks are in {@link #coverage} right now (so uncovering never takes chunks of others). */
+    private final Set<Integer> covered = new HashSet<>();
+    /**
+     * Staged shutdown (see {@link at.marcelr.mrchunks.lag.LoadShedder}): loader id -> since when it is disabled by lag.
+     * Such a loader stays switched on but holds no chunks; not saved, a restart brings everything back.
+     */
+    private final Map<Integer, Long> shed = new LinkedHashMap<>();
 
     private final Map<UUID, Integer> budgetOverrides = new HashMap<>();
     private final Map<UUID, Integer> dummyOverrides = new HashMap<>();
@@ -70,6 +81,10 @@ public final class LoaderManager {
     private final Map<UUID, Map<UUID, Long>> ownerMembers = new HashMap<>();
     /** loader id -> lag lock (only admins can lift it) */
     private final Map<Integer, LagLock> lagLocks = new HashMap<>();
+
+    /** A switch the team flipped in the web interface: who and since when (ms). */
+    public record Switch(String by, long since) {
+    }
 
     /** Exclusion from chunk loaders. {@code until == Long.MAX_VALUE} means permanent. */
     public record Ban(long until, String reason, String by) {
@@ -264,6 +279,7 @@ public final class LoaderManager {
         unindex(loader);
         loaderMembers.remove(loader.id());
         lagLocks.remove(loader.id());
+        shed.remove(loader.id());
         plugin.border().loaderRemoved(loader);
         World world = loader.world();
         if (world != null) {
@@ -406,6 +422,7 @@ public final class LoaderManager {
     /** Locks the loader and switches it off; it stays off until {@link #lagUnlock}. */
     public void lagLock(Loader loader, LagLock lock) {
         lagLocks.put(loader.id(), lock);
+        shed.remove(loader.id());
         if (loader.active()) {
             setActive(loader, false);
         } else {
@@ -437,29 +454,115 @@ public final class LoaderManager {
         plugin.maps().refreshSoon();
     }
 
+    // ---------------------------------------------------- staged shutdown
+
+    /** Whether the loader is disabled by lag right now (switched on, but holding no chunks). */
+    public boolean shed(Loader loader) {
+        return shed.containsKey(loader.id());
+    }
+
+    /** Since when the loader is disabled by lag (ms), or 0. */
+    public long shedSince(Loader loader) {
+        return shed.getOrDefault(loader.id(), 0L);
+    }
+
+    /** Whether the loader holds its chunks right now (active, not disabled by lag, no server pause, world loaded). */
+    public boolean loading(Loader loader) {
+        return covered.contains(loader.id());
+    }
+
+    /** Ids of the loaders disabled by lag, oldest first. */
+    public List<Integer> shedIds() {
+        return List.copyOf(shed.keySet());
+    }
+
+    /** Disables the loader by lag: it releases its chunks and its dummy, but stays switched on. */
+    public void shed(Loader loader, long since) {
+        if (shed.putIfAbsent(loader.id(), since) != null) {
+            return;
+        }
+        uncover(loader);
+        syncDummy(loader);
+        plugin.maps().refreshSoon();
+        plugin.border().loaderChanged(loader);
+    }
+
+    /** Ends the shutdown of the loader; if it is (still) switched on, it loads its chunks again. */
+    public void unshed(Loader loader) {
+        if (shed.remove(loader.id()) == null) {
+            return;
+        }
+        if (loader.active()) {
+            cover(loader);
+            syncDummy(loader);
+        }
+        plugin.maps().refreshSoon();
+        plugin.border().loaderChanged(loader);
+    }
+
+    /** Removes the shutdown of a loader that no longer exists or is switched off (no chunks to load). */
+    public void forgetShed(int id) {
+        shed.remove(id);
+    }
+
     // ------------------------------------------------------------- tickets
 
+    /** Whether no loader holds chunks right now: server pause or paused by the team. */
     public boolean paused() {
-        return paused;
+        return serverPaused || adminPause != null;
+    }
+
+    /** Only the automatic server pause (TPS). */
+    public boolean serverPaused() {
+        return serverPaused;
+    }
+
+    /** Who paused all loaders in the web interface, or null. */
+    public Switch adminPause() {
+        return adminPause;
     }
 
     /**
      * Pausing releases every ticket, resuming adds them again for all active loaders. Loaders keep their on/off
-     * state; loaders switched on during the pause start loading when it ends.
+     * state; loaders switched on during the pause start loading when it ends. Server pause and the pause by the team
+     * are separate: loaders load again only when neither holds.
      */
     public void setPaused(boolean paused) {
-        if (this.paused == paused) {
+        boolean before = paused();
+        serverPaused = paused;
+        pauseChanged(before);
+    }
+
+    /** Pauses all loaders for the team ({@code by} = who) or, with null, lifts that pause. */
+    public void setAdminPause(String by) {
+        boolean before = paused();
+        adminPause = by == null ? null : new Switch(by, System.currentTimeMillis());
+        save();
+        pauseChanged(before);
+    }
+
+    private void pauseChanged(boolean before) {
+        boolean now = paused();
+        if (before == now) {
             return;
         }
-        if (paused) {
+        if (now) {
             releaseAll();
-            this.paused = true;
             syncDummies();
         } else {
-            this.paused = false;
             applyAll();
         }
         plugin.maps().refreshSoon();
+    }
+
+    /** Who switched the staged shutdown off in the web interface, or null (on as configured). */
+    public Switch monitoringOff() {
+        return monitoringOff;
+    }
+
+    public void setMonitoringOff(String by) {
+        monitoringOff = by == null ? null : new Switch(by, System.currentTimeMillis());
+        save();
     }
 
     /** Adds tickets for all active loaders of all loaded worlds (on enable / after reload). */
@@ -495,12 +598,16 @@ public final class LoaderManager {
         }
         coverage.clear();
         forcedByUs.clear();
+        covered.clear();
     }
 
     private void cover(Loader loader) {
         World world = loader.world();
-        if (world == null || paused) {
-            return; // applied later by applyWorld when the world loads, or by applyAll when the pause ends
+        if (world == null || paused() || shed.containsKey(loader.id())) {
+            return; // applied later by applyWorld when the world loads, by applyAll when the pause ends, or unshed
+        }
+        if (!covered.add(loader.id())) {
+            return;
         }
         Map<Long, Integer> chunks = coverage.computeIfAbsent(world.getUID(), k -> new HashMap<>());
         for (int cx = loader.minChunkX(); cx <= loader.maxChunkX(); cx++) {
@@ -513,6 +620,9 @@ public final class LoaderManager {
     }
 
     private void uncover(Loader loader) {
+        if (!covered.remove(loader.id())) {
+            return;
+        }
         World world = loader.world();
         Map<Long, Integer> chunks = world == null ? null : coverage.get(world.getUID());
         if (chunks == null) {
@@ -1008,12 +1118,16 @@ public final class LoaderManager {
         loaderMembers.clear();
         ownerMembers.clear();
         lagLocks.clear();
+        adminPause = null;
+        monitoringOff = null;
         nextId = 1;
         if (!dataFile.exists()) {
             return;
         }
         YamlConfiguration data = YamlConfiguration.loadConfiguration(dataFile);
         nextId = Math.max(1, data.getInt("next-id", 1));
+        adminPause = readSwitch(data, "admin-pause");
+        monitoringOff = readSwitch(data, "monitoring-off");
         // Loaders from before per-loader sizes keep the size they had (loaders.radius, carried over as default-reach).
         int defaultReach = plugin.settings().loaders().defaultReach();
         boolean migrated = false;
@@ -1087,7 +1201,7 @@ public final class LoaderManager {
                 try {
                     if (metric != null) {
                         lagLocks.put(Integer.parseInt(key), new LagLock(s.getLong("since"), metric,
-                                s.getDouble("value"), s.getDouble("limit"), s.getBoolean("notified")));
+                                s.getDouble("value"), s.getDouble("limit"), s.getBoolean("notified"), s.getInt("shutdowns")));
                     }
                 } catch (NumberFormatException ignored) {
                     // broken entry
@@ -1233,6 +1347,9 @@ public final class LoaderManager {
             data.set(p + "value", lock.value());
             data.set(p + "limit", lock.limit());
             data.set(p + "notified", lock.notified());
+            if (lock.shutdowns() > 0) {
+                data.set(p + "shutdowns", lock.shutdowns());
+            }
         });
         bans.forEach((uuid, ban) -> {
             data.set("bans." + uuid + ".until", ban.until());
@@ -1251,10 +1368,23 @@ public final class LoaderManager {
                 data.set("members.owners." + owner + "." + uuid, until);
             }
         }));
+        writeSwitch(data, "admin-pause", adminPause);
+        writeSwitch(data, "monitoring-off", monitoringOff);
         try {
             data.save(dataFile);
         } catch (IOException e) {
             plugin.getLogger().log(Level.WARNING, "Could not save data.yml", e);
+        }
+    }
+
+    private static Switch readSwitch(YamlConfiguration data, String path) {
+        return data.isConfigurationSection(path) ? new Switch(data.getString(path + ".by", "?"), data.getLong(path + ".since")) : null;
+    }
+
+    private static void writeSwitch(YamlConfiguration data, String path, Switch value) {
+        if (value != null) {
+            data.set(path + ".by", value.by());
+            data.set(path + ".since", value.since());
         }
     }
 

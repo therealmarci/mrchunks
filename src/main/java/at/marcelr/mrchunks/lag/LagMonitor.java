@@ -255,6 +255,11 @@ public final class LagMonitor implements Listener {
             if (world == null) {
                 continue;
             }
+            if (loader.active() && loaders().shed(loader)) {
+                // Disabled by lag: holds no chunks, so nothing measured there is its doing - the last measurement
+                // stays (shows why it was chosen), it is not judged.
+                continue;
+            }
             Activity a = measure(loader, world, seconds, now);
             if (loader.active()) {
                 activity.put(loader.id(), a);
@@ -329,7 +334,7 @@ public final class LagMonitor implements Listener {
         if (a.lockRatio() >= 1 && (!s.onlyWhenServerLags() || serverLags || forced)) {
             int count = strikes.merge(loader.id(), 1, Integer::sum);
             if (count >= s.lockAfterSamples()) {
-                lock(loader, a, now);
+                lock(loader, a, now, 0);
                 return;
             }
         } else {
@@ -346,7 +351,20 @@ public final class LagMonitor implements Listener {
 
     // ------------------------------------------------------------------ locks
 
-    private void lock(Loader loader, Activity a, long now) {
+    /**
+     * Locks a loader the staged shutdown had to disable too often ({@code shutdowns} times within its window).
+     * The lock shows the loader's worst metric of its last measurement.
+     */
+    public void lockRepeated(Loader loader, int shutdowns) {
+        long now = System.currentTimeMillis();
+        Activity a = activity.get(loader.id());
+        if (a == null) {
+            a = Activity.of(java.util.Map.of(), settings().limitsFor(loader.area()), now, 0, loader.area());
+        }
+        lock(loader, a, now, shutdowns);
+    }
+
+    private void lock(Loader loader, Activity a, long now, int shutdowns) {
         LagLimits limits = settings().limitsFor(loader.area());
         // The metric that is furthest over its lock limit.
         Metric metric = a.worst();
@@ -360,25 +378,29 @@ public final class LagMonitor implements Listener {
             }
         }
         Player owner = Bukkit.getPlayer(loader.owner());
-        LagLock lock = new LagLock(now, metric, a.value(metric), limits.lock(metric), owner != null);
+        LagLock lock = new LagLock(now, metric, a.value(metric), limits.lock(metric), owner != null, shutdowns);
         loaders().lagLock(loader, lock);
         strikes.remove(loader.id());
 
         Messages messages = plugin.messages();
         var tags = tags(loader, lock);
+        String kind = lock.repeated() ? "lag-locked-repeat-" : "lag-locked-";
         if (owner != null) {
-            messages.send(owner, "lag-locked-owner", tags);
+            messages.send(owner, kind + "owner", tags);
         }
         var teleport = Messages.lazy("teleport", () -> messages.get("lag-teleport-label").clickEvent(
                 ClickEvent.runCommand("/mrchunks tp " + LoaderManager.name(loader.owner()) + " " + loader.number())));
         for (Player staff : Bukkit.getOnlinePlayers()) {
             if (staff.hasPermission(AdminActions.PERM_MANAGE) && !staff.equals(owner)) {
-                messages.send(staff, "lag-locked-staff", tags, teleport);
+                messages.send(staff, kind + "staff", tags, teleport);
             }
         }
         plugin.getLogger().warning("Chunk loader " + Texts.consoleName(plugin, loader) + " was locked because of lag ("
+                + (lock.repeated() ? "disabled " + shutdowns + " times by the staged shutdown, " : "")
                 + metric.key() + " " + format(lock.value()) + ", limit " + format(lock.limit()) + ").");
-        plugin.discord().log("loader-lag-locked", plugin.adminActions().discordTags(loader,
+        plugin.discord().log(lock.repeated() ? "loader-lag-repeat-locked" : "loader-lag-locked",
+                plugin.adminActions().discordTags(loader, "count", shutdowns,
+                "minutes", plugin.settings().shed().windowMinutes(),
                 "metric", messages.plain("lag-metric-" + metric.key()),
                 "value", format(lock.value()), "limit", format(lock.limit())));
 
@@ -391,6 +413,9 @@ public final class LagMonitor implements Listener {
         Messages messages = plugin.messages();
         LagLimits limits = settings().limitsFor(loader.area());
         List<String> lines = new ArrayList<>();
+        if (lock.repeated()) {
+            lines.add(PLAIN.serialize(messages.get("lock-details-repeat", tags(loader, lock))));
+        }
         for (Component line : messages.lore("lock-details", tags(loader, lock),
                 tag("tps", String.format(java.util.Locale.ROOT, "%.1f", Math.min(20, Bukkit.getTPS()[0]))),
                 tag("mspt", String.format(java.util.Locale.ROOT, "%.1f", Bukkit.getAverageTickTime())))) {
@@ -431,13 +456,13 @@ public final class LagMonitor implements Listener {
         double seconds = Math.max(1, (now - windowStart) / 1000.0);
         for (Loader loader : new ArrayList<>(loaders().all())) {
             World world = loader.world();
-            if (!loader.active() || world == null) {
+            if (!loader.active() || world == null || loaders().shed(loader)) {
                 continue;
             }
             Activity a = measure(loader, world, seconds, now);
             activity.put(loader.id(), a);
             if (a.lockRatio() >= 1 && !sinceUnlock.containsKey(loader.id())) {
-                lock(loader, a, now);
+                lock(loader, a, now, 0);
             }
         }
     }
@@ -449,7 +474,8 @@ public final class LagMonitor implements Listener {
         for (Loader loader : loaders().byOwner(loaders().main(player.getUniqueId()))) {
             LagLock lock = loaders().lagLock(loader);
             if (lock != null && !lock.notified()) {
-                plugin.messages().send(player, "lag-locked-join", tags(loader, lock));
+                plugin.messages().send(player, lock.repeated() ? "lag-locked-repeat-join" : "lag-locked-join",
+                        tags(loader, lock));
                 loaders().updateLagLock(loader, lock.withNotified());
             }
         }
@@ -499,6 +525,8 @@ public final class LagMonitor implements Listener {
                 Messages.lazy("metric", () -> plugin.messages().plain("lag-metric-" + lock.metric().key())),
                 tag("value", format(lock.value())),
                 tag("limit", format(lock.limit())),
+                tag("count", lock.shutdowns()),
+                tag("minutes", plugin.settings().shed().windowMinutes()),
                 Messages.lazy("time", () -> Texts.date(plugin.messages(), lock.since())));
     }
 

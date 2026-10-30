@@ -9,6 +9,18 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+## [1.0.1] - 2026-10-30
+
+### Neu
+- **Gestaffelte Abschaltung (Performance-Schutz):** Viele Loader zusammen konnten den Server ausbremsen, obwohl jeder einzelne unter seinen Grenzen blieb - der Lag-Schutz griff dann nicht. Jetzt beobachtet MRchunks die Tick-Zeit des Servers (MSPT, Mittel über 60 Sekunden): **über 40 ms** gibt es eine Warnung an das Team im Chat (`mrchunks.admin.gui`) und in Discord (hält mindestens 5 Minuten), **über 45 ms** wird der Loader mit der höchsten Auslastung **„Durch Lags deaktiviert“** - er bleibt eingeschaltet, gibt aber seine Chunks und seinen Dummy frei, mindestens 5 Minuten lang. Pro Minute folgt der nächste, bis der Server wieder bei 40 ms liegt. Danach kommen die Loader einzeln nacheinander zurück. Wird ein Loader **mehr als zweimal in 60 Minuten** abgeschaltet, wird er gesperrt. Owner (offline beim nächsten Login), Team und Discord werden informiert; `/mrchunks lag` zeigt die Serverlast und alle abgeschalteten Loader, Menü, squaremap-Karte und MRadmin den neuen Zustand. Neuer Config-Abschnitt `staged-shutdown` (`warn-mspt`, `shutdown-mspt`, `average-seconds`, `step-seconds`, `min-minutes`, `max-shutdowns`, `window-minutes`), neue Discord-Ereignisse `server-lag-warning`, `server-lag-normal`, `loader-lag-shutdown`, `loader-lag-back`, `loader-lag-repeat-locked`.
+- **Harte Grenze ab 70 MSPT:** Liegt der Server 10 Sekunden lang im Mittel bei 70 ms oder mehr, werden **alle** aktiven Loader auf einmal durch Lags deaktiviert und kommen danach wie bei der gestaffelten Abschaltung einzeln zurück (zählt nicht für die Sperre nach wiederholtem Abschalten). Config `staged-shutdown.hard-cap-mspt` (`0` = aus) und `hard-cap-seconds`, Discord-Ereignis `server-lag-hard-cap`.
+- **Gestaffelte Abschaltung im MRadmin-Web ausschalten:** Unter **Chunkloader → Steuerung** schaltet ein Admin die gestaffelte Abschaltung samt harter Grenze aus und ein (neue Permission `mrchunks.admin.monitoring`, in `mrchunks.groups.admin`). Die Grenzen pro Loader gelten weiter; die Einstellung bleibt nach einem Neustart. Discord-Ereignis `admin-monitoring`.
+- **Alle Chunkloader pausieren (MRadmin-Web):** Unter **Chunkloader → Steuerung** pausiert ein Admin alle Loader vorübergehend und hebt die Pause wieder auf (neue Permission `mrchunks.admin.pause`, in `mrchunks.groups.admin`). Die Loader bleiben eingeschaltet, die Pause bleibt auch nach einem Neustart. Owner und Team werden informiert, Discord-Ereignisse `admin-pause-all` und `admin-resume-all`.
+
+### Behoben & geändert
+- **Spielerseite: Reihenfolge im Bereich Chunkloader (MRadmin-Issue #14):** Jetzt eigene Loader, dann die Loader, zu denen man eingeladen ist, dann die Einladungen für alle Loader, ganz unten die Karte.
+- **Finale Grenzwerte für den Lag-Schutz (Issue #17):** Alle Grenzen neu gerechnet - ein 7×7-Loader darf bis zur Warnung etwa 2 ms und bis zur Sperre etwa 5 ms Tick-Zeit kosten (vorher waren vor allem Entities viel zu großzügig). `lag-protection.limits` pro 49 Chunks (Warnung / Sperre): Entities 100 / 250 (vorher 300 / 800), Items 150 / 500 (200 / 1000), Redstone 400 / 1500 (500 / 2000), Trichter 200 / 800 (300 / 1200), Kolben 30 / 100 (40 / 150), Spawns 15 / 50 (20 / 80). Kleine Loader bis 3×3 (`lag-protection.small-loaders.limits`): Entities 40 / 100 (100 / 250), Items 60 / 200 (80 / 300), Redstone 120 / 450 (150 / 600), Trichter 80 / 300 (100 / 400), Kolben 10 / 35 (15 / 50), Spawns 6 / 20 (8 / 25). Bestehende Server bekommen nur die Werte neu, die noch auf dem alten Standard standen (`config-version` 20).
+
 ## [1.0.0] - 2026-10-29
 
 > [!WARNING]

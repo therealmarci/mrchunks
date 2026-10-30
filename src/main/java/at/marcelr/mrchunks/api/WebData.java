@@ -255,17 +255,37 @@ final class WebData {
         result.put("active", all.stream().filter(Loader::active).count());
         result.put("locked", loaders.lagLocks().size());
         result.put("warn", all.stream().filter(l -> LoaderStatus.of(plugin, l) == LoaderStatus.WARN).count());
+        result.put("shed", loaders.shedIds().size());
+        result.put("mspt", Math.round(plugin.shedder().mspt() * 10) / 10.0);
+        result.put("msptWarning", plugin.shedder().warning());
         result.put("chunks", loaders.loadedChunkCount());
         result.put("owners", all.stream().map(Loader::owner).distinct().count());
         result.put("size", plugin.settings().loaders().defaultSize());
         result.put("defaultBudget", plugin.settings().loaders().defaultBudget());
         result.put("maxSize", plugin.settings().loaders().maxReach() * 2 + 1);
         result.put("lagProtection", plugin.settings().lag().enabled());
-        result.put("paused", loaders.paused());
+        result.put("paused", loaders.serverPaused());
+        LoaderManager.Switch adminPause = loaders.adminPause();
+        if (adminPause != null) {
+            result.put("adminPause", Map.of("by", adminPause.by(), "since", adminPause.since()));
+        }
+        var shedSettings = plugin.settings().shed();
+        LoaderManager.Switch monitoringOff = loaders.monitoringOff();
+        Map<String, Object> monitoring = new LinkedHashMap<>();
+        monitoring.put("configured", shedSettings.enabled());
+        monitoring.put("active", plugin.shedder().active());
+        monitoring.put("warn", shedSettings.warnMspt());
+        monitoring.put("shutdown", shedSettings.shutdownMspt());
+        monitoring.put("hardCap", shedSettings.hardCapMspt());
+        if (monitoringOff != null) {
+            monitoring.put("offBy", monitoringOff.by());
+            monitoring.put("offSince", monitoringOff.since());
+        }
+        result.put("monitoring", monitoring);
         result.put("dummiesEnabled", plugin.dummies().enabled());
         result.put("dummies", plugin.dummies().count());
         result.put("links", loaders.links().size());
-        if (loaders.paused()) {
+        if (loaders.serverPaused()) {
             result.put("pausedSince", plugin.pause().pausedSince());
             result.put("tps", Math.round(ServerPause.tps() * 10) / 10.0);
             result.put("resumeTps", plugin.settings().pause().resumeTps());
@@ -311,6 +331,10 @@ final class WebData {
         if (lock != null) {
             m.put("lock", Map.of("metric", messages.plain("lag-metric-" + lock.metric().key()), "value", lock.value(),
                     "limit", lock.limit(), "since", lock.since()));
+        }
+        if (plugin.loaders().shed(loader)) {
+            long since = plugin.loaders().shedSince(loader);
+            m.put("shed", Map.of("since", since, "back", since + plugin.settings().shed().minMinutes() * 60_000L));
         }
         Activity a = plugin.settings().lag().enabled() ? plugin.lag().activity(loader) : null;
         if (a != null) {
@@ -361,6 +385,19 @@ final class WebData {
     }
 
     private static String action(MRChunks plugin, Map<?, ?> args) {
+        // Server-wide switches (no loader): pause all loaders, staged shutdown on/off.
+        boolean on = Boolean.parseBoolean(String.valueOf(args.get("on")));
+        switch (String.valueOf(args.get("action"))) {
+            case "pauseAll" -> {
+                return plugin.adminActions().webPauseAll(String.valueOf(args.get("admin")), on);
+            }
+            case "monitoring" -> {
+                return plugin.adminActions().webMonitoring(String.valueOf(args.get("admin")), on);
+            }
+            default -> {
+                // the loader actions below
+            }
+        }
         Loader loader = loader(plugin, args);
         if (loader == null) {
             return "not-found";

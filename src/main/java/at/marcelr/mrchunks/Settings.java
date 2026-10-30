@@ -26,6 +26,7 @@ public record Settings(
         InviteSettings invites,
         LagSettings lag,
         PauseSettings pause,
+        ShedSettings shed,
         DummySettings dummies,
         LinkSettings links
 ) {
@@ -49,6 +50,18 @@ public record Settings(
      */
     public record PauseSettings(boolean enabled, double belowTps, double resumeTps, int pauseAfterSeconds,
                                 int resumeAfterSeconds, boolean notifyOwners) {
+    }
+
+    /**
+     * Staged shutdown: the average tick time over {@code averageSeconds} is compared with {@code warnMspt} (warning)
+     * and {@code shutdownMspt} (one loader after the other is disabled by lag, every {@code stepSeconds}). Warnings
+     * and shutdowns last at least {@code minMinutes}; more than {@code maxShutdowns} shutdowns of one loader within
+     * {@code windowMinutes} lock it. From {@code hardCapMspt} (average over {@code hardCapSeconds}, 0 = off) all
+     * loaders are disabled at once.
+     */
+    public record ShedSettings(boolean enabled, int averageSeconds, double warnMspt, double shutdownMspt,
+                               int stepSeconds, int minMinutes, int maxShutdowns, int windowMinutes,
+                               double hardCapMspt, int hardCapSeconds) {
     }
 
     /**
@@ -297,6 +310,32 @@ public record Settings(
                 Math.clamp(c.getInt("server-pause.resume-after-seconds", 60), 0, 3600),
                 c.getBoolean("server-pause.notify-owners", true));
 
+        double warnMspt = Math.clamp(c.getDouble("staged-shutdown.warn-mspt", 40), 1, 1000);
+        double shutdownMspt = Math.clamp(c.getDouble("staged-shutdown.shutdown-mspt", 45), 1, 1000);
+        if (shutdownMspt < warnMspt) {
+            log.warning("staged-shutdown: shutdown-mspt (" + shutdownMspt + ") is below warn-mspt (" + warnMspt
+                    + "), using shutdown-mspt = warn-mspt.");
+            shutdownMspt = warnMspt;
+        }
+        int averageSeconds = Math.clamp(c.getInt("staged-shutdown.average-seconds", 60), 5, 600);
+        double hardCap = Math.max(0, c.getDouble("staged-shutdown.hard-cap-mspt", 70));
+        if (hardCap > 0 && hardCap < shutdownMspt) {
+            log.warning("staged-shutdown: hard-cap-mspt (" + hardCap + ") is below shutdown-mspt (" + shutdownMspt
+                    + "), using hard-cap-mspt = shutdown-mspt.");
+            hardCap = shutdownMspt;
+        }
+        ShedSettings shed = new ShedSettings(
+                c.getBoolean("staged-shutdown.enabled", true),
+                averageSeconds,
+                warnMspt,
+                shutdownMspt,
+                Math.clamp(c.getInt("staged-shutdown.step-seconds", 60), 5, 3600),
+                Math.clamp(c.getInt("staged-shutdown.min-minutes", 5), 1, 1440),
+                Math.clamp(c.getInt("staged-shutdown.max-shutdowns", 2), 0, 100),
+                Math.clamp(c.getInt("staged-shutdown.window-minutes", 60), 1, 10_080),
+                hardCap,
+                Math.clamp(c.getInt("staged-shutdown.hard-cap-seconds", 10), 1, averageSeconds));
+
         DummySettings dummies = new DummySettings(
                 c.getBoolean("dummies.enabled", false),
                 Math.clamp(c.getInt("dummies.default-limit", 1), 0, 1000),
@@ -308,7 +347,7 @@ public record Settings(
                 Math.clamp(c.getInt("linked-accounts.max-accounts", 1), 1, 10),
                 Math.clamp(c.getInt("linked-accounts.request-seconds", 120), 10, 3600));
 
-        return new Settings(loaders, item, border, squaremap, update, gui, invites, lag, pause, dummies, links);
+        return new Settings(loaders, item, border, squaremap, update, gui, invites, lag, pause, shed, dummies, links);
     }
 
     /** "#RRGGBB" as written to the web page; anything else becomes the fallback (no script injection). */

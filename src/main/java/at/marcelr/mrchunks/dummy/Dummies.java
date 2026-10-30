@@ -182,7 +182,8 @@ public final class Dummies implements Listener {
     private boolean wanted(Loader loader) {
         World world = loader.world();
         return !shuttingDown && enabled() && loader.dummy() && loader.active() && fits(loader) && world != null
-                && plugin.loaders().exists(loader) && !plugin.loaders().paused() && plugin.loaders().isWorldAllowed(world);
+                && plugin.loaders().exists(loader) && !plugin.loaders().paused() && !plugin.loaders().shed(loader)
+                && plugin.loaders().isWorldAllowed(world);
     }
 
     /** Spawns or removes the loader's dummy so it matches the loader. Spawning happens on the next tick. */

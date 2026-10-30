@@ -40,6 +40,8 @@ public final class AdminActions {
     /** Staff: link and unlink other players' accounts. */
     public static final String PERM_LINK_OTHERS = "mrchunks.admin.link";
     public static final String PERM_TELEPORT = "mrchunks.admin.teleport";
+    /** Admin menu - the team, told about server-wide events (pause, staged shutdown). */
+    public static final String PERM_GUI = "mrchunks.admin.gui";
     public static final String PERM_LIMIT = "mrchunks.admin.limit";
     public static final String PERM_BAN = "mrchunks.admin.ban";
     public static final String PERM_INVITE = "mrchunks.invite";
@@ -169,8 +171,12 @@ public final class AdminActions {
         setActive(loader, active);
         String state = Texts.state(plugin, active);
         messages().send(sender, "toggled", Texts.loader(plugin, loader), tag("state", state));
-        if (active && loaders().paused()) {
+        if (active && loaders().adminPause() != null) {
+            messages().send(sender, "admin-pause-toggle-hint", Texts.adminPause(plugin));
+        } else if (active && loaders().serverPaused()) {
             messages().send(sender, "pause-toggle-hint", plugin.pause().tags());
+        } else if (active && loaders().shed(loader)) {
+            messages().send(sender, "shed-toggle-hint", plugin.shedder().tags(loader));
         }
         if (!isOwner(sender, loader)) {
             notifyOwner(loader.owner(), "owner-notify-toggled", Texts.loader(plugin, loader),
@@ -575,6 +581,58 @@ public final class AdminActions {
         notifyOwner(loader.owner(), "owner-notify-dummy", Texts.loader(plugin, loader), tag("state", state), tag("admin", admin));
         plugin.getLogger().info(admin + " (web) switched the dummy of " + Texts.consoleName(plugin, loader) + (on ? " on." : " off."));
         plugin.discord().log("dummy-toggled", discordTags(loader, "admin", admin, "state", state));
+        return null;
+    }
+
+    /**
+     * Pauses all loaders for the team, or lifts that pause (MRadmin checks mrchunks.admin.pause). Loaders stay switched
+     * on; owners of active loaders and the team online are told.
+     */
+    public String webPauseAll(String admin, boolean pause) {
+        if ((loaders().adminPause() != null) == pause) {
+            return pause ? "already-paused" : "not-paused";
+        }
+        int chunks = loaders().loadedChunkCount();
+        loaders().setAdminPause(pause ? admin : null);
+        if (pause) {
+            plugin.getLogger().warning(admin + " (web) paused all chunk loaders (" + chunks + " chunks released).");
+            plugin.discord().log("admin-pause-all", "admin", admin, "count", chunks);
+        } else {
+            plugin.getLogger().info(admin + " (web) lifted the pause of all chunk loaders ("
+                    + loaders().loadedChunkCount() + " chunks loaded).");
+            plugin.discord().log("admin-resume-all", "admin", admin);
+        }
+        Set<UUID> owners = new HashSet<>();
+        for (Loader loader : loaders().all()) {
+            if (loader.active()) {
+                owners.add(loader.owner());
+            }
+        }
+        for (Player player : org.bukkit.Bukkit.getOnlinePlayers()) {
+            if (owners.contains(loaders().main(player.getUniqueId())) || player.hasPermission(PERM_GUI)) {
+                messages().send(player, pause ? "admin-paused" : "admin-resumed", tag("admin", admin));
+            }
+        }
+        return null;
+    }
+
+    /** Switches the staged shutdown (with the hard cap) on or off (MRadmin checks mrchunks.admin.monitoring). */
+    public String webMonitoring(String admin, boolean on) {
+        if (plugin.shedder().active() == on && (on || loaders().monitoringOff() != null)) {
+            return on ? "already-on" : "already-off";
+        }
+        if (on && !plugin.settings().shed().enabled()) {
+            return "monitoring-config-off";
+        }
+        plugin.shedder().setMonitoring(on, admin);
+        String state = messages().server(() -> Texts.state(plugin, on));
+        plugin.getLogger().info(admin + " (web) switched the staged shutdown " + (on ? "on." : "off."));
+        plugin.discord().log("admin-monitoring", "admin", admin, "state", state);
+        for (Player player : org.bukkit.Bukkit.getOnlinePlayers()) {
+            if (player.hasPermission(PERM_GUI)) {
+                messages().send(player, on ? "monitoring-on" : "monitoring-off", tag("admin", admin));
+            }
+        }
         return null;
     }
 

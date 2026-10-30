@@ -137,8 +137,11 @@ final class MRadminModule implements AdminModule, WebModule {
                     tag("active", all.stream().filter(Loader::active).count()),
                     tag("chunks", plugin.loaders().loadedChunkCount()),
                     tag("bans", plugin.loaders().activeBans().size())));
-            if (plugin.loaders().paused()) {
+            if (plugin.loaders().serverPaused()) {
                 lines.addAll(plugin.messages().lore("mradmin-summary-paused", plugin.pause().tags()));
+            }
+            if (plugin.loaders().adminPause() != null) {
+                lines.addAll(plugin.messages().lore("mradmin-summary-admin-paused", Texts.adminPause(plugin)));
             }
             return lines;
         });
@@ -177,12 +180,12 @@ final class MRadminModule implements AdminModule, WebModule {
     /** The server pause and locked or conspicuous loaders, worst first. */
     @Override
     public List<HealthEntry> health(Player viewer) {
-        if (!viewer.hasPermission(PERM_GUI) || (!plugin.settings().lag().enabled() && !plugin.loaders().paused())) {
+        if (!viewer.hasPermission(PERM_GUI) || (!plugin.settings().lag().enabled() && !plugin.loaders().serverPaused())) {
             return List.of();
         }
         return plugin.messages().as(viewer, () -> {
             List<HealthEntry> entries = new ArrayList<>();
-            if (plugin.loaders().paused()) {
+            if (plugin.loaders().serverPaused()) {
                 entries.add(new HealthEntry(PAUSE_ID, pauseIcon()));
             }
             for (Loader loader : plugin.settings().lag().enabled() ? plugin.lag().conspicuous() : List.<Loader>of()) {
@@ -236,7 +239,7 @@ final class MRadminModule implements AdminModule, WebModule {
             return false;
         }
         if (id.equals(PAUSE_ID)) {
-            plugin.messages().send(viewer, plugin.loaders().paused() ? "pause-status" : "pause-over", plugin.pause().tags());
+            plugin.messages().send(viewer, plugin.loaders().serverPaused() ? "pause-status" : "pause-over", plugin.pause().tags());
             return true;
         }
         Loader loader;
@@ -263,10 +266,12 @@ final class MRadminModule implements AdminModule, WebModule {
     private static final Map<String, String> PERMISSIONS = Map.of(
             "manage", "mrchunks.admin.manage", "limit", "mrchunks.admin.limit", "ban", "mrchunks.admin.ban",
             "toggle", "mrchunks.admin.toggle", "link", "mrchunks.admin.link", "resize", "mrchunks.admin.resize",
-            "toggleConspicuous", "mrchunks.admin.toggle.conspicuous");
+            "toggleConspicuous", "mrchunks.admin.toggle.conspicuous", "pause", "mrchunks.admin.pause",
+            "monitoring", "mrchunks.admin.monitoring");
     private static final Map<String, String> ACTIONS = Map.of(
             "toggle", "toggle", "unlock", "manage", "delete", "manage", "dummy", "manage", "resize", "resize",
-            "conspicuousToggle", "toggleConspicuous", "conspicuousDummy", "toggleConspicuous");
+            "conspicuousToggle", "toggleConspicuous", "conspicuousDummy", "toggleConspicuous",
+            "pauseAll", "pause", "monitoring", "monitoring");
     private static final Map<String, String> PLAYER_ACTIONS = Map.of(
             "limit", "limit", "ban", "ban", "unban", "ban", "deleteAll", "manage", "unlink", "link", "link", "link");
 
@@ -337,18 +342,26 @@ final class MRadminModule implements AdminModule, WebModule {
         long active = all.stream().filter(Loader::active).count();
         int locked = plugin.loaders().lagLocks().size();
         long warn = all.stream().filter(l -> LoaderStatus.of(plugin, l) == LoaderStatus.WARN).count();
-        boolean paused = plugin.loaders().paused();
+        boolean paused = plugin.loaders().serverPaused();
+        boolean adminPaused = plugin.loaders().adminPause() != null;
+        int shed = plugin.loaders().shedIds().size();
         return messages.server(() -> {
             List<WebTile.Fact> facts = new ArrayList<>();
             if (paused) {
                 facts.add(new WebTile.Fact(messages.plain("web-tile-paused"), "", "info"));
+            }
+            if (adminPaused) {
+                facts.add(new WebTile.Fact(messages.plain("web-tile-admin-paused"), "", "info"));
+            }
+            if (shed > 0) {
+                facts.add(new WebTile.Fact(messages.plain("web-tile-shed"), String.valueOf(shed), "warn"));
             }
             facts.add(new WebTile.Fact(messages.plain("web-tile-locked"), String.valueOf(locked), locked > 0 ? "bad" : ""));
             facts.add(new WebTile.Fact(messages.plain("web-tile-warn"), String.valueOf(warn), warn > 0 ? "warn" : ""));
             facts.add(new WebTile.Fact(messages.plain("web-tile-chunks"), String.valueOf(plugin.loaders().loadedChunkCount()), ""));
             return new WebTile(messages.plain("web-tile-label"), String.valueOf(active),
                     messages.plain("web-tile-unit", "loaders", String.valueOf(all.size())),
-                    paused ? "info" : locked > 0 ? "bad" : warn > 0 ? "warn" : "good", facts,
+                    paused || adminPaused ? "info" : locked > 0 ? "bad" : warn > 0 || shed > 0 ? "warn" : "good", facts,
                     messages.plain("web-tile-headline", "active", String.valueOf(active)), "/chunks",
                     messages.plain("web-tile-link"));
         });
@@ -386,14 +399,32 @@ final class MRadminModule implements AdminModule, WebModule {
         return SelfPage.AREA.equals(area) ? SelfPage.action(plugin, viewer, action, args) : "?";
     }
 
-    /** Server pause, locked loaders, loaders over the warning limit. */
+    /** Server pause, staged shutdown (warning, loaders disabled by lag), locked loaders, loaders over the warning limit. */
     @Override
     public List<WebAlert> alerts() {
         var messages = plugin.messages();
         List<WebAlert> alerts = new ArrayList<>();
-        if (plugin.loaders().paused()) {
+        LoaderManager.Switch adminPause = plugin.loaders().adminPause();
+        if (adminPause != null) {
+            alerts.add(new WebAlert("info", messages.plain("web-alert-admin-paused", "admin", adminPause.by(),
+                    "time", Texts.date(messages, adminPause.since())), "/chunks"));
+        }
+        LoaderManager.Switch monitoringOff = plugin.loaders().monitoringOff();
+        if (monitoringOff != null && plugin.settings().shed().enabled()) {
+            alerts.add(new WebAlert("info", messages.plain("web-alert-monitoring-off", "admin", monitoringOff.by(),
+                    "time", Texts.date(messages, monitoringOff.since())), "/chunks"));
+        }
+        if (plugin.loaders().serverPaused()) {
             alerts.add(new WebAlert("bad", messages.plain("web-alert-paused", "tps",
                     String.format(java.util.Locale.ROOT, "%.1f", at.marcelr.mrchunks.lag.ServerPause.tps())), "/chunks"));
+        }
+        int shed = plugin.loaders().shedIds().size();
+        if (shed > 0) {
+            alerts.add(new WebAlert("warn", messages.plain("web-alert-shed", "count", String.valueOf(shed),
+                    "mspt", String.format(java.util.Locale.ROOT, "%.1f", plugin.shedder().mspt())), "/chunks"));
+        } else if (plugin.shedder().warning()) {
+            alerts.add(new WebAlert("warn", messages.plain("web-alert-mspt",
+                    "mspt", String.format(java.util.Locale.ROOT, "%.1f", plugin.shedder().mspt())), "/chunks"));
         }
         int locked = plugin.loaders().lagLocks().size();
         if (locked > 0) {

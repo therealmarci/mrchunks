@@ -41,7 +41,10 @@ public final class LoaderIcons {
                 .glint(status == LoaderStatus.OK || status == LoaderStatus.WARN);
         switch (status) {
             case LOCKED -> item.lore(messages.lore("gui-loader-locked", plugin.lag().tags(loader, plugin.loaders().lagLock(loader))));
-            case PAUSED -> item.lore(messages.lore("gui-loader-paused", plugin.pause().tags()));
+            case SHED -> item.lore(messages.lore("gui-loader-shed", plugin.shedder().tags(loader)));
+            case PAUSED -> item.lore(plugin.loaders().adminPause() != null
+                    ? messages.lore("gui-loader-admin-paused", Texts.adminPause(plugin))
+                    : messages.lore("gui-loader-paused", plugin.pause().tags()));
             case WARN -> {
                 Activity a = plugin.lag().activity(loader);
                 item.lore(messages.lore("gui-loader-warn",
