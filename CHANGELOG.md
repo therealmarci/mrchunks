@@ -9,6 +9,8 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+## [1.0.3] - 2026-10-30
+
 ### Neu
 - **Voraussichtliche Rückkehr abgeschalteter Loader:** Bei Loadern, die „Durch Lags deaktiviert“ sind, steht jetzt, wann sie **voraussichtlich** wieder laden - im Loader-Menü, in `/mrchunks lag`, auf der Spielerseite (auch direkt auf der Karte) und in MRadmin. Gerechnet wird mit Reihenfolge (der zuletzt abgeschaltete zuerst), Mindestzeit und Abstand zwischen zwei Rückkehrern (`staged-shutdown.min-minutes`, `step-seconds`) - z.B. nach der harten Grenze kommt jeder Loader mit seiner eigenen Uhrzeit. Vorausgesetzt ist, dass sich der Server bis dahin erholt hat.
 - **Auslastung für MRadmin:** Die Weboberfläche bekommt pro Loader seine Auslastung (Anteil an der Sperrgrenze beim schlechtesten Messwert) - danach wählt die gestaffelte Abschaltung, wen sie zuerst abschaltet.
