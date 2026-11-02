@@ -9,6 +9,11 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+### Behoben & geändert
+- **Welten entladen und laden:** Wurde eine Welt entladen und wieder geladen (z.B. `/mv unload`, `/mv load`), hielten ihre Loader trotz „aktiv“ keine Chunks mehr, bis zum nächsten `/mrchunks reload` oder Neustart. Sie laufen jetzt von selbst weiter.
+- **Dummy-Spieler blockieren das Entladen nicht mehr:** Eine Welt mit Dummy ließ sich nicht entladen, auch nicht mit `/mv unload <welt> --remove-players`. Der Dummy verlässt die Welt jetzt und kommt zurück, sobald sie wieder geladen ist. Bleibt die Welt geladen, sitzt er nach wenigen Sekunden wieder auf seinem Loader.
+- **squaremap:** Zusätzliche Nether-Welten bekommen dieselbe Karten-Einstellung wie der Haupt-Nether und zeigen nicht mehr nur das Bedrock-Dach.
+
 ## [1.0.3] - 2026-10-30
 
 ### Neu

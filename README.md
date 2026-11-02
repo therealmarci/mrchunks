@@ -405,6 +405,9 @@ MRchunks läuft **allein**. Zusammen mit anderen MRtechnology-Plugins kann es me
 | Webkarte | squaremap |
 | Dummy-Spieler zählen bei MRsleep, MRadmin und MRpvp nicht als Spieler | nichts |
 
+### Mehrere Welten (Multiverse)
+Chunkloader funktionieren in jeder Welt, auch in zusätzlichen Welten von Multiverse. Wird eine Welt entladen, ruhen ihre Loader und laufen beim nächsten Laden von selbst weiter. Ein Dummy-Spieler blockiert das Entladen nicht: Mit `/mv unload <welt> --remove-players` verlässt er die Welt und setzt sich beim Laden wieder auf seinen Loader.
+
 ## Häufige Fragen
 **Ein Spieler kann keine Chunkloader holen.**
 Er braucht `mrchunks.use` - am einfachsten `mrchunks.player` für die Default-Gruppe (siehe [Schnellstart](#schnellstart)).

@@ -585,6 +585,18 @@ public final class LoaderManager {
         }
     }
 
+    /** The world was unloaded and took its tickets along: they are added again by {@link #applyWorld} when it loads. */
+    public void worldUnloaded(World world) {
+        UUID id = world.getUID();
+        coverage.remove(id);
+        forcedByUs.remove(id);
+        for (Loader loader : loaders.values()) {
+            if (loader.worldId().equals(id)) {
+                covered.remove(loader.id());
+            }
+        }
+    }
+
     /** Removes every ticket MRchunks holds (on disable / before re-applying with new settings). */
     public void releaseAll() {
         for (Map.Entry<UUID, Map<Long, Integer>> entry : coverage.entrySet()) {
