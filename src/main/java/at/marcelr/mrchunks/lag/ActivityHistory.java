@@ -17,23 +17,31 @@ public final class ActivityHistory {
 
     /** What the longest chart shows: 12 hours. */
     public static final long MAX_AGE = 12 * 3_600_000L;
-    private static final String OFF = "off";
-    private static final String ON = "on";
-    private static final float[] NO_VALUES = new float[0];
+
+    /** What a loader was doing: its state as the charts show it. */
+    public enum Phase {
+        /** Switched on and holding its chunks. */
+        ON,
+        /** Switched off. */
+        OFF,
+        /** Switched on, but disabled by lag (staged shutdown). */
+        SHED,
+        /** Locked. */
+        LOCKED;
+
+        String key() {
+            return name().toLowerCase(java.util.Locale.ROOT);
+        }
+    }
 
     /**
-     * One entry: a measurement or the peaks of several ones (value per {@link Metric#ordinal()}), or a phase: without
-     * values the loader is off (switched off, disabled by lag, locked with nobody loading the area), with empty values
-     * it went on again.
+     * One entry: the loader's phase at that time, with a measurement or the peaks of several ones (value per
+     * {@link Metric#ordinal()}) or, when there is nothing to measure or it only changed, without values.
      */
-    public record Point(long time, float[] values) {
-
-        public boolean off() {
-            return values == null;
-        }
+    public record Point(long time, float[] values, Phase phase) {
 
         public boolean measured() {
-            return values != null && values.length > 0;
+            return values != null;
         }
 
         public double value(Metric metric) {
@@ -41,33 +49,31 @@ public final class ActivityHistory {
         }
     }
 
-    /** A stretch of time in which a loader was off (ms). */
-    public record OffPhase(long from, long to) {
+    /** A stretch of time (ms) in which a loader was not {@link Phase#ON}. */
+    public record Span(long from, long to, Phase phase) {
     }
 
     private final Map<Integer, Deque<Point>> loaders = new HashMap<>();
 
     /** @return the new point */
     public Point add(int loader, Activity activity) {
+        return add(loader, activity, Phase.ON);
+    }
+
+    /** A locked loader is measured too, while someone keeps its area loaded. @return the new point */
+    public Point add(int loader, Activity activity, Phase phase) {
         float[] values = new float[Metric.values().length];
         for (Metric metric : Metric.values()) {
             values[metric.ordinal()] = (float) activity.value(metric);
         }
-        Point point = new Point(activity.time(), values);
+        Point point = new Point(activity.time(), values, phase);
         add(loader, point);
         return point;
     }
 
-    /** The loader is off at this time. @return the new point */
-    public Point addOff(int loader, long time) {
-        Point point = new Point(time, null);
-        add(loader, point);
-        return point;
-    }
-
-    /** The loader went on at this time, the next measurement follows later. @return the new point */
-    public Point addOn(int loader, long time) {
-        Point point = new Point(time, NO_VALUES);
+    /** The phase of the loader at this time, without a measurement. @return the new point */
+    public Point addPhase(int loader, long time, Phase phase) {
+        Point point = new Point(time, null, phase);
         add(loader, point);
         return point;
     }
@@ -95,8 +101,9 @@ public final class ActivityHistory {
     }
 
     /**
-     * One measuring round as a line of text: {@code 4:12,3,0.5,0,0,1;35:off;36:on} - loader id, then the values in the
-     * order of {@link Metric} or the phase. New metrics only go to the end of the enum, so old lines stay readable.
+     * One measuring round as a line of text: {@code 4:12,3,0.5,0,0,1;35:off;36:locked,12,3,0.5,0,0,1} - loader id, then
+     * the phase unless it is on with values, then the values in the order of {@link Metric}. New metrics only go to the
+     * end of the enum, so old lines stay readable.
      */
     public static String encode(Map<Integer, Point> round) {
         StringBuilder line = new StringBuilder();
@@ -106,8 +113,11 @@ public final class ActivityHistory {
             }
             line.append(loader).append(':');
             if (!point.measured()) {
-                line.append(point.off() ? OFF : ON);
+                line.append(point.phase().key());
                 return;
+            }
+            if (point.phase() != Phase.ON) {
+                line.append(point.phase().key()).append(',');
             }
             for (int i = 0; i < point.values().length; i++) {
                 float value = Math.round(point.values()[i] * 10) / 10f;
@@ -128,19 +138,24 @@ public final class ActivityHistory {
                 }
                 try {
                     int loader = Integer.parseInt(part.substring(0, colon));
-                    String rest = part.substring(colon + 1);
-                    if (rest.equals(OFF)) {
-                        addOff(loader, time);
-                    } else if (rest.equals(ON)) {
-                        addOn(loader, time);
-                    } else {
-                        String[] saved = rest.split(",");
-                        float[] values = new float[metrics];
-                        for (int i = 0; i < Math.min(metrics, saved.length); i++) {
-                            values[i] = Float.parseFloat(saved[i]);
+                    String[] saved = part.substring(colon + 1).split(",");
+                    Phase phase = Phase.ON;
+                    int first = 0;
+                    for (Phase known : Phase.values()) {
+                        if (saved[0].equals(known.key())) {
+                            phase = known;
+                            first = 1;
                         }
-                        add(loader, new Point(time, values));
                     }
+                    if (first == saved.length) {
+                        addPhase(loader, time, phase);
+                        continue;
+                    }
+                    float[] values = new float[metrics];
+                    for (int i = first; i < saved.length && i - first < metrics; i++) {
+                        values[i - first] = Float.parseFloat(saved[i]);
+                    }
+                    add(loader, new Point(time, values, phase));
                 } catch (NumberFormatException e) {
                     // cut off by a crash
                 }
@@ -176,7 +191,7 @@ public final class ActivityHistory {
             long index = (long) ((point.time() - from) / slice);
             if (index != current) {
                 if (peaks != null) {
-                    result.add(new Point(time, peaks));
+                    result.add(new Point(time, peaks, Phase.ON));
                 }
                 current = index;
                 peaks = point.values().clone();
@@ -187,30 +202,31 @@ public final class ActivityHistory {
             }
             time = point.time();
         }
-        result.add(new Point(time, peaks));
+        result.add(new Point(time, peaks, Phase.ON));
         return result;
     }
 
     /**
-     * When the loader was off between {@code from} and {@code to}, oldest first. From every entry, not from the combined
-     * points, so a short phase stays visible on a long chart. A phase ends with the next entry that is not "off".
+     * When the loader was not on between {@code from} and {@code to}, oldest first. From every entry, not from the
+     * combined points, so a short phase stays visible on a long chart. A phase ends with the next entry of another one.
      */
-    public List<OffPhase> offPhases(int loader, long from, long to) {
-        List<OffPhase> phases = new ArrayList<>();
-        long start = -1;
+    public List<Span> phases(int loader, long from, long to) {
+        List<Span> spans = new ArrayList<>();
+        Phase current = Phase.ON;
+        long start = 0;
         for (Point point : loaders.getOrDefault(loader, new ArrayDeque<>())) {
-            if (point.off()) {
-                start = start < 0 ? point.time() : start;
-            } else if (start >= 0) {
-                if (point.time() > from) {
-                    phases.add(new OffPhase(Math.max(start, from), point.time()));
-                }
-                start = -1;
+            if (point.phase() == current) {
+                continue;
             }
+            if (current != Phase.ON && point.time() > from) {
+                spans.add(new Span(Math.max(start, from), point.time(), current));
+            }
+            current = point.phase();
+            start = point.time();
         }
-        if (start >= 0) {
-            phases.add(new OffPhase(Math.max(start, from), to));
+        if (current != Phase.ON) {
+            spans.add(new Span(Math.max(start, from), to, current));
         }
-        return phases;
+        return spans;
     }
 }

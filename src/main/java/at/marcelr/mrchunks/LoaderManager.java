@@ -1,5 +1,6 @@
 package at.marcelr.mrchunks;
 
+import at.marcelr.mrchunks.lag.ActivityHistory;
 import at.marcelr.mrchunks.lag.LagLock;
 import at.marcelr.mrchunks.lag.Metric;
 import org.bukkit.Bukkit;
@@ -316,17 +317,23 @@ public final class LoaderManager {
         } else {
             uncover(loader);
         }
-        phaseChanged(loader, active);
+        phaseChanged(loader);
         save();
         syncDummy(loader);
         plugin.maps().refreshSoon();
         plugin.border().loaderChanged(loader);
     }
 
+    /** What the loader is doing right now, as the charts show it. */
+    public ActivityHistory.Phase phase(Loader loader) {
+        return lagLocked(loader) ? ActivityHistory.Phase.LOCKED : !loader.active() ? ActivityHistory.Phase.OFF
+                : shed(loader) ? ActivityHistory.Phase.SHED : ActivityHistory.Phase.ON;
+    }
+
     /** For the charts; the lag monitor does not exist yet while the loaders are loaded. */
-    private void phaseChanged(Loader loader, boolean on) {
+    private void phaseChanged(Loader loader) {
         if (plugin.lag() != null) {
-            plugin.lag().phaseChanged(loader, on);
+            plugin.lag().phaseChanged(loader);
         }
     }
 
@@ -441,6 +448,7 @@ public final class LoaderManager {
         if (loader.active()) {
             setActive(loader, false);
         } else {
+            phaseChanged(loader);
             save();
         }
     }
@@ -457,6 +465,7 @@ public final class LoaderManager {
     public boolean lagUnlock(Loader loader) {
         boolean removed = lagLocks.remove(loader.id()) != null;
         if (removed) {
+            phaseChanged(loader);
             save();
         }
         return removed;
@@ -544,7 +553,7 @@ public final class LoaderManager {
             return;
         }
         uncover(loader);
-        phaseChanged(loader, false);
+        phaseChanged(loader);
         syncDummy(loader);
         plugin.maps().refreshSoon();
         plugin.border().loaderChanged(loader);
@@ -557,7 +566,7 @@ public final class LoaderManager {
         }
         if (loader.active()) {
             cover(loader);
-            phaseChanged(loader, true);
+            phaseChanged(loader);
             syncDummy(loader);
         }
         plugin.maps().refreshSoon();

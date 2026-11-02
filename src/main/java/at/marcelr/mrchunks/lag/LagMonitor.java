@@ -254,7 +254,7 @@ public final class LagMonitor implements Listener {
             boolean locked = loaders().lagLocked(loader);
             if (!loader.active() && !locked) {
                 activity.remove(loader.id());
-                round.put(loader.id(), history.addOff(loader.id(), now));
+                round.put(loader.id(), history.addPhase(loader.id(), now, loaders().phase(loader)));
                 continue;
             }
             World world = loader.world();
@@ -264,22 +264,22 @@ public final class LagMonitor implements Listener {
             if (loader.active() && loaders().shed(loader)) {
                 // Disabled by lag: holds no chunks, so nothing measured there is its doing - the last measurement
                 // stays (shows why it was chosen), it is not judged.
-                round.put(loader.id(), history.addOff(loader.id(), now));
+                round.put(loader.id(), history.addPhase(loader.id(), now, loaders().phase(loader)));
                 continue;
             }
             Activity a = measure(loader, world, seconds, now);
             if (loader.active()) {
                 activity.put(loader.id(), a);
-                round.put(loader.id(), history.add(loader.id(), a));
+                round.put(loader.id(), history.add(loader.id(), a, loaders().phase(loader)));
                 judged.add(loader.id());
                 judge(loader, a, serverLags, now);
             } else if (a.loadedChunks() > 0) {
                 // Locked: measured while someone keeps (part of) the area loaded, never judged. Otherwise the last
                 // measurement stays, so admins still see why it was locked.
                 activity.put(loader.id(), a);
-                round.put(loader.id(), history.add(loader.id(), a));
+                round.put(loader.id(), history.add(loader.id(), a, loaders().phase(loader)));
             } else {
-                round.put(loader.id(), history.addOff(loader.id(), now));
+                round.put(loader.id(), history.addPhase(loader.id(), now, loaders().phase(loader)));
             }
         }
         strikes.keySet().retainAll(judged);
@@ -512,12 +512,12 @@ public final class LagMonitor implements Listener {
      * A loader went on or off: noted with the exact time, so the charts also show a phase between two measuring rounds
      * or while nothing is measured (startup, server pause).
      */
-    public void phaseChanged(Loader loader, boolean on) {
+    public void phaseChanged(Loader loader) {
         if (!settings().enabled() || plugin.mradmin() == null) {
             return;
         }
         long now = System.currentTimeMillis();
-        ActivityHistory.Point point = on ? history.addOn(loader.id(), now) : history.addOff(loader.id(), now);
+        ActivityHistory.Point point = history.addPhase(loader.id(), now, loaders().phase(loader));
         plugin.mradmin().saveHistory(now, ActivityHistory.encode(Map.of(loader.id(), point)));
     }
 

@@ -1,5 +1,6 @@
 package at.marcelr.mrchunks.lag;
 
+import at.marcelr.mrchunks.lag.ActivityHistory.Phase;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
@@ -74,12 +75,12 @@ class ActivityHistoryTest {
     void offRoundsComeBackAndTheLastMeasurementStays() {
         ActivityHistory history = new ActivityHistory();
         Map<Integer, ActivityHistory.Point> round = new LinkedHashMap<>();
-        round.put(4, history.addOff(4, START));
+        round.put(4, history.addPhase(4, START, Phase.OFF));
 
         ActivityHistory restored = new ActivityHistory();
         restored.restore(new TreeMap<>(Map.of(START - STEP, "4:9,0,0,0,0,0", START, ActivityHistory.encode(round))));
 
-        assertEquals(List.of(new ActivityHistory.OffPhase(START, START + STEP)), restored.offPhases(4, 0, START + STEP));
+        assertEquals(List.of(new ActivityHistory.Span(START, START + STEP, Phase.OFF)), restored.phases(4, 0, START + STEP));
         assertEquals(9, restored.last(4).value(Metric.ENTITIES));
     }
 
@@ -90,13 +91,13 @@ class ActivityHistoryTest {
             history.add(1, activity(START + i * STEP, 5));
             if (i == 500) {
                 // Off and on again between two rounds: no round ever saw it.
-                history.addOff(1, START + i * STEP + 1000);
-                history.addOn(1, START + i * STEP + 3000);
+                history.addPhase(1, START + i * STEP + 1000, Phase.OFF);
+                history.addPhase(1, START + i * STEP + 3000, Phase.ON);
             }
         }
         long end = START + 999 * STEP;
-        assertEquals(List.of(new ActivityHistory.OffPhase(START + 500 * STEP + 1000, START + 500 * STEP + 3000)),
-                history.offPhases(1, START, end));
+        assertEquals(List.of(new ActivityHistory.Span(START + 500 * STEP + 1000, START + 500 * STEP + 3000, Phase.OFF)),
+                history.phases(1, START, end));
         assertTrue(history.points(1, START, end, 10).stream().allMatch(ActivityHistory.Point::measured));
     }
 
@@ -104,27 +105,42 @@ class ActivityHistoryTest {
     void aPhaseIsCutToTheRangeAndRunsUntilNowWhileOff() {
         ActivityHistory history = new ActivityHistory();
         history.add(1, activity(START, 5));
-        history.addOff(1, START + STEP);
-        history.addOff(1, START + 2 * STEP);
+        history.addPhase(1, START + STEP, Phase.OFF);
+        history.addPhase(1, START + 2 * STEP, Phase.OFF);
         long now = START + 10 * STEP;
-        assertEquals(List.of(new ActivityHistory.OffPhase(START + 5 * STEP, now)), history.offPhases(1, START + 5 * STEP, now));
+        assertEquals(List.of(new ActivityHistory.Span(START + 5 * STEP, now, Phase.OFF)), history.phases(1, START + 5 * STEP, now));
     }
 
     @Test
     void aPhaseBeforeTheRangeIsLeftOut() {
         ActivityHistory history = new ActivityHistory();
-        history.addOff(1, START);
-        history.addOn(1, START + STEP);
-        assertEquals(List.of(), history.offPhases(1, START + 2 * STEP, START + 3 * STEP));
+        history.addPhase(1, START, Phase.OFF);
+        history.addPhase(1, START + STEP, Phase.ON);
+        assertEquals(List.of(), history.phases(1, START + 2 * STEP, START + 3 * STEP));
     }
 
     @Test
     void anOnEntryIsNoMeasurement() {
         ActivityHistory history = new ActivityHistory();
         history.add(1, activity(START, 5));
-        history.addOn(1, START + STEP);
+        history.addPhase(1, START + STEP, Phase.ON);
         assertEquals(5, history.last(1).value(Metric.ENTITIES));
         assertEquals(1, history.points(1, 0, START + STEP, 300).size());
+    }
+
+    @Test
+    void phasesKeepTheirKindAndALockedLoaderKeepsItsMeasurements() {
+        ActivityHistory history = new ActivityHistory();
+        Map<Integer, ActivityHistory.Point> round = new LinkedHashMap<>();
+        round.put(4, history.add(4, activity(START, 8), Phase.LOCKED));
+
+        ActivityHistory restored = new ActivityHistory();
+        restored.restore(new TreeMap<>(Map.of(START - STEP, "4:shed", START, ActivityHistory.encode(round),
+                START + STEP, "4:on")));
+
+        assertEquals(List.of(new ActivityHistory.Span(START - STEP, START, Phase.SHED),
+                new ActivityHistory.Span(START, START + STEP, Phase.LOCKED)), restored.phases(4, 0, START + 2 * STEP));
+        assertEquals(8, restored.last(4).value(Metric.ENTITIES));
     }
 
     @Test
