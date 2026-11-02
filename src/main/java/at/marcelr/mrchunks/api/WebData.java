@@ -31,8 +31,8 @@ import java.util.UUID;
  *  chunks                           number of chunks the loaders keep loaded (cheap, MRadmin asks every second)
  *  loaders                          all loaders with status
  *  loader  {id}                     one loader with every measured value, lock, members
- *  loaderHistory {id, range, end?}  its measurements for the charts: range 1m | 10m | 30m | 1h | 6h | 12h, up to a
- *                                   number of points, so the detail falls with the range; end (ms) = paused at that time
+ *  loaderHistory {id, range, end?}  its measurements for the charts: range 1m | 10m | 30m | 1h | 6h | 12h, the detail
+ *                                   falls with the range (HISTORY_STEPS); end (ms) = paused at that time
  *  loaderLive {id}                  the live view of a loader; asking keeps it measured (see LagMonitor#live)
  *  action  {id, action, admin}      toggle | unlock | delete | dummy | resize {direction, delta}
  *                                   | suspendLock {duration in ms, 0 = end}  -> null or an error key
@@ -48,10 +48,13 @@ final class WebData {
     /** The chart ranges in ms. */
     private static final Map<String, Long> HISTORY_RANGES = Map.of("1m", 60_000L, "10m", 600_000L, "30m", 1_800_000L,
             "1h", 3_600_000L, "6h", 6 * 3_600_000L, "12h", ActivityHistory.MAX_AGE);
-    /** More points would not fit a chart and only make the answer big; longer ranges show the peaks. */
-    private static final int HISTORY_POINTS = 300;
-    /** Up to this range the charts show the fine live measurements; on longer ones they would only be a thick line. */
+    /** The detail falls with the range: one point per this many ms, each with the peaks of its time (0 = every one). */
+    private static final Map<Long, Long> HISTORY_STEPS = Map.of(60_000L, 0L, 600_000L, 5_000L, 1_800_000L, 20_000L,
+            3_600_000L, 60_000L, 6 * 3_600_000L, 300_000L, ActivityHistory.MAX_AGE, 600_000L);
+    /** Up to this range the fine live measurements count; they are kept for 15 minutes anyway. */
     private static final long LIVE_IN_HISTORY = 3_600_000L;
+    /** Ranges loaded on both sides while paused, so scrolling runs on without waiting for every answer. */
+    private static final int HISTORY_AHEAD = 2;
 
     private WebData() {
     }
@@ -426,10 +429,8 @@ final class WebData {
         long now = System.currentTimeMillis();
         long to = now;
         long from = to - range;
-        int most = HISTORY_POINTS;
         if (end != null) {
-            // Paused at an earlier time: one range more on both sides, so scrolling needs no new answer every moment. The
-            // same detail per range as in the live chart.
+            // Paused at an earlier time: more on both sides, in the same detail as the live chart.
             long wanted;
             try {
                 wanted = Long.parseLong(String.valueOf(end));
@@ -437,20 +438,19 @@ final class WebData {
                 return null;
             }
             long view = Math.min(now, Math.max(now - ActivityHistory.MAX_AGE + range, wanted));
-            from = view - 2 * range;
-            to = Math.min(now, view + range);
-            most = 3 * HISTORY_POINTS;
+            from = view - (1 + HISTORY_AHEAD) * range;
+            to = Math.min(now, view + HISTORY_AHEAD * range);
         }
         List<Map<String, Object>> points = new ArrayList<>();
         // A little more than the range: the web page moves the chart on until the next answer.
         long margin = Math.max(60_000L, range / 50);
-        List<ActivityHistory.Point> measured = plugin.lag().history().points(loader.id(), from - margin, to, most);
+        List<ActivityHistory.Point> measured = plugin.lag().history().points(loader.id(), from - margin, to, Integer.MAX_VALUE);
         if (range <= LIVE_IN_HISTORY) {
             // A few missed live measurements do not end a stretch (a slow tick, a slow answer).
             measured = ActivityHistory.merged(measured, plugin.lag().livePoints(loader, from - margin, to),
                     plugin.settings().lag().liveSeconds() * 3000L);
         }
-        for (ActivityHistory.Point point : measured) {
+        for (ActivityHistory.Point point : ActivityHistory.combined(measured, HISTORY_STEPS.get(range))) {
             Map<String, Object> p = new LinkedHashMap<>();
             p.put("time", point.time());
             for (Metric metric : Metric.values()) {
@@ -467,6 +467,7 @@ final class WebData {
         m.put("to", to);
         m.put("points", points);
         m.put("phases", phases);
+        m.put("oldest", plugin.lag().history().oldest(loader.id()));
         return m;
     }
 

@@ -190,6 +190,37 @@ class ActivityHistoryTest {
     }
 
     @Test
+    void coarserPointsKeepThePeakAndDoNotDependOnTheStart() {
+        List<ActivityHistory.Point> points = new java.util.ArrayList<>();
+        ActivityHistory history = new ActivityHistory();
+        long base = 60 * STEP * 1000;
+        for (int i = 0; i < 180; i++) {
+            points.add(history.add(1, activity(base + i * STEP, i == 100 ? 900 : 1)));
+        }
+        List<ActivityHistory.Point> all = ActivityHistory.combined(points, 3 * STEP);
+        assertEquals(60, all.size());
+        assertEquals(900, all.stream().mapToDouble(p -> p.value(Metric.ENTITIES)).max().orElse(0));
+        // Started later, the slices stay the same.
+        List<ActivityHistory.Point> later = ActivityHistory.combined(points.subList(30, 180), 3 * STEP);
+        assertEquals(all.getLast().time(), later.getLast().time());
+        assertEquals(all.get(20).time(), later.get(10).time());
+    }
+
+    @Test
+    void noStepKeepsEveryPoint() {
+        assertEquals(List.of(1L, 2L), steps(ActivityHistory.combined(at(1, 2), 0)));
+    }
+
+    @Test
+    void theOldestEntryIsKnown() {
+        ActivityHistory history = new ActivityHistory();
+        assertEquals(0, history.oldest(1));
+        history.addPhase(1, START, Phase.OFF);
+        history.add(1, activity(START + STEP, 1));
+        assertEquals(START, history.oldest(1));
+    }
+
+    @Test
     void brokenLinesAreSkipped() {
         ActivityHistory history = new ActivityHistory();
         history.restore(Map.of(START, "4:1,2,3;oops;x:1;35:1,nonsense"));

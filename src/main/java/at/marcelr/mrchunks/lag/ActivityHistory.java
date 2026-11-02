@@ -205,6 +205,46 @@ public final class ActivityHistory {
         });
     }
 
+    /**
+     * Coarser points for longer ranges: one per {@code stepMillis} of the clock, with the highest value per metric - a
+     * peak must stay visible against the limits. The slices do not depend on the range shown, so the points stay where
+     * they are while a chart is scrolled.
+     */
+    public static List<Point> combined(List<Point> points, long stepMillis) {
+        if (stepMillis <= 0) {
+            return points;
+        }
+        List<Point> result = new ArrayList<>();
+        long current = Long.MIN_VALUE;
+        long time = 0;
+        float[] peaks = null;
+        for (Point point : points) {
+            long slice = point.time() / stepMillis;
+            if (slice != current) {
+                if (peaks != null) {
+                    result.add(new Point(time, peaks, Phase.ON));
+                }
+                current = slice;
+                peaks = point.values().clone();
+            } else {
+                for (int i = 0; i < peaks.length; i++) {
+                    peaks[i] = Math.max(peaks[i], point.values()[i]);
+                }
+            }
+            time = point.time();
+        }
+        if (peaks != null) {
+            result.add(new Point(time, peaks, Phase.ON));
+        }
+        return result;
+    }
+
+    /** When the first entry of a loader was made (ms), or 0 if it has none. */
+    public long oldest(int loader) {
+        Deque<Point> points = loaders.get(loader);
+        return points == null || points.isEmpty() ? 0 : points.peekFirst().time();
+    }
+
     /** Forgets every loader the test does not accept (deleted ones). */
     public void retain(IntPredicate exists) {
         loaders.keySet().removeIf(id -> !exists.test(id));
