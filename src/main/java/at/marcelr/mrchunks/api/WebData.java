@@ -49,6 +49,8 @@ final class WebData {
             "1h", 3_600_000L, "6h", 6 * 3_600_000L, "12h", ActivityHistory.MAX_AGE);
     /** More points would not fit a chart and only make the answer big; longer ranges show the peaks. */
     private static final int HISTORY_POINTS = 300;
+    /** Up to this range the charts show the fine live measurements; on longer ones they would only be a thick line. */
+    private static final long LIVE_IN_HISTORY = 3_600_000L;
 
     private WebData() {
     }
@@ -424,7 +426,12 @@ final class WebData {
         List<Map<String, Object>> points = new ArrayList<>();
         // A little more than the range: the web page moves the chart on until the next answer.
         long margin = Math.max(60_000L, range / 50);
-        for (ActivityHistory.Point point : plugin.lag().history().points(loader.id(), from - margin, to, HISTORY_POINTS)) {
+        List<ActivityHistory.Point> measured = plugin.lag().history().points(loader.id(), from - margin, to, HISTORY_POINTS);
+        if (range <= LIVE_IN_HISTORY) {
+            measured = ActivityHistory.merged(measured, plugin.lag().livePoints(loader, from - margin, to),
+                    plugin.settings().lag().sampleSeconds() * 1000L);
+        }
+        for (ActivityHistory.Point point : measured) {
             Map<String, Object> p = new LinkedHashMap<>();
             p.put("time", point.time());
             for (Metric metric : Metric.values()) {

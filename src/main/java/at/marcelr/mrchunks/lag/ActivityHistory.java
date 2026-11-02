@@ -54,6 +54,16 @@ public final class ActivityHistory {
     }
 
     private final Map<Integer, Deque<Point>> loaders = new HashMap<>();
+    private final long maxAge;
+
+    public ActivityHistory() {
+        this(MAX_AGE);
+    }
+
+    /** @param maxAge how long entries stay (ms) */
+    public ActivityHistory(long maxAge) {
+        this.maxAge = maxAge;
+    }
 
     /** @return the new point */
     public Point add(int loader, Activity activity) {
@@ -95,9 +105,43 @@ public final class ActivityHistory {
     private void add(int loader, Point point) {
         Deque<Point> points = loaders.computeIfAbsent(loader, k -> new ArrayDeque<>());
         points.addLast(point);
-        while (points.peekFirst().time() < point.time() - MAX_AGE) {
+        while (points.peekFirst().time() < point.time() - maxAge) {
             points.removeFirst();
         }
+    }
+
+    /** Drops what is too old also for loaders that get no new entries. */
+    public void trim(long now) {
+        loaders.values().removeIf(points -> {
+            while (!points.isEmpty() && points.peekFirst().time() < now - maxAge) {
+                points.removeFirst();
+            }
+            return points.isEmpty();
+        });
+    }
+
+    /**
+     * The normal measurements with the finer live ones (both oldest first): near a live measurement, closer than
+     * {@code nearMillis}, the normal one drops out; where there was no live view it stays.
+     */
+    public static List<Point> merged(List<Point> normal, List<Point> live, long nearMillis) {
+        List<Point> result = new ArrayList<>(normal.size() + live.size());
+        int next = 0;
+        int nearby = 0;
+        for (Point point : normal) {
+            while (nearby < live.size() && live.get(nearby).time() < point.time() - nearMillis) {
+                nearby++;
+            }
+            if (nearby < live.size() && live.get(nearby).time() <= point.time() + nearMillis) {
+                continue;
+            }
+            while (next < live.size() && live.get(next).time() < point.time()) {
+                result.add(live.get(next++));
+            }
+            result.add(point);
+        }
+        result.addAll(live.subList(next, live.size()));
+        return result;
     }
 
     /**

@@ -143,6 +143,43 @@ class ActivityHistoryTest {
         assertEquals(8, restored.last(4).value(Metric.ENTITIES));
     }
 
+    /** Times of the points, in units of STEP after START. */
+    private static List<ActivityHistory.Point> at(int... steps) {
+        List<ActivityHistory.Point> points = new java.util.ArrayList<>();
+        for (int step : steps) {
+            points.add(new ActivityHistory().add(1, activity(START + step * STEP, step)));
+        }
+        return points;
+    }
+
+    private static List<Long> steps(List<ActivityHistory.Point> points) {
+        return points.stream().map(p -> (p.time() - START) / STEP).toList();
+    }
+
+    @Test
+    void liveMeasurementsReplaceTheNormalOnesOnlyWhereTheyExist() {
+        // Live view around 5-7 and 20-21: the normal points between stay.
+        List<ActivityHistory.Point> merged = ActivityHistory.merged(at(0, 3, 6, 9, 12, 15, 18, 21, 24),
+                at(5, 6, 7, 20, 21), STEP / 2);
+        assertEquals(List.of(0L, 3L, 5L, 6L, 7L, 9L, 12L, 15L, 18L, 20L, 21L, 24L), steps(merged));
+    }
+
+    @Test
+    void withoutLiveMeasurementsNothingChanges() {
+        assertEquals(List.of(0L, 3L), steps(ActivityHistory.merged(at(0, 3), List.of(), STEP)));
+        assertEquals(List.of(1L, 2L), steps(ActivityHistory.merged(List.of(), at(1, 2), STEP)));
+    }
+
+    @Test
+    void liveEntriesAreDroppedEvenIfNoNewOnesCome() {
+        ActivityHistory live = new ActivityHistory(10 * STEP);
+        live.add(1, activity(START, 1));
+        live.trim(START + 5 * STEP);
+        assertEquals(1, live.points(1, 0, START, 300).size());
+        live.trim(START + 11 * STEP);
+        assertEquals(0, live.points(1, 0, START, 300).size());
+    }
+
     @Test
     void brokenLinesAreSkipped() {
         ActivityHistory history = new ActivityHistory();

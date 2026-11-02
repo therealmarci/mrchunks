@@ -294,7 +294,7 @@ Normale Farmen bleiben unter diesen Grenzen, große Mob-Farmen fallen auf. Ist d
 Ist die Seite eines Loaders in der MRadmin-Weboberfläche offen (`mrchunks.admin.live`), wird **genau dieser Loader** jede Sekunde gemessen. Kacheln und Diagramme laufen dann live mit, sichtbar am grünen „Live“.
 
 - **Kostet nur, solange jemand zuschaut:** Es läuft pro Loader einmal, egal wie viele zuschauen, und endet wenige Sekunden nach dem Schließen der Seite. Ein Tab im Hintergrund zählt nicht.
-- **Nur Anzeige:** Live-Messungen zählen nie für Sperren und werden nicht gespeichert. Der Lag-Schutz arbeitet unverändert mit den Messungen alle 20 Sekunden.
+- **Nur Anzeige:** Live-Messungen zählen nie für Sperren. Das Diagramm zeigt sie bis zum Zeitraum 1h, auch nach dem Neuladen der Seite: Der Server hält sie 15 Minuten im Arbeitsspeicher, dauerhaft gespeichert werden sie nicht. Der Lag-Schutz arbeitet unverändert mit den Messungen alle 20 Sekunden.
 - **Einstellbar** unter `lag-protection.live-view`: `enabled` (`false` schaltet sie ab), `seconds` (Abstand, 1 bis 10), `max-loaders` (höchstens so viele Loader gleichzeitig, Standard 5; weitere bleiben bei den normalen Messungen).
 - `/mrchunks lag` zeigt, wie viele Loader gerade live gemessen werden und was eine Runde den Server kostet.
 - Ohne MRadmin gibt es die Live-Ansicht nicht, sonst ändert sich nichts.

@@ -57,6 +57,8 @@ public final class LagMonitor implements Listener {
 
     /** Discord warnings for the same loader at most this often. */
     private static final long WARN_INTERVAL = 60 * 60_000L;
+    /** The chart keeps the fine live measurements this long (ms), older ones it has the normal ones for. */
+    private static final long LIVE_KEEP = 15 * 60_000L;
 
     private final MRChunks plugin;
     private final List<Listener> registered = new ArrayList<>();
@@ -79,6 +81,8 @@ public final class LagMonitor implements Listener {
     private final Map<Integer, long[]> liveCounts = new HashMap<>();
     private final Map<Integer, Long> liveStart = new HashMap<>();
     private final Map<Integer, Activity> liveValues = new HashMap<>();
+    /** The live measurements of the last minutes, so a reload of the page keeps them. Only in memory. */
+    private final ActivityHistory liveHistory = new ActivityHistory(LIVE_KEEP);
     private BukkitTask liveTask;
     /** What one round of live measurements costs the server thread (ms, smoothed). */
     private double liveMillis;
@@ -300,6 +304,8 @@ public final class LagMonitor implements Listener {
         strikes.keySet().retainAll(judged);
         activity.keySet().removeIf(id -> loaders().byId(id) == null);
         history.retain(id -> loaders().byId(id) != null);
+        liveHistory.retain(id -> loaders().byId(id) != null);
+        liveHistory.trim(now);
         if (!round.isEmpty()) {
             plugin.mradmin().saveHistory(now, ActivityHistory.encode(round));
         }
@@ -550,6 +556,11 @@ public final class LagMonitor implements Listener {
         return liveValues.get(loader.id());
     }
 
+    /** The live measurements of a loader since {@code from}, oldest first. */
+    public List<ActivityHistory.Point> livePoints(Loader loader, long from, long to) {
+        return liveHistory.points(loader.id(), from, to, Integer.MAX_VALUE);
+    }
+
     /** Whether {@link #live} keeps this loader measured. */
     public boolean liveWatched(Loader loader) {
         return liveWatch.contains(loader.id()) && measurable(loader);
@@ -588,7 +599,9 @@ public final class LagMonitor implements Listener {
                 continue;
             }
             double seconds = Math.max(0.05, (now - liveStart.get(id)) / 1000.0);
-            liveValues.put(id, measure(loader, world, c, seconds, now));
+            Activity a = measure(loader, world, c, seconds, now);
+            liveValues.put(id, a);
+            liveHistory.add(id, a);
             java.util.Arrays.fill(c, 0);
             liveStart.put(id, now);
         }
