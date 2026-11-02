@@ -49,7 +49,8 @@ import static at.marcelr.mrchunks.Messages.tag;
  * Every loader is judged on its own against the limits of its area (see {@link Settings.LagSettings#limitsFor}): up to
  * 3x3 fixed limits, above that they grow with the area, never below the 3x3 ones. When a loader is over a lock limit
  * {@code lock-after-samples} times in a row - by default only while the server is actually lagging, or without lag
- * once it reaches {@code force-lock-multiplier} times the limit - only that loader is locked.
+ * once it reaches {@code force-lock-multiplier} times the limit - only that loader is locked. Admins can suspend this
+ * lock for a single loader for a while; it is still measured and the lock after repeated shutdowns still applies.
  * Listeners are only registered for metrics that have a limit, so switching e.g. hoppers off costs nothing.
  */
 public final class LagMonitor implements Listener {
@@ -234,6 +235,7 @@ public final class LagMonitor implements Listener {
     private void sample() {
         Settings.LagSettings s = settings();
         long now = System.currentTimeMillis();
+        loaders().expireLockSuspensions().forEach(plugin.adminActions()::lockSuspensionExpired);
         if (loaders().paused() || plugin.startupGrace()) {
             // Server pause or startup: the loaders hold nothing / every tick is slow, so nothing is judged.
             strikes.clear();
@@ -331,7 +333,8 @@ public final class LagMonitor implements Listener {
         sinceUnlock.computeIfPresent(loader.id(), (k, n) -> n + 1 >= s.lockAfterSamples() ? null : n + 1);
         // Far enough over a lock limit (force-lock-multiplier), the loader is locked even while the server copes.
         boolean forced = s.forceLockMultiplier() > 0 && a.lockRatio() >= s.forceLockMultiplier();
-        if (a.lockRatio() >= 1 && (!s.onlyWhenServerLags() || serverLags || forced)) {
+        boolean suspended = loaders().lockSuspension(loader) != null;
+        if (!suspended && a.lockRatio() >= 1 && (!s.onlyWhenServerLags() || serverLags || forced)) {
             int count = strikes.merge(loader.id(), 1, Integer::sum);
             if (count >= s.lockAfterSamples()) {
                 lock(loader, a, now, 0);
@@ -446,7 +449,7 @@ public final class LagMonitor implements Listener {
      * Called right before a server pause releases all chunks: every loader over a lock limit now is locked at once
      * (the server lags for sure). Otherwise the pause would hide them - their chunks unload, the lag is gone, the pause
      * ends and it starts again, without the cause ever being locked. Loaders still in their cooldown after an unlock
-     * are left alone.
+     * and loaders with a suspended lock are left alone.
      */
     public void lockOffendersBeforePause() {
         if (!settings().enabled()) {
@@ -461,7 +464,7 @@ public final class LagMonitor implements Listener {
             }
             Activity a = measure(loader, world, seconds, now);
             activity.put(loader.id(), a);
-            if (a.lockRatio() >= 1 && !sinceUnlock.containsKey(loader.id())) {
+            if (a.lockRatio() >= 1 && !sinceUnlock.containsKey(loader.id()) && loaders().lockSuspension(loader) == null) {
                 lock(loader, a, now, 0);
             }
         }

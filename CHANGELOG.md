@@ -9,6 +9,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+### Neu
+- **Limit-Sperre einzelner Loader aussetzen:** Admins setzen die Sperre wegen überschrittener Grenzen für einen Loader vorübergehend aus, höchstens 24 Stunden - im Loader-Menü (Uhr unten in der Mitte, auch über MRadmin im Spiel erreichbar), in der MRadmin-Weboberfläche oder mit `/mrchunks suspendlock <spieler> <nr> <dauer|off>`. Ein deswegen gesperrter Loader wird dabei entsperrt und bleibt aus, bis ihn jemand einschaltet. Gemessen wird weiter; die gestaffelte Abschaltung, die Sperre nach wiederholter Abschaltung und die Server-Pause gelten weiter. Die Aussetzung übersteht Neustarts und endet von selbst. Neue Permission `mrchunks.admin.suspendlock` (in `mrchunks.groups.admin`), Config `lag-protection.lock-suspension-durations`, Discord-Ereignisse `loader-lock-suspended` und `loader-lock-suspension-ended` (`config-version` 23, `lang-version` 21).
+
 ### Behoben & geändert
 - **Welten entladen und laden:** Wurde eine Welt entladen und wieder geladen (z.B. `/mv unload`, `/mv load`), hielten ihre Loader trotz „aktiv“ keine Chunks mehr, bis zum nächsten `/mrchunks reload` oder Neustart. Sie laufen jetzt von selbst weiter.
 - **Dummy-Spieler blockieren das Entladen nicht mehr:** Eine Welt mit Dummy ließ sich nicht entladen, auch nicht mit `/mv unload <welt> --remove-players`. Der Dummy verlässt die Welt jetzt und kommt zurück, sobald sie wieder geladen ist. Bleibt die Welt geladen, sitzt er nach wenigen Sekunden wieder auf seinem Loader.

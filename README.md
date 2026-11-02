@@ -132,6 +132,7 @@ Spieler brauchen keine Befehle außer `/chunkloader` - alles läuft über Menüs
 | `/mrchunks toggle <spieler> <nr>` | Chunkloader an/aus | `mrchunks.admin.toggle` |
 | `/mrchunks delete <spieler> <nr>` | Chunkloader löschen | `mrchunks.admin.manage` |
 | `/mrchunks unlock <spieler> <nr>` | Lag-Sperre aufheben | `mrchunks.admin.manage` |
+| `/mrchunks suspendlock <spieler> <nr> <dauer\|off>` | [Limit-Sperre eines Loaders aussetzen](#limit-sperre-aussetzen), z.B. `6h` (höchstens 24 Stunden), `off` beendet es | `mrchunks.admin.suspendlock` |
 | `/mrchunks lag` | Serverlast, durch Lags deaktivierte, auffällige und gesperrte Loader anzeigen | `mrchunks.admin.manage` |
 | `/mrchunks dummy <spieler> <nr>` | Dummy eines Loaders an/aus (auch über das Limit hinaus) | `mrchunks.admin.manage` |
 | `/mrchunks link <haupt> <zweit>` | Accounts ohne Zustimmung verknüpfen | `mrchunks.admin.link` |
@@ -179,7 +180,7 @@ Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Perm
 |---|---|---|
 | `mrchunks.groups.support` | OP | Admin-Menü (alle Loader und ihren Status sehen), zu Loadern teleportieren, **auffällige** Loader (über einer Warngrenze) und ihren Dummy aus- und wieder einschalten |
 | `mrchunks.groups.staff` | OP | Support + fremde Loader an/aus schalten, ihre Einladungen verwalten, Accounts verknüpfen und lösen |
-| `mrchunks.groups.admin` | OP | Alles: Staff + löschen, umbenennen, Größe fremder Loader ändern, Dummies, Lag-Sperren aufheben, Budget und Dummy-Limit, Sperren, Webkarte, Discord, Reload, Update-Hinweis |
+| `mrchunks.groups.admin` | OP | Alles: Staff + löschen, umbenennen, Größe fremder Loader ändern, Dummies, Lag-Sperren aufheben, Limit-Sperre aussetzen, Budget und Dummy-Limit, Sperren, Webkarte, Discord, Reload, Update-Hinweis |
 
 ```text
 /lp group supporter permission set mrchunks.groups.support true
@@ -198,6 +199,7 @@ Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Perm
 | `mrchunks.admin.link` | OP | Accounts anderer verknüpfen und lösen |
 | `mrchunks.admin.manage` | OP | **Fremde** Loader löschen, umbenennen, Größe ändern, Block wählen, Dummies, Lag-Sperren aufheben (enthält `toggle`, `invites`, `link`, `resize`) |
 | `mrchunks.admin.resize` | OP | Größe **fremder** Loader ändern (im Spiel und in der MRadmin-Weboberfläche, im Rahmen des Budgets des Owners) |
+| `mrchunks.admin.suspendlock` | OP | [Limit-Sperre](#limit-sperre-aussetzen) eines einzelnen Loaders aussetzen, höchstens 24 Stunden (im Spiel und in der MRadmin-Weboberfläche) |
 | `mrchunks.admin.teleport` | OP | Zu Loadern teleportieren |
 | `mrchunks.admin.limit` | OP | Chunk-Budget und Dummy-Limit eines Spielers festlegen |
 | `mrchunks.admin.ban` | OP | Spieler sperren und entsperren |
@@ -285,6 +287,15 @@ MRchunks misst alle 30 Sekunden, was im Bereich jedes **aktiven** Loaders passie
 - Alle Grenzen stehen unter `lag-protection.limits` und `lag-protection.small-loaders.limits`, für wie viele Chunks sie gelten unter `lag-protection.limits-per-chunks` (49) und bis zu welcher Größe die festen gelten unter `lag-protection.small-loaders.max-chunks` (9). `0` schaltet eine Messung ab. Alle Grenzen werden auf ganze Zahlen gerundet.
 
 Normale Farmen bleiben unter diesen Grenzen, große Mob-Farmen fallen auf. Ist der Server trotzdem ausgelastet, weil viele Loader zusammen zu viel sind, greift die gestaffelte Abschaltung.
+
+### Limit-Sperre aussetzen
+Ein Admin kann die Sperre wegen überschrittener Grenzen für **einen einzelnen Loader** vorübergehend aussetzen, höchstens **24 Stunden** (`mrchunks.admin.suspendlock`), z.B. für eine große Farm bei einem Event.
+
+- **Wo:** im Loader-Menü die Uhr unten in der Mitte (auch im Spiel über MRadmin erreichbar), in der MRadmin-Weboberfläche auf der Seite des Loaders oder mit `/mrchunks suspendlock <spieler> <nr> <dauer|off>`.
+- **War der Loader deswegen schon gesperrt,** wird er entsperrt. Er bleibt aus, bis ihn jemand einschaltet.
+- **Weiter gilt:** Gemessen und gewarnt wird weiter. Die gestaffelte Abschaltung, die Sperre nach wiederholter Abschaltung („Zu oft“) und die Server-Pause gelten auch für diesen Loader. Ein nach wiederholter Abschaltung gesperrter Loader lässt sich nicht aussetzen, nur entsperren.
+- **Ende:** Die Aussetzung übersteht Neustarts, endet von selbst und lässt sich vorzeitig beenden. Danach braucht es wieder die üblichen Messungen hintereinander, bis der Loader gesperrt wird. Der Owner wird informiert, dazu ein Discord-Log. `/mrchunks lag` zeigt alle laufenden Aussetzungen.
+- **Auswahl der Dauer:** `lag-protection.lock-suspension-durations` (Standard `1h`, `3h`, `6h`, `12h`, `24h`; von `1m` bis `24h`). Der längste Eintrag ist auch die Obergrenze für den Befehl.
 
 ### Gestaffelte Abschaltung
 Viele Loader können den Server **zusammen** ausbremsen, auch wenn jeder für sich unter seinen Grenzen bleibt. Dafür beobachtet MRchunks die **Tick-Zeit des Servers (MSPT)** im Mittel über eine Minute - einzelne Spitzen lösen nichts aus:

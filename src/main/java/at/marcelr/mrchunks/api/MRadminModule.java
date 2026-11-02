@@ -267,11 +267,11 @@ final class MRadminModule implements AdminModule, WebModule {
             "manage", "mrchunks.admin.manage", "limit", "mrchunks.admin.limit", "ban", "mrchunks.admin.ban",
             "toggle", "mrchunks.admin.toggle", "link", "mrchunks.admin.link", "resize", "mrchunks.admin.resize",
             "toggleConspicuous", "mrchunks.admin.toggle.conspicuous", "pause", "mrchunks.admin.pause",
-            "monitoring", "mrchunks.admin.monitoring");
+            "monitoring", "mrchunks.admin.monitoring", "suspendLock", "mrchunks.admin.suspendlock");
     private static final Map<String, String> ACTIONS = Map.of(
             "toggle", "toggle", "unlock", "manage", "delete", "manage", "dummy", "manage", "resize", "resize",
             "conspicuousToggle", "toggleConspicuous", "conspicuousDummy", "toggleConspicuous",
-            "pauseAll", "pause", "monitoring", "monitoring");
+            "pauseAll", "pause", "monitoring", "monitoring", "suspendLock", "suspendLock");
     private static final Map<String, String> PLAYER_ACTIONS = Map.of(
             "limit", "limit", "ban", "ban", "unban", "ban", "deleteAll", "manage", "unlink", "link", "link", "link");
 

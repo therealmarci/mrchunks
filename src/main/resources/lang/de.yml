@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Nicht ändern - damit erkennt das Plugin bei Updates, welche Texte erneuert werden müssen.
-lang-version: 20
+lang-version: 21
 
 # Texte der Discord-Logs (Markdown wie in Discord). Platzhalter: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. An/aus und Farbe stehen in der config.yml.
@@ -34,6 +34,8 @@ discord:
   loader-lag-warning: "⚠️ **{name}** von **{player}** ist auffällig: {metric} {value} (Warngrenze {limit}) - {world} {x}, {y}, {z}"
   loader-lag-locked: "🔒 **{name}** von **{player}** wurde wegen Lag gesperrt: {metric} {value} (Grenze {limit}) - {world} {x}, {y}, {z}"
   loader-lag-unlocked: "🔓 **{admin}** hat die Lag-Sperre von **{name}** ({player}) aufgehoben."
+  loader-lock-suspended: "⏳ **{admin}** hat die Limit-Sperre von **{name}** ({player}) für {time} ausgesetzt."
+  loader-lock-suspension-ended: "⌛ Die Limit-Sperre von **{name}** ({player}) gilt wieder."
   server-paused: "⏸️ Der Server laggt ({value} TPS) - alle Chunkloader sind pausiert ({count} Chunks freigegeben)."
   server-resumed: "▶️ Der Server läuft wieder flüssig ({value} TPS) - die Chunkloader laden wieder (Pause: {time})."
   dummy-toggled: "🧍 Der Dummy auf **{name}** von **{player}** ist jetzt **{state}** (geändert von {admin})."
@@ -151,6 +153,16 @@ lag-locked-toggle: "<prefix><hover:show_text:'<gray>Seit <time>: <metric> <value
 lag-unlocked: "<prefix><hover:show_text:'<gray>Der Loader ist noch aus, der Owner schaltet ihn ein.'><green><white><name></white> entsperrt.</hover>"
 lag-unlocked-owner: "<prefix><hover:show_text:'<gray>Entsperrt von <admin>.<newline>Bitte sorg dafür, dass die Farm nicht mehr laggt.'><green><white><name></white> entsperrt - wieder einschaltbar.</hover>"
 lag-not-locked: "<prefix><gray><white><name></white> ist nicht gesperrt."
+lock-suspended: "<prefix><hover:show_text:'<gray>Bis <time>. Gemessen wird weiter.<newline>Gestaffelte Abschaltung und Sperre nach wiederholter Abschaltung gelten weiter.'><green>Limit-Sperre von <white><name></white> ausgesetzt: <white><duration></white></hover>"
+lock-suspended-unlocked: "<prefix><hover:show_text:'<gray>Bis <time>. Die Sperre ist aufgehoben.<newline>Der Loader ist noch aus, der Owner schaltet ihn ein.'><green>Limit-Sperre von <white><name></white> ausgesetzt: <white><duration></white></hover>"
+lock-suspended-owner: "<prefix><hover:show_text:'<gray>Von <admin>, bis <time>.<newline>Bei hoher Serverlast kann er trotzdem abgeschaltet werden.'><green>Limit-Sperre von <white><name></white> für <white><duration></white> ausgesetzt</hover>"
+lock-suspended-unlocked-owner: "<prefix><hover:show_text:'<gray>Von <admin>, bis <time>.<newline>Bei hoher Serverlast kann er trotzdem abgeschaltet werden.'><green><white><name></white> entsperrt - Limit-Sperre für <white><duration></white> ausgesetzt</hover>"
+lock-suspension-ended: "<prefix><green>Limit-Sperre von <white><name></white> gilt wieder."
+lock-suspension-ended-owner: "<prefix><hover:show_text:'<gray>Über den Grenzen kann er wieder gesperrt werden.'><yellow>Limit-Sperre von <white><name></white> gilt wieder</hover>"
+lock-suspension-none: "<prefix><gray>Die Limit-Sperre von <white><name></white> ist nicht ausgesetzt."
+lock-suspension-invalid: "<prefix><hover:show_text:'<gray>Zum Beispiel 30m, 6h oder 24h<newline>lag-protection.lock-suspension-durations'><red>Dauer von 1 Minute bis <white><max></white> angeben.</hover>"
+lock-suspension-repeated: "<prefix><hover:show_text:'<gray>Gesperrt nach wiederholter Lag-Abschaltung.<newline>Diese Sperre lässt sich nicht aussetzen, nur aufheben.'><red><white><name></white> erst entsperren.</hover>"
+lag-list-suspended: "<prefix><hover:show_text:'<gray>Von <admin>'><aqua>⏳ <white><name></white> <gray>- Limit-Sperre ausgesetzt bis <white><time></white></hover>"
 lag-disabled: "<prefix><hover:show_text:'<gray>lag-protection.enabled'><yellow>Lag-Schutz ist aus.</hover>"
 startup-delay-status: "<prefix><hover:show_text:'<gray>Lag-Schutz, Abschaltung und Pause warten nach dem Start.<newline>lag-protection.startup-delay-seconds'><gray>Startphase: noch <white><seconds> s</white></hover>"
 lag-list-header: "<prefix><gray>Auffällige und gesperrte Chunkloader:"
@@ -276,6 +288,7 @@ admin-usage: |-
   <green>/mrchunks toggle <spieler> <nr></green> <dark_gray>- <gray>Chunkloader an/aus
   <green>/mrchunks delete <spieler> <nr></green> <dark_gray>- <gray>Chunkloader löschen
   <green>/mrchunks unlock <spieler> <nr></green> <dark_gray>- <gray>Lag-Sperre aufheben
+  <green>/mrchunks suspendlock <spieler> <nr> <dauer|off></green> <dark_gray>- <gray>Limit-Sperre aussetzen
   <green>/mrchunks dummy <spieler> <nr></green> <dark_gray>- <gray>Dummy-Spieler an/aus
   <green>/mrchunks lag</green> <dark_gray>- <gray>Auffällige und gesperrte Chunkloader
   <green>/mrchunks limit <spieler> <budget|dummy> <anzahl|reset></green> <dark_gray>- <gray>Chunk-Budget bzw. Dummies
@@ -416,6 +429,27 @@ gui-unlock-name: "<green><bold>Lag-Sperre aufheben"
 gui-unlock-lore:
   - "<gray>Seit <white><time></white>: <metric> <white><value></white> <dark_gray>(Grenze <limit>)"
   - "<gray>Bleibt aus, der Owner schaltet ein."
+gui-loader-suspended:
+  - ""
+  - "<aqua>⏳ Limit-Sperre ausgesetzt <gray>bis <time>"
+gui-title-suspend: "<dark_gray>Limit-Sperre » <dark_green><name>"
+gui-suspend-name: "<aqua>Limit-Sperre aussetzen"
+gui-suspend-lore:
+  - "<gray>Für diesen Loader, bis zu <white><max></white>."
+  - "<gray>Abschaltung bei Serverlast gilt weiter."
+gui-suspend-active-name: "<aqua>Limit-Sperre ausgesetzt"
+gui-suspend-active-lore:
+  - "<gray>Bis <white><time></white> <dark_gray>(<by>)"
+  - "<gray>Klick: ändern oder beenden."
+gui-suspend-choice-name: "<green><duration>"
+gui-suspend-choice-lore:
+  - "<gray>Klick: ab jetzt <white><duration></white> aussetzen."
+gui-suspend-choice-locked-lore:
+  - "<gray>Klick: entsperren und <white><duration></white> aussetzen."
+  - "<gray>Bleibt aus, der Owner schaltet ein."
+gui-suspend-end-name: "<red>Aussetzung beenden"
+gui-suspend-end-lore:
+  - "<gray>Die Limit-Sperre gilt sofort wieder."
 gui-activity-header-ok: "<gray>Aktivität: <green>unauffällig"
 gui-activity-header-warn: "<gray>Aktivität: <gold>auffällig"
 gui-activity-header-high: "<gray>Aktivität: <red>über der Sperrgrenze"
@@ -758,6 +792,7 @@ self-limits-none: "Noch keine Messung - gemessen wird, solange der Bereich gelad
 self-limits-off: "Der Lag-Schutz ist auf diesem Server ausgeschaltet."
 self-locked-detail: "Gesperrt wegen <metric>: <value> (Grenze <limit>), seit <since>. Nur ein Admin kann die Sperre aufheben."
 self-shed-detail: "Durch Lags deaktiviert seit <since>: Der Server war ausgelastet. Der Loader bleibt an und lädt voraussichtlich <back> von selbst wieder (einer nach dem anderen, sobald der Server sich erholt hat)."
+self-suspended-detail: "Das Team hat die Limit-Sperre bis <until> ausgesetzt. Bei hoher Serverlast kann der Loader trotzdem abgeschaltet werden."
 self-members-text: "Eingeladene dürfen alle deine Loader an- und ausschalten - mehr nicht. Einladungen für einen einzelnen Loader findest du in seiner Karte."
 self-until: "bis <date>"
 self-online: "online"

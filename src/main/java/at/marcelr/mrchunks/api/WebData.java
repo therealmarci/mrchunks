@@ -30,7 +30,8 @@ import java.util.UUID;
  *  chunks                           number of chunks the loaders keep loaded (cheap, MRadmin asks every second)
  *  loaders                          all loaders with status
  *  loader  {id}                     one loader with every measured value, lock, members
- *  action  {id, action, admin}      toggle | unlock | delete | dummy | resize {direction, delta}  -> null or an error key
+ *  action  {id, action, admin}      toggle | unlock | delete | dummy | resize {direction, delta}
+ *                                   | suspendLock {duration in ms, 0 = end}  -> null or an error key
  *  player  {uuid}                   one player: loaders, budget and dummy limit (with source), ban, invites, loaders shared with them,
  *                                   linked accounts (main, secondAccounts), dummies
  *  flags                            uuid -> marks for MRadmin's player list (chunks-locked, chunks-warn, chunks-banned)
@@ -330,7 +331,11 @@ final class WebData {
         LagLock lock = plugin.loaders().lagLock(loader);
         if (lock != null) {
             m.put("lock", Map.of("metric", messages.plain("lag-metric-" + lock.metric().key()), "value", lock.value(),
-                    "limit", lock.limit(), "since", lock.since()));
+                    "limit", lock.limit(), "since", lock.since(), "repeated", lock.repeated()));
+        }
+        LoaderManager.LockSuspension suspension = plugin.loaders().lockSuspension(loader);
+        if (suspension != null) {
+            m.put("suspension", Map.of("until", suspension.until(), "by", suspension.by()));
         }
         if (plugin.loaders().shed(loader)) {
             long since = plugin.loaders().shedSince(loader);
@@ -354,6 +359,7 @@ final class WebData {
         m.put("dummiesEnabled", plugin.dummies().enabled());
         m.put("dummyFits", at.marcelr.mrchunks.dummy.Dummies.fits(loader));
         m.put("maxReach", plugin.settings().loaders().maxReach());
+        m.put("suspendDurations", plugin.settings().lag().enabled() ? plugin.settings().lag().suspensionDurations() : List.of());
         OfflinePlayer owner = Bukkit.getOfflinePlayer(loader.owner());
         LoaderManager.Limit budget = plugin.loaders().budget(owner);
         m.put("budget", budget.value() == Integer.MAX_VALUE ? -1 : budget.value());
@@ -413,6 +419,18 @@ final class WebData {
             case "dummy" -> plugin.adminActions().webToggleDummy(admin, loader);
             case "conspicuousToggle" -> plugin.adminActions().webConspicuousToggle(admin, loader);
             case "conspicuousDummy" -> plugin.adminActions().webConspicuousDummy(admin, loader);
+            case "suspendLock" -> {
+                long duration;
+                try {
+                    duration = Long.parseLong(String.valueOf(args.get("duration")));
+                } catch (NumberFormatException e) {
+                    yield "invalid-duration";
+                }
+                if (duration != 0 && !plugin.settings().lag().suspensionDurations().contains(duration)) {
+                    yield "invalid-duration";
+                }
+                yield plugin.adminActions().webSuspendLock(admin, loader, duration);
+            }
             case "resize" -> {
                 // direction north|south|west|east or all, delta +1 / -1
                 String raw = String.valueOf(args.get("direction")).toUpperCase(Locale.ROOT);

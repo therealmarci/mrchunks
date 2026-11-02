@@ -27,7 +27,7 @@ public final class MRChunks extends JavaPlugin {
     private FileConfiguration config;
     private Settings settings;
     /** lang-version 2: version display with MC version; 3: loaders by name/number; 4: squaremap.address; 5: merged admin commands; 6: shorter window titles; 7: lag protection (admin usage); 8: /chunkloader is only the menu (invite notice); 9: get/return as two buttons; 11: dummies and linked accounts (admin usage). */
-    private final Messages messages = new Messages(20, Map.ofEntries(
+    private final Messages messages = new Messages(21, Map.ofEntries(
             Map.entry(2, Set.of("version", "gui-info-name")),
             Map.entry(3, Set.of("discord.loader-placed", "discord.loader-deleted", "discord.loader-toggled",
                     "discord.loader-restored", "discord.loader-removed-missing", "discord.admin-delete",
@@ -85,7 +85,9 @@ public final class MRChunks extends JavaPlugin {
                     "gui-unlink-lore", "gui-ban-lore", "gui-delete-all-lore", "gui-size-lore", "gui-size-view-lore",
                     "gui-size-budget-lore", "gui-size-direction-lore", "gui-size-all-lore", "gui-size-border-lore",
                     "resize-min", "resize-dummy", "resize-budget", "resize-overlap-own", "resize-overlap",
-                    "owner-notify-resized", "dummy-needs-square", "gui-dummy-square-lore", "gui-dummy-square-waiting-lore"))));
+                    "owner-notify-resized", "dummy-needs-square", "gui-dummy-square-lore", "gui-dummy-square-waiting-lore")),
+            // 21: /mrchunks suspendlock in the admin usage.
+            Map.entry(21, Set.of("admin-usage"))));
     private final DiscordWebhook discord = new DiscordWebhook(this);
     private final AdminActions adminActions = new AdminActions(this);
     private LoaderManager loaders;

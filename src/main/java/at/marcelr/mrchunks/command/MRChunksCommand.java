@@ -39,7 +39,7 @@ public final class MRChunksCommand implements TabExecutor {
     private static final String PERM_DISCORD = "mrchunks.admin.discord";
     private static final List<String> ADMIN_PERMS = List.of(PERM_GUI, PERM_RELOAD, PERM_MAP, PERM_DISCORD,
             AdminActions.PERM_MANAGE, AdminActions.PERM_TOGGLE, AdminActions.PERM_LINK_OTHERS, AdminActions.PERM_INVITES,
-            AdminActions.PERM_TELEPORT, AdminActions.PERM_LIMIT, AdminActions.PERM_BAN);
+            AdminActions.PERM_TELEPORT, AdminActions.PERM_LIMIT, AdminActions.PERM_BAN, AdminActions.PERM_SUSPEND_LOCK);
 
     private final MRChunks plugin;
 
@@ -92,6 +92,7 @@ public final class MRChunksCommand implements TabExecutor {
             case "toggle" -> withLoader(sender, args, loader -> actions().toggle(sender, loader));
             case "delete", "remove" -> withLoader(sender, args, loader -> actions().delete(sender, loader));
             case "unlock", "entsperren" -> withLoader(sender, args, loader -> actions().unlock(sender, loader));
+            case "suspendlock", "aussetzen" -> suspendLock(sender, args);
             case "dummy" -> withLoader(sender, args, loader -> actions().toggleDummy(sender, loader));
             case "link" -> {
                 if (check(sender, AdminActions.PERM_LINK_OTHERS)) {
@@ -134,6 +135,23 @@ public final class MRChunksCommand implements TabExecutor {
     }
 
     // ------------------------------------------------------------- loaders
+
+    /** /mrchunks suspendlock <player> <number> <duration|off> - the limit lock of one loader, for a while. */
+    private void suspendLock(CommandSender sender, String[] args) {
+        if (!check(sender, AdminActions.PERM_SUSPEND_LOCK)) {
+            return;
+        }
+        if (args.length < 4) {
+            messages().send(sender, "admin-usage");
+            return;
+        }
+        if (args[3].equalsIgnoreCase("off")) {
+            withLoader(sender, args, loader -> actions().endLockSuspension(sender, loader));
+            return;
+        }
+        long duration = Settings.parseBanDuration(args[3]);
+        withLoader(sender, args, loader -> actions().suspendLock(sender, loader, duration));
+    }
 
     /** /mrchunks limit <player> <budget|dummy> <amount|reset> - one command for both caps. */
     private void limit(CommandSender sender, String[] args) {
@@ -226,6 +244,11 @@ public final class MRChunksCommand implements TabExecutor {
                     messages().send(sender, "shed-list-entry", plugin.shedder().tags(shed));
                 }
             }
+        }
+        for (Loader loader : plugin.loaders().lockSuspended()) {
+            var suspension = plugin.loaders().lockSuspension(loader);
+            messages().send(sender, "lag-list-suspended", Texts.loader(plugin, loader),
+                    tag("time", Texts.date(messages(), suspension.until())), tag("admin", suspension.by()));
         }
         var list = plugin.lag().conspicuous();
         if (list.isEmpty()) {
@@ -400,6 +423,7 @@ public final class MRChunksCommand implements TabExecutor {
             addIf(sender, AdminActions.PERM_TOGGLE, options, "toggle");
             addIf(sender, AdminActions.PERM_LINK_OTHERS, options, "link", "unlink");
             addIf(sender, AdminActions.PERM_MANAGE, options, "delete", "unlock", "lag", "dummy");
+            addIf(sender, AdminActions.PERM_SUSPEND_LOCK, options, "suspendlock");
             addIf(sender, AdminActions.PERM_LIMIT, options, "limit");
             addIf(sender, AdminActions.PERM_BAN, options, "ban", "unban", "bans");
             addIf(sender, PERM_MAP, options, "map");
@@ -408,7 +432,7 @@ public final class MRChunksCommand implements TabExecutor {
         } else {
             String sub = args[0].toLowerCase(Locale.ROOT);
             switch (sub) {
-                case "tp", "teleport", "toggle", "delete", "remove", "unlock", "entsperren", "dummy" -> {
+                case "tp", "teleport", "toggle", "delete", "remove", "unlock", "entsperren", "dummy", "suspendlock", "aussetzen" -> {
                     if (args.length == 2) {
                         plugin.loaders().all().forEach(l -> options.add(LoaderManager.name(l.owner())));
                     } else if (args.length == 3) {
@@ -417,6 +441,10 @@ public final class MRChunksCommand implements TabExecutor {
                             plugin.loaders().byOwner(owner.getUniqueId())
                                     .forEach(l -> options.add(String.valueOf(l.number())));
                         }
+                    } else if (args.length == 4 && (sub.equals("suspendlock") || sub.equals("aussetzen"))) {
+                        plugin.settings().lag().suspensionDurations().forEach(
+                                d -> options.add(at.marcelr.mrchunks.util.DurationUtil.format(d).replace(" ", "")));
+                        options.add("off");
                     }
                 }
                 case "limit", "ban" -> {

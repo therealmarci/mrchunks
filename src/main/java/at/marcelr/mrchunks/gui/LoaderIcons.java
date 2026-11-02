@@ -55,6 +55,10 @@ public final class LoaderIcons {
             default -> {
             }
         }
+        var suspension = plugin.loaders().lockSuspension(loader);
+        if (suspension != null) {
+            item.lore(messages.lore("gui-loader-suspended", tag("time", Texts.date(messages, suspension.until()))));
+        }
         if (clickHint) {
             item.lore(Component.empty()).lore(messages.item("gui-loader-click"));
         }

@@ -16,7 +16,7 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 22
+config-version: 23
 
 # Language of the texts (chat, menus, items). The texts are in plugins/MRchunks/lang/<language>.yml.
 #   auto = every player gets the language set in their Minecraft client:
@@ -155,6 +155,8 @@ dummies:
 # status, if installed), plus a Discord log (at most once per hour).
 # If a loader is above "lock" several times in a row, only this loader is switched off and LOCKED:
 # only admins can lift the lock (loader menu or /mrchunks unlock <player> <nr>). The owner is informed.
+# Admins can suspend this lock for a single loader for a while (loader menu, MRadmin web interface or
+# /mrchunks suspendlock <player> <nr> <duration|off>). The staged shutdown and the server pause still apply to it.
 # A value of 0 switches the respective measurement off (e.g. hoppers: { warn: 0, lock: 0 }).
 lag-protection:
   enabled: true
@@ -178,6 +180,9 @@ lag-protection:
   # 1 = as soon as "lock" is exceeded, 3 = from three times the limit (e.g. 750 entities with lock 250), 1.5 works too.
   # 0 = off, then it never locks without server lag.
   force-lock-multiplier: 3
+  # Durations admins can choose to suspend the lock of one loader (at most 7, from 1m to 24h).
+  # The longest entry is also the maximum for /mrchunks suspendlock.
+  lock-suspension-durations: ["1h", "3h", "6h", "12h", "24h"]
   # The limits below apply to this many chunks (49 = one 7x7 loader) and are scaled to the actual area:
   # a 5x5 loader (25 chunks) gets 25/49 of them, a 9x9 loader (81 chunks) 81/49 - for each loader on its own
   # (up to 3x3 see small-loaders).
@@ -453,6 +458,12 @@ discord:
     loader-lag-unlocked:
       enabled: true
       color: "#27AE60"
+    loader-lock-suspended:
+      enabled: true
+      color: "#3498DB"
+    loader-lock-suspension-ended:
+      enabled: true
+      color: "#95A5A6"
     server-paused:
       enabled: true
       color: "#E67E22"
