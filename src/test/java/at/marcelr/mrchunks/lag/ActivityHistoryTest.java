@@ -2,6 +2,7 @@ package at.marcelr.mrchunks.lag;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -46,6 +47,34 @@ class ActivityHistoryTest {
         List<ActivityHistory.Point> points = history.points(1, START, START + 999 * STEP, 100);
         assertTrue(points.size() <= 101, "got " + points.size());
         assertEquals(900, points.stream().mapToDouble(p -> p.value(Metric.ENTITIES)).max().orElse(0));
+    }
+
+    @Test
+    void savedRoundsComeBack() {
+        ActivityHistory history = new ActivityHistory();
+        Activity activity = Activity.of(Map.of(Metric.ENTITIES, 120.0, Metric.REDSTONE, 12.25, Metric.SPAWNS, 0.5),
+                LagLimits.defaults(), START, 1, 1);
+        Map<Integer, ActivityHistory.Point> round = new LinkedHashMap<>();
+        round.put(4, history.add(4, activity));
+        round.put(35, history.add(35, activity(START, 7)));
+
+        ActivityHistory restored = new ActivityHistory();
+        restored.restore(Map.of(START, ActivityHistory.encode(round)));
+
+        ActivityHistory.Point point = restored.points(4, 0, START, 300).getFirst();
+        assertEquals(START, point.time());
+        assertEquals(120, point.value(Metric.ENTITIES));
+        assertEquals(12.3, point.value(Metric.REDSTONE), 0.01);
+        assertEquals(0.5, point.value(Metric.SPAWNS));
+        assertEquals(7, restored.points(35, 0, START, 300).getFirst().value(Metric.ENTITIES));
+    }
+
+    @Test
+    void brokenLinesAreSkipped() {
+        ActivityHistory history = new ActivityHistory();
+        history.restore(Map.of(START, "4:1,2,3;oops;x:1;35:1,nonsense"));
+        assertEquals(1, history.points(4, 0, START, 300).size());
+        assertEquals(0, history.points(35, 0, START, 300).size());
     }
 
     @Test

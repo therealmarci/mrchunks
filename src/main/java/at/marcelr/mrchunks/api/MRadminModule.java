@@ -18,6 +18,7 @@ import at.marcelr.mrchunks.gui.LoaderIcons;
 import at.marcelr.mrchunks.gui.LoaderMenu;
 import at.marcelr.mrchunks.gui.PlayerIcons;
 import at.marcelr.mrchunks.gui.PlayerLoadersMenu;
+import at.marcelr.mrchunks.lag.ActivityHistory;
 import at.marcelr.mrchunks.lag.LagLock;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -57,6 +58,8 @@ final class MRadminModule implements AdminModule, WebModule {
     /** Ticket category of lag locks and the web push kind about them. */
     private static final String LOCK_KIND = "chunkloader-lock";
     private static final String PUSH_LOCKED = "chunks-locked";
+    /** MRadmin keeps the measurements for the charts since API 6. */
+    private static final int HISTORY_API = 6;
 
     private final MRChunks plugin;
 
@@ -95,6 +98,25 @@ final class MRadminModule implements AdminModule, WebModule {
         if (service != null) {
             service.resolve(ID, String.valueOf(loader.id()),
                     plugin.messages().server(() -> plugin.messages().plain("report-lock-lifted", "admin", admin)));
+        }
+    }
+
+    /** Reads the saved measurements back (MRadmin with API 6, otherwise the charts start empty). */
+    static void restoreHistory(MRChunks plugin) {
+        MRadminService service = MRadminService.get();
+        if (service != null && service.apiVersion() >= HISTORY_API) {
+            Map<Long, String> rounds = service.moduleHistory(ID, System.currentTimeMillis() - ActivityHistory.MAX_AGE);
+            plugin.lag().history().restore(rounds);
+            if (!rounds.isEmpty()) {
+                plugin.getLogger().info("Restored " + rounds.size() + " measuring rounds of the last 12 hours from MRadmin.");
+            }
+        }
+    }
+
+    static void saveHistory(long time, String data) {
+        MRadminService service = MRadminService.get();
+        if (service != null && service.apiVersion() >= HISTORY_API) {
+            service.moduleHistoryAdd(ID, time, data, ActivityHistory.MAX_AGE);
         }
     }
 

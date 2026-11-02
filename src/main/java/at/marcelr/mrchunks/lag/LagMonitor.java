@@ -249,6 +249,7 @@ public final class LagMonitor implements Listener {
         boolean serverLags = Bukkit.getAverageTickTime() >= s.serverLagMspt();
 
         java.util.Set<Integer> judged = new java.util.HashSet<>();
+        Map<Integer, ActivityHistory.Point> round = new HashMap<>();
         for (Loader loader : new ArrayList<>(loaders().all())) {
             boolean locked = loaders().lagLocked(loader);
             if (!loader.active() && !locked) {
@@ -267,19 +268,22 @@ public final class LagMonitor implements Listener {
             Activity a = measure(loader, world, seconds, now);
             if (loader.active()) {
                 activity.put(loader.id(), a);
-                history.add(loader.id(), a);
+                round.put(loader.id(), history.add(loader.id(), a));
                 judged.add(loader.id());
                 judge(loader, a, serverLags, now);
             } else if (a.loadedChunks() > 0) {
                 // Locked: measured while someone keeps (part of) the area loaded, never judged. Otherwise the last
                 // measurement stays, so admins still see why it was locked.
                 activity.put(loader.id(), a);
-                history.add(loader.id(), a);
+                round.put(loader.id(), history.add(loader.id(), a));
             }
         }
         strikes.keySet().retainAll(judged);
         activity.keySet().removeIf(id -> loaders().byId(id) == null);
         history.retain(id -> loaders().byId(id) != null);
+        if (!round.isEmpty()) {
+            plugin.mradmin().saveHistory(now, ActivityHistory.encode(round));
+        }
         // The web map colours conspicuous loaders: redraw it when that changed.
         java.util.Set<Integer> conspicuousNow = new java.util.HashSet<>();
         for (Loader loader : loaders().all()) {

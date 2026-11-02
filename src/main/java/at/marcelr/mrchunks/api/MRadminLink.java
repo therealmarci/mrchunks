@@ -21,6 +21,8 @@ public final class MRadminLink implements Listener {
 
     private final MRChunks plugin;
     private boolean connected;
+    /** The saved measurements are read only once, also if MRadmin connects again. */
+    private boolean historyRestored;
 
     public MRadminLink(MRChunks plugin) {
         this.plugin = plugin;
@@ -36,9 +38,23 @@ public final class MRadminLink implements Listener {
             connected = MRadminModule.register(plugin);
             if (!connected) {
                 plugin.getLogger().info("MRadmin found, but it is too old for the module API - update MRadmin to connect.");
+            } else if (!historyRestored) {
+                historyRestored = true;
+                MRadminModule.restoreHistory(plugin);
             }
         } catch (LinkageError | RuntimeException e) {
             plugin.getLogger().warning("Could not connect to MRadmin (versions do not fit?): " + e);
+        }
+    }
+
+    /** One measuring round for the charts - saved with MRadmin's data, so they survive a restart. */
+    public void saveHistory(long time, String data) {
+        if (connected) {
+            try {
+                MRadminModule.saveHistory(time, data);
+            } catch (LinkageError | RuntimeException e) {
+                plugin.getLogger().warning("Could not save the measurements with MRadmin: " + e);
+            }
         }
     }
 
