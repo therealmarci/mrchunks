@@ -54,7 +54,7 @@ final class MRadminModule implements AdminModule, WebModule {
     /** Health id of the server-pause entry (loaders use their numeric id). */
     private static final String PAUSE_ID = "pause";
     /** Read-only requests of {@link WebData} (its actions go through {@link #action} / {@link #playerAction}). */
-    private static final Set<String> DATA = Set.of("overview", "chunks", "loaders", "loader", "loaderHistory");
+    private static final Set<String> DATA = Set.of("overview", "chunks", "loaders", "loader", "loaderHistory", "loaderLive");
     /** Ticket category of lag locks and the web push kind about them. */
     private static final String LOCK_KIND = "chunkloader-lock";
     private static final String PUSH_LOCKED = "chunks-locked";
@@ -285,11 +285,14 @@ final class MRadminModule implements AdminModule, WebModule {
         return this;
     }
 
-    private static final Map<String, String> PERMISSIONS = Map.of(
-            "manage", "mrchunks.admin.manage", "limit", "mrchunks.admin.limit", "ban", "mrchunks.admin.ban",
-            "toggle", "mrchunks.admin.toggle", "link", "mrchunks.admin.link", "resize", "mrchunks.admin.resize",
-            "toggleConspicuous", "mrchunks.admin.toggle.conspicuous", "pause", "mrchunks.admin.pause",
-            "monitoring", "mrchunks.admin.monitoring", "suspendLock", "mrchunks.admin.suspendlock");
+    private static final Map<String, String> PERMISSIONS = Map.ofEntries(
+            Map.entry("manage", "mrchunks.admin.manage"), Map.entry("limit", "mrchunks.admin.limit"),
+            Map.entry("ban", "mrchunks.admin.ban"), Map.entry("toggle", "mrchunks.admin.toggle"),
+            Map.entry("link", "mrchunks.admin.link"), Map.entry("resize", "mrchunks.admin.resize"),
+            Map.entry("toggleConspicuous", "mrchunks.admin.toggle.conspicuous"), Map.entry("pause", "mrchunks.admin.pause"),
+            Map.entry("monitoring", "mrchunks.admin.monitoring"), Map.entry("suspendLock", "mrchunks.admin.suspendlock"),
+            Map.entry("live", "mrchunks.admin.live"));
+    private static final Map<String, String> REQUESTS = Map.of("loaderLive", "live");
     private static final Map<String, String> ACTIONS = Map.of(
             "toggle", "toggle", "unlock", "manage", "delete", "manage", "dummy", "manage", "resize", "resize",
             "conspicuousToggle", "toggleConspicuous", "conspicuousDummy", "toggleConspicuous",
@@ -300,6 +303,11 @@ final class MRadminModule implements AdminModule, WebModule {
     @Override
     public Map<String, String> permissions() {
         return PERMISSIONS;
+    }
+
+    @Override
+    public Map<String, String> requests() {
+        return REQUESTS;
     }
 
     @Override

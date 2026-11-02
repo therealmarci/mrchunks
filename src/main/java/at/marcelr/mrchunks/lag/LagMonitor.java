@@ -72,6 +72,16 @@ public final class LagMonitor implements Listener {
     private final Map<Integer, Activity> activity = new HashMap<>();
     /** The measurements of the last 12 hours, for the charts in MRadmin's web interface. */
     private final ActivityHistory history = new ActivityHistory();
+
+    // Live view: the loaders someone has open in the web interface are measured faster, only for the display.
+    private final LiveWatch liveWatch = new LiveWatch();
+    /** loader id -> event counts since its last live measurement, only for watched loaders */
+    private final Map<Integer, long[]> liveCounts = new HashMap<>();
+    private final Map<Integer, Long> liveStart = new HashMap<>();
+    private final Map<Integer, Activity> liveValues = new HashMap<>();
+    private BukkitTask liveTask;
+    /** What one round of live measurements costs the server thread (ms, smoothed). */
+    private double liveMillis;
     /** loader id -> samples in a row over a lock limit */
     private final Map<Integer, Integer> strikes = new HashMap<>();
     /** loader id -> samples judged since an admin lifted its lock (cooldown, removed after lock-after-samples) */
@@ -159,6 +169,7 @@ public final class LagMonitor implements Listener {
             task.cancel();
             task = null;
         }
+        stopLive();
         HandlerList.unregisterAll(this);
         registered.forEach(HandlerList::unregisterAll);
         registered.clear();
@@ -198,6 +209,10 @@ public final class LagMonitor implements Listener {
         }
         for (int id : ids) {
             counts.computeIfAbsent(id, k -> new long[Metric.values().length])[metric.ordinal()]++;
+            long[] live = liveCounts.isEmpty() ? null : liveCounts.get(id);
+            if (live != null) {
+                live[metric.ordinal()]++;
+            }
         }
     }
 
@@ -306,6 +321,10 @@ public final class LagMonitor implements Listener {
 
     /** Counts entities and items in the loaded chunks of the area and the events since the last sample. */
     private Activity measure(Loader loader, World world, double seconds, long now) {
+        return measure(loader, world, counts.get(loader.id()), seconds, now);
+    }
+
+    private Activity measure(Loader loader, World world, long[] c, double seconds, long now) {
         Map<Metric, Double> values = new EnumMap<>(Metric.class);
         int entities = 0;
         int items = 0;
@@ -330,7 +349,6 @@ public final class LagMonitor implements Listener {
         }
         values.put(Metric.ENTITIES, (double) entities);
         values.put(Metric.ITEMS, (double) items);
-        long[] c = counts.get(loader.id());
         for (Metric metric : Metric.values()) {
             if (metric.rate()) {
                 values.put(metric, c == null ? 0 : c[metric.ordinal()] / seconds);
@@ -506,6 +524,94 @@ public final class LagMonitor implements Listener {
 
     public ActivityHistory history() {
         return history;
+    }
+
+    // -------------------------------------------------------------- live view
+
+    /**
+     * The fast measurement of a loader someone has open in the web interface, and the request that keeps it going: the
+     * measuring only runs while someone asks, and for at most lag-protection.live-view.max-loaders loaders. Only for the
+     * display - nothing here is judged or saved, locks stay with the normal measurements.
+     * @return the newest live measurement, or null if there is none (yet)
+     */
+    public Activity live(Loader loader) {
+        Settings.LagSettings s = settings();
+        long now = System.currentTimeMillis();
+        if (!s.enabled() || !s.liveEnabled() || !measurable(loader) || !liveWatch.watch(loader.id(), now, s.liveMaxLoaders())) {
+            return null;
+        }
+        if (liveCounts.putIfAbsent(loader.id(), new long[Metric.values().length]) == null) {
+            liveStart.put(loader.id(), now);
+        }
+        if (liveTask == null) {
+            long period = s.liveSeconds() * 20L;
+            liveTask = Bukkit.getScheduler().runTaskTimer(plugin, this::liveTick, period, period);
+        }
+        return liveValues.get(loader.id());
+    }
+
+    /** Whether {@link #live} keeps this loader measured. */
+    public boolean liveWatched(Loader loader) {
+        return liveWatch.contains(loader.id()) && measurable(loader);
+    }
+
+    /** How many loaders are measured live right now. */
+    public int liveCount() {
+        return liveWatch.size();
+    }
+
+    /** What one round of live measurements costs the server thread (ms). */
+    public double liveMillis() {
+        return liveMillis;
+    }
+
+    private boolean measurable(Loader loader) {
+        return loader.active() && !loaders().shed(loader) && !loaders().paused();
+    }
+
+    private void liveTick() {
+        long now = System.currentTimeMillis();
+        for (int id : liveWatch.expire(now)) {
+            forgetLive(id);
+        }
+        if (liveWatch.size() == 0) {
+            stopLive();
+            return;
+        }
+        long begin = System.nanoTime();
+        for (int id : liveWatch.loaders()) {
+            Loader loader = loaders().byId(id);
+            World world = loader == null ? null : loader.world();
+            long[] c = liveCounts.get(id);
+            if (world == null || c == null || !measurable(loader)) {
+                liveValues.remove(id);
+                continue;
+            }
+            double seconds = Math.max(0.05, (now - liveStart.get(id)) / 1000.0);
+            liveValues.put(id, measure(loader, world, c, seconds, now));
+            java.util.Arrays.fill(c, 0);
+            liveStart.put(id, now);
+        }
+        double millis = (System.nanoTime() - begin) / 1_000_000.0;
+        liveMillis = liveMillis == 0 ? millis : liveMillis * 0.8 + millis * 0.2;
+    }
+
+    private void forgetLive(int id) {
+        liveCounts.remove(id);
+        liveStart.remove(id);
+        liveValues.remove(id);
+    }
+
+    private void stopLive() {
+        if (liveTask != null) {
+            liveTask.cancel();
+            liveTask = null;
+        }
+        liveWatch.clear();
+        liveCounts.clear();
+        liveStart.clear();
+        liveValues.clear();
+        liveMillis = 0;
     }
 
     /**

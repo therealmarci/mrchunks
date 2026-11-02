@@ -16,7 +16,7 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 24
+config-version: 25
 
 # Language of the texts (chat, menus, items). The texts are in plugins/MRchunks/lang/<language>.yml.
 #   auto = every player gets the language set in their Minecraft client:
@@ -183,6 +183,14 @@ lag-protection:
   # Durations admins can choose to suspend the lock of one loader (at most 7, from 1m to 24h).
   # The longest entry is also the maximum for /mrchunks suspendlock.
   lock-suspension-durations: ["1h", "3h", "6h", "12h", "24h"]
+  # Live view in MRadmin's web interface: a loader whose page someone has open is measured more often. It costs nothing
+  # while nobody looks, and these measurements are only displayed - they lock nothing and are not saved.
+  live-view:
+    enabled: true
+    # Seconds between two live measurements (1-10).
+    seconds: 1
+    # At most this many loaders at once; further ones stay with the normal measurements.
+    max-loaders: 5
   # The limits below apply to this many chunks (49 = one 7x7 loader) and are scaled to the actual area:
   # a 5x5 loader (25 chunks) gets 25/49 of them, a 9x9 loader (81 chunks) 81/49 - for each loader on its own
   # (up to 3x3 see small-loaders).

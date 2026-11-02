@@ -70,11 +70,12 @@ public record Settings(
      * only while the server's average tick time is at least {@code serverLagMspt}). From {@code forceLockMultiplier}
      * times a lock limit on (0 = off) the server state does not matter. Durations in ms. Limits: see {@link #limitsFor}.
      * {@code suspensionDurations}: what admins can choose to suspend that lock for one loader (ms, at most 24 h).
+     * {@code live*}: faster measuring of the loaders open in MRadmin's web interface, only for the display.
      */
     public record LagSettings(boolean enabled, int sampleSeconds, int lockAfterSamples, boolean onlyWhenServerLags,
                               double serverLagMspt, double forceLockMultiplier, LagLimits limits, int limitsPerChunks,
                               LagLimits smallLimits, int smallChunks, int startupDelaySeconds,
-                              List<Long> suspensionDurations) {
+                              List<Long> suspensionDurations, boolean liveEnabled, int liveSeconds, int liveMaxLoaders) {
 
         /** The longest suspension of a limit lock (ms). */
         public long maxSuspension() {
@@ -306,7 +307,10 @@ public record Settings(
                 limits(c, "lag-protection.small-loaders.limits", LagLimits.smallDefaults(), log),
                 Math.clamp(c.getInt("lag-protection.small-loaders.max-chunks", 9), 0, 10_000),
                 Math.clamp(c.getInt("lag-protection.startup-delay-seconds", 180), 0, 3600),
-                suspensionDurations(c.getStringList("lag-protection.lock-suspension-durations"), log));
+                suspensionDurations(c.getStringList("lag-protection.lock-suspension-durations"), log),
+                c.getBoolean("lag-protection.live-view.enabled", true),
+                Math.clamp(c.getInt("lag-protection.live-view.seconds", 1), 1, 10),
+                Math.clamp(c.getInt("lag-protection.live-view.max-loaders", 5), 1, 50));
 
         double below = Math.clamp(c.getDouble("server-pause.below-tps", 15), 1, 19.9);
         double resume = Math.clamp(c.getDouble("server-pause.resume-tps", 18), 1, 20);

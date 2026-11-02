@@ -245,6 +245,10 @@ public final class MRChunksCommand implements TabExecutor {
                 }
             }
         }
+        if (plugin.lag().liveCount() > 0) {
+            messages().send(sender, "live-status", tag("count", plugin.lag().liveCount()), tag("seconds", plugin.settings().lag().liveSeconds()),
+                    tag("millis", String.format(Locale.ROOT, "%.2f", plugin.lag().liveMillis())));
+        }
         for (Loader loader : plugin.loaders().lockSuspended()) {
             var suspension = plugin.loaders().lockSuspension(loader);
             messages().send(sender, "lag-list-suspended", Texts.loader(plugin, loader),

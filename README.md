@@ -178,7 +178,7 @@ Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Perm
 
 | Gruppe | Standard | Enthält |
 |---|---|---|
-| `mrchunks.groups.support` | OP | Admin-Menü (alle Loader und ihren Status sehen), zu Loadern teleportieren, **auffällige** Loader (über einer Warngrenze) und ihren Dummy aus- und wieder einschalten |
+| `mrchunks.groups.support` | OP | Admin-Menü (alle Loader und ihren Status sehen), zu Loadern teleportieren, **auffällige** Loader (über einer Warngrenze) und ihren Dummy aus- und wieder einschalten, Live-Ansicht im Web |
 | `mrchunks.groups.staff` | OP | Support + fremde Loader an/aus schalten, ihre Einladungen verwalten, Accounts verknüpfen und lösen |
 | `mrchunks.groups.admin` | OP | Alles: Staff + löschen, umbenennen, Größe fremder Loader ändern, Dummies, Lag-Sperren aufheben, Limit-Sperre aussetzen, Budget und Dummy-Limit, Sperren, Webkarte, Discord, Reload, Update-Hinweis |
 
@@ -199,6 +199,7 @@ Alle Menüs aktualisieren sich jede Sekunde. Jede Aktion prüft ihre eigene Perm
 | `mrchunks.admin.link` | OP | Accounts anderer verknüpfen und lösen |
 | `mrchunks.admin.manage` | OP | **Fremde** Loader löschen, umbenennen, Größe ändern, Block wählen, Dummies, Lag-Sperren aufheben (enthält `toggle`, `invites`, `link`, `resize`) |
 | `mrchunks.admin.resize` | OP | Größe **fremder** Loader ändern (im Spiel und in der MRadmin-Weboberfläche, im Rahmen des Budgets des Owners) |
+| `mrchunks.admin.live` | OP | [Live-Ansicht](#live-ansicht-mradmin) eines Loaders in der MRadmin-Weboberfläche |
 | `mrchunks.admin.suspendlock` | OP | [Limit-Sperre](#limit-sperre-aussetzen) eines einzelnen Loaders aussetzen, höchstens 24 Stunden (im Spiel und in der MRadmin-Weboberfläche) |
 | `mrchunks.admin.teleport` | OP | Zu Loadern teleportieren |
 | `mrchunks.admin.limit` | OP | Chunk-Budget und Dummy-Limit eines Spielers festlegen |
@@ -288,6 +289,15 @@ MRchunks misst alle 20 Sekunden, was im Bereich jedes **aktiven** Loaders passie
 - Alle Grenzen stehen unter `lag-protection.limits` und `lag-protection.small-loaders.limits`, für wie viele Chunks sie gelten unter `lag-protection.limits-per-chunks` (49) und bis zu welcher Größe die festen gelten unter `lag-protection.small-loaders.max-chunks` (9). `0` schaltet eine Messung ab. Alle Grenzen werden auf ganze Zahlen gerundet.
 
 Normale Farmen bleiben unter diesen Grenzen, große Mob-Farmen fallen auf. Ist der Server trotzdem ausgelastet, weil viele Loader zusammen zu viel sind, greift die gestaffelte Abschaltung.
+
+### Live-Ansicht (MRadmin)
+Ist die Seite eines Loaders in der MRadmin-Weboberfläche offen (`mrchunks.admin.live`), wird **genau dieser Loader** jede Sekunde gemessen. Kacheln und Diagramme laufen dann live mit, sichtbar am grünen „Live“.
+
+- **Kostet nur, solange jemand zuschaut:** Es läuft pro Loader einmal, egal wie viele zuschauen, und endet wenige Sekunden nach dem Schließen der Seite. Ein Tab im Hintergrund zählt nicht.
+- **Nur Anzeige:** Live-Messungen zählen nie für Sperren und werden nicht gespeichert. Der Lag-Schutz arbeitet unverändert mit den Messungen alle 20 Sekunden.
+- **Einstellbar** unter `lag-protection.live-view`: `enabled` (`false` schaltet sie ab), `seconds` (Abstand, 1 bis 10), `max-loaders` (höchstens so viele Loader gleichzeitig, Standard 5; weitere bleiben bei den normalen Messungen).
+- `/mrchunks lag` zeigt, wie viele Loader gerade live gemessen werden und was eine Runde den Server kostet.
+- Ohne MRadmin gibt es die Live-Ansicht nicht, sonst ändert sich nichts.
 
 ### Limit-Sperre aussetzen
 Ein Admin kann die Sperre wegen überschrittener Grenzen für **einen einzelnen Loader** vorübergehend aussetzen, höchstens **24 Stunden** (`mrchunks.admin.suspendlock`), z.B. für eine große Farm bei einem Event.

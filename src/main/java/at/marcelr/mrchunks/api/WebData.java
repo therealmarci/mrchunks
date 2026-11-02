@@ -32,6 +32,7 @@ import java.util.UUID;
  *  loaders                          all loaders with status
  *  loader  {id}                     one loader with every measured value, lock, members
  *  loaderHistory {id, range}        its measurements for the charts: range 1m | 10m | 30m | 1h | 6h | 12h
+ *  loaderLive {id}                  the live view of a loader; asking keeps it measured (see LagMonitor#live)
  *  action  {id, action, admin}      toggle | unlock | delete | dummy | resize {direction, delta}
  *                                   | suspendLock {duration in ms, 0 = end}  -> null or an error key
  *  player  {uuid}                   one player: loaders, budget and dummy limit (with source), ban, invites, loaders shared with them,
@@ -64,6 +65,10 @@ final class WebData {
             case "loaderHistory" -> {
                 Loader loader = loader(plugin, args);
                 yield loader == null ? null : history(plugin, loader, HISTORY_RANGES.get(String.valueOf(args.get("range"))));
+            }
+            case "loaderLive" -> {
+                Loader loader = loader(plugin, args);
+                yield loader == null ? null : live(plugin, loader);
             }
             case "action" -> action(plugin, args);
             case "player" -> {
@@ -436,6 +441,23 @@ final class WebData {
         m.put("to", to);
         m.put("points", points);
         m.put("phases", phases);
+        return m;
+    }
+
+    /** {live, seconds, point?}: live false = this loader is not measured live (off, switched off in the config, too many). */
+    private static Map<String, Object> live(MRChunks plugin, Loader loader) {
+        Activity a = plugin.lag().live(loader);
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("live", plugin.lag().liveWatched(loader));
+        m.put("seconds", plugin.settings().lag().liveSeconds());
+        if (a != null) {
+            Map<String, Object> point = new LinkedHashMap<>();
+            point.put("time", a.time());
+            for (Metric metric : Metric.values()) {
+                point.put(metric.key(), Math.round(a.value(metric) * 10) / 10.0);
+            }
+            m.put("point", point);
+        }
         return m;
     }
 

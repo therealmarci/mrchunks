@@ -165,6 +165,7 @@ lock-suspension-repeated: "<prefix><hover:show_text:'<gray>Locked after repeated
 lag-list-suspended: "<prefix><hover:show_text:'<gray>By <admin>'><aqua>⏳ <white><name></white> <gray>- limit lock suspended until <white><time></white></hover>"
 lag-disabled: "<prefix><hover:show_text:'<gray>lag-protection.enabled'><yellow>Lag protection is off.</hover>"
 startup-delay-status: "<prefix><hover:show_text:'<gray>Lag protection, shutdown and pause wait after the start.<newline>lag-protection.startup-delay-seconds'><gray>Starting up: <white><seconds> s</white> left</hover>"
+live-status: "<prefix><hover:show_text:'<gray>Every <seconds> s for the page open in the web.<newline>Display only, it locks nothing.'><aqua>Live: <white><count></white> loader(s), <white><millis> ms</white> per round</hover>"
 lag-list-header: "<prefix><gray>Conspicuous and locked chunk loaders:"
 lag-list-entry: "<dark_gray>- <gold><name></gold> <gray>of <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray><metric>: <white><value></white> <dark_gray>(warn limit <limit>)"
 lag-list-locked: "<dark_gray>- <red>🔒 <name></red> <gray>of <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray>locked since <time>: <metric> <value>"

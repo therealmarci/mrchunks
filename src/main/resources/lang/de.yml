@@ -165,6 +165,7 @@ lock-suspension-repeated: "<prefix><hover:show_text:'<gray>Gesperrt nach wiederh
 lag-list-suspended: "<prefix><hover:show_text:'<gray>Von <admin>'><aqua>⏳ <white><name></white> <gray>- Limit-Sperre ausgesetzt bis <white><time></white></hover>"
 lag-disabled: "<prefix><hover:show_text:'<gray>lag-protection.enabled'><yellow>Lag-Schutz ist aus.</hover>"
 startup-delay-status: "<prefix><hover:show_text:'<gray>Lag-Schutz, Abschaltung und Pause warten nach dem Start.<newline>lag-protection.startup-delay-seconds'><gray>Startphase: noch <white><seconds> s</white></hover>"
+live-status: "<prefix><hover:show_text:'<gray>Alle <seconds> s für die offene Seite im Web.<newline>Nur Anzeige, sperrt nichts.'><aqua>Live: <white><count></white> Loader, <white><millis> ms</white> pro Runde</hover>"
 lag-list-header: "<prefix><gray>Auffällige und gesperrte Chunkloader:"
 lag-list-entry: "<dark_gray>- <gold><name></gold> <gray>von <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray><metric>: <white><value></white> <dark_gray>(Warngrenze <limit>)"
 lag-list-locked: "<dark_gray>- <red>🔒 <name></red> <gray>von <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray>gesperrt seit <time>: <metric> <value>"

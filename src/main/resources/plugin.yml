@@ -34,13 +34,14 @@ permissions:
       mrchunks.link: true
       mrchunks.block: true
   mrchunks.groups.support:
-    description: "Group support: player + admin menu (see all loaders and their status), teleport to loaders, switch conspicuous loaders (over a warn limit) and their dummy off and on."
+    description: "Group support: player + admin menu (see all loaders and their status), teleport to loaders, switch conspicuous loaders (over a warn limit) and their dummy off and on, live view in the web interface."
     default: op
     children:
       mrchunks.player: true
       mrchunks.admin.gui: true
       mrchunks.admin.teleport: true
       mrchunks.admin.toggle.conspicuous: true
+      mrchunks.admin.live: true
   mrchunks.groups.staff:
     description: "Group staff: support + switch other players' loaders on and off, manage their invites, link and unlink accounts."
     default: op
@@ -142,6 +143,9 @@ permissions:
     default: op
   mrchunks.admin.monitoring:
     description: Switch the staged shutdown (with the hard cap) on and off (MRadmin web interface).
+    default: op
+  mrchunks.admin.live:
+    description: Live view of a chunk loader in MRadmin's web interface (faster measuring while the page is open).
     default: op
   mrchunks.admin.suspendlock:
     description: "Suspend the lock for exceeding the limits for a single chunk loader, at most 24 hours (loader menu, MRadmin web interface, /mrchunks suspendlock)."
