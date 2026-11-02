@@ -316,10 +316,18 @@ public final class LoaderManager {
         } else {
             uncover(loader);
         }
+        phaseChanged(loader, active);
         save();
         syncDummy(loader);
         plugin.maps().refreshSoon();
         plugin.border().loaderChanged(loader);
+    }
+
+    /** For the charts; the lag monitor does not exist yet while the loaders are loaded. */
+    private void phaseChanged(Loader loader, boolean on) {
+        if (plugin.lag() != null) {
+            plugin.lag().phaseChanged(loader, on);
+        }
     }
 
     /**
@@ -536,6 +544,7 @@ public final class LoaderManager {
             return;
         }
         uncover(loader);
+        phaseChanged(loader, false);
         syncDummy(loader);
         plugin.maps().refreshSoon();
         plugin.border().loaderChanged(loader);
@@ -548,6 +557,7 @@ public final class LoaderManager {
         }
         if (loader.active()) {
             cover(loader);
+            phaseChanged(loader, true);
             syncDummy(loader);
         }
         plugin.maps().refreshSoon();

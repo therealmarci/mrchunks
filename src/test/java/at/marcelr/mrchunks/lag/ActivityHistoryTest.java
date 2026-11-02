@@ -79,24 +79,52 @@ class ActivityHistoryTest {
         ActivityHistory restored = new ActivityHistory();
         restored.restore(new TreeMap<>(Map.of(START - STEP, "4:9,0,0,0,0,0", START, ActivityHistory.encode(round))));
 
-        assertTrue(restored.points(4, 0, START, 300).getLast().off());
+        assertEquals(List.of(new ActivityHistory.OffPhase(START, START + STEP)), restored.offPhases(4, 0, START + STEP));
         assertEquals(9, restored.last(4).value(Metric.ENTITIES));
     }
 
     @Test
-    void aSliceIsOnlyOffIfTheLoaderWasOffAllOfIt() {
+    void aShortPhaseStaysWithItsExactTimes() {
         ActivityHistory history = new ActivityHistory();
         for (int i = 0; i < 1000; i++) {
-            if (i >= 500 && i != 900) {
-                history.addOff(1, START + i * STEP);
-            } else {
-                history.add(1, activity(START + i * STEP, 5));
+            history.add(1, activity(START + i * STEP, 5));
+            if (i == 500) {
+                // Off and on again between two rounds: no round ever saw it.
+                history.addOff(1, START + i * STEP + 1000);
+                history.addOn(1, START + i * STEP + 3000);
             }
         }
-        List<ActivityHistory.Point> points = history.points(1, START, START + 999 * STEP, 10);
-        assertEquals(5, points.get(2).value(Metric.ENTITIES));
-        assertTrue(points.get(7).off());
-        assertEquals(5, points.get(9).value(Metric.ENTITIES));
+        long end = START + 999 * STEP;
+        assertEquals(List.of(new ActivityHistory.OffPhase(START + 500 * STEP + 1000, START + 500 * STEP + 3000)),
+                history.offPhases(1, START, end));
+        assertTrue(history.points(1, START, end, 10).stream().allMatch(ActivityHistory.Point::measured));
+    }
+
+    @Test
+    void aPhaseIsCutToTheRangeAndRunsUntilNowWhileOff() {
+        ActivityHistory history = new ActivityHistory();
+        history.add(1, activity(START, 5));
+        history.addOff(1, START + STEP);
+        history.addOff(1, START + 2 * STEP);
+        long now = START + 10 * STEP;
+        assertEquals(List.of(new ActivityHistory.OffPhase(START + 5 * STEP, now)), history.offPhases(1, START + 5 * STEP, now));
+    }
+
+    @Test
+    void aPhaseBeforeTheRangeIsLeftOut() {
+        ActivityHistory history = new ActivityHistory();
+        history.addOff(1, START);
+        history.addOn(1, START + STEP);
+        assertEquals(List.of(), history.offPhases(1, START + 2 * STEP, START + 3 * STEP));
+    }
+
+    @Test
+    void anOnEntryIsNoMeasurement() {
+        ActivityHistory history = new ActivityHistory();
+        history.add(1, activity(START, 5));
+        history.addOn(1, START + STEP);
+        assertEquals(5, history.last(1).value(Metric.ENTITIES));
+        assertEquals(1, history.points(1, 0, START + STEP, 300).size());
     }
 
     @Test

@@ -406,7 +406,7 @@ final class WebData {
         return m;
     }
 
-    /** The chart points of a loader: {from, to, points: [{time, entities, items, ...} or {time, off}]}; null for an unknown range. */
+    /** The charts of a loader: {from, to, points: [{time, entities, items, ...}], off: [{from, to}]}; null for an unknown range. */
     private static Map<String, Object> history(MRChunks plugin, Loader loader, Long range) {
         if (range == null) {
             return null;
@@ -417,19 +417,20 @@ final class WebData {
         for (ActivityHistory.Point point : plugin.lag().history().points(loader.id(), from, to, HISTORY_POINTS)) {
             Map<String, Object> p = new LinkedHashMap<>();
             p.put("time", point.time());
-            if (point.off()) {
-                p.put("off", true);
-            } else {
-                for (Metric metric : Metric.values()) {
-                    p.put(metric.key(), Math.round(point.value(metric) * 10) / 10.0);
-                }
+            for (Metric metric : Metric.values()) {
+                p.put(metric.key(), Math.round(point.value(metric) * 10) / 10.0);
             }
             points.add(p);
+        }
+        List<Map<String, Object>> off = new ArrayList<>();
+        for (ActivityHistory.OffPhase phase : plugin.lag().history().offPhases(loader.id(), from, to)) {
+            off.add(Map.of("from", phase.from(), "to", phase.to()));
         }
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("from", from);
         m.put("to", to);
         m.put("points", points);
+        m.put("off", off);
         return m;
     }
 

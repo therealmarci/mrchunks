@@ -508,6 +508,19 @@ public final class LagMonitor implements Listener {
         return history;
     }
 
+    /**
+     * A loader went on or off: noted with the exact time, so the charts also show a phase between two measuring rounds
+     * or while nothing is measured (startup, server pause).
+     */
+    public void phaseChanged(Loader loader, boolean on) {
+        if (!settings().enabled() || plugin.mradmin() == null) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        ActivityHistory.Point point = on ? history.addOn(loader.id(), now) : history.addOff(loader.id(), now);
+        plugin.mradmin().saveHistory(now, ActivityHistory.encode(Map.of(loader.id(), point)));
+    }
+
     /** Over a warn limit of its own area (last measurement). */
     public boolean conspicuous(Loader loader) {
         Activity a = activity.get(loader.id());
