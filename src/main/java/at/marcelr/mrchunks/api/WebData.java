@@ -31,7 +31,8 @@ import java.util.UUID;
  *  chunks                           number of chunks the loaders keep loaded (cheap, MRadmin asks every second)
  *  loaders                          all loaders with status
  *  loader  {id}                     one loader with every measured value, lock, members
- *  loaderHistory {id, range}        its measurements for the charts: range 1m | 10m | 30m | 1h | 6h | 12h
+ *  loaderHistory {id, range, end?}  its measurements for the charts: range 1m | 10m | 30m | 1h | 6h | 12h, up to a
+ *                                   number of points, so the detail falls with the range; end (ms) = paused at that time
  *  loaderLive {id}                  the live view of a loader; asking keeps it measured (see LagMonitor#live)
  *  action  {id, action, admin}      toggle | unlock | delete | dummy | resize {direction, delta}
  *                                   | suspendLock {duration in ms, 0 = end}  -> null or an error key
@@ -66,7 +67,8 @@ final class WebData {
             }
             case "loaderHistory" -> {
                 Loader loader = loader(plugin, args);
-                yield loader == null ? null : history(plugin, loader, HISTORY_RANGES.get(String.valueOf(args.get("range"))));
+                yield loader == null ? null
+                        : history(plugin, loader, HISTORY_RANGES.get(String.valueOf(args.get("range"))), args.get("end"));
             }
             case "loaderLive" -> {
                 Loader loader = loader(plugin, args);
@@ -417,16 +419,32 @@ final class WebData {
      * The charts of a loader: {from, to, points: [{time, entities, items, ...}], phases: [{from, to, phase off|shed|locked}]};
      * null for an unknown range.
      */
-    private static Map<String, Object> history(MRChunks plugin, Loader loader, Long range) {
+    private static Map<String, Object> history(MRChunks plugin, Loader loader, Long range, Object end) {
         if (range == null) {
             return null;
         }
-        long to = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
+        long to = now;
         long from = to - range;
+        int most = HISTORY_POINTS;
+        if (end != null) {
+            // Paused at an earlier time: one range more on both sides, so scrolling needs no new answer every moment. The
+            // same detail per range as in the live chart.
+            long wanted;
+            try {
+                wanted = Long.parseLong(String.valueOf(end));
+            } catch (NumberFormatException e) {
+                return null;
+            }
+            long view = Math.min(now, Math.max(now - ActivityHistory.MAX_AGE + range, wanted));
+            from = view - 2 * range;
+            to = Math.min(now, view + range);
+            most = 3 * HISTORY_POINTS;
+        }
         List<Map<String, Object>> points = new ArrayList<>();
         // A little more than the range: the web page moves the chart on until the next answer.
         long margin = Math.max(60_000L, range / 50);
-        List<ActivityHistory.Point> measured = plugin.lag().history().points(loader.id(), from - margin, to, HISTORY_POINTS);
+        List<ActivityHistory.Point> measured = plugin.lag().history().points(loader.id(), from - margin, to, most);
         if (range <= LIVE_IN_HISTORY) {
             // A few missed live measurements do not end a stretch (a slow tick, a slow answer).
             measured = ActivityHistory.merged(measured, plugin.lag().livePoints(loader, from - margin, to),
