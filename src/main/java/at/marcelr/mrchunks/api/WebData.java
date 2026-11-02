@@ -417,7 +417,9 @@ final class WebData {
         long to = System.currentTimeMillis();
         long from = to - range;
         List<Map<String, Object>> points = new ArrayList<>();
-        for (ActivityHistory.Point point : plugin.lag().history().points(loader.id(), from, to, HISTORY_POINTS)) {
+        // A little more than the range: the web page moves the chart on until the next answer.
+        long margin = Math.max(60_000L, range / 50);
+        for (ActivityHistory.Point point : plugin.lag().history().points(loader.id(), from - margin, to, HISTORY_POINTS)) {
             Map<String, Object> p = new LinkedHashMap<>();
             p.put("time", point.time());
             for (Metric metric : Metric.values()) {
