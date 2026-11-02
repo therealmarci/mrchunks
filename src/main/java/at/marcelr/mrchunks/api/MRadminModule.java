@@ -53,7 +53,7 @@ final class MRadminModule implements AdminModule, WebModule {
     /** Health id of the server-pause entry (loaders use their numeric id). */
     private static final String PAUSE_ID = "pause";
     /** Read-only requests of {@link WebData} (its actions go through {@link #action} / {@link #playerAction}). */
-    private static final Set<String> DATA = Set.of("overview", "chunks", "loaders", "loader");
+    private static final Set<String> DATA = Set.of("overview", "chunks", "loaders", "loader", "loaderHistory");
     /** Ticket category of lag locks and the web push kind about them. */
     private static final String LOCK_KIND = "chunkloader-lock";
     private static final String PUSH_LOCKED = "chunks-locked";

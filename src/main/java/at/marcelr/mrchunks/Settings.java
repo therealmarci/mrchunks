@@ -296,7 +296,7 @@ public record Settings(
 
         LagSettings lag = new LagSettings(
                 c.getBoolean("lag-protection.enabled", true),
-                Math.clamp(c.getInt("lag-protection.sample-seconds", 30), 5, 600),
+                Math.clamp(c.getInt("lag-protection.sample-seconds", 20), 5, 600),
                 Math.clamp(c.getInt("lag-protection.lock-after-samples", 3), 1, 100),
                 c.getBoolean("lag-protection.only-when-server-lags", true),
                 Math.clamp(c.getDouble("lag-protection.server-lag-mspt", 40), 1, 1000),

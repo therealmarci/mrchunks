@@ -70,6 +70,8 @@ public final class LagMonitor implements Listener {
 
     /** loader id -> last measurement, judged against the limits of the loader's area */
     private final Map<Integer, Activity> activity = new HashMap<>();
+    /** The measurements of the last 12 hours, for the charts in MRadmin's web interface. */
+    private final ActivityHistory history = new ActivityHistory();
     /** loader id -> samples in a row over a lock limit */
     private final Map<Integer, Integer> strikes = new HashMap<>();
     /** loader id -> samples judged since an admin lifted its lock (cooldown, removed after lock-after-samples) */
@@ -265,16 +267,19 @@ public final class LagMonitor implements Listener {
             Activity a = measure(loader, world, seconds, now);
             if (loader.active()) {
                 activity.put(loader.id(), a);
+                history.add(loader.id(), a);
                 judged.add(loader.id());
                 judge(loader, a, serverLags, now);
             } else if (a.loadedChunks() > 0) {
                 // Locked: measured while someone keeps (part of) the area loaded, never judged. Otherwise the last
                 // measurement stays, so admins still see why it was locked.
                 activity.put(loader.id(), a);
+                history.add(loader.id(), a);
             }
         }
         strikes.keySet().retainAll(judged);
         activity.keySet().removeIf(id -> loaders().byId(id) == null);
+        history.retain(id -> loaders().byId(id) != null);
         // The web map colours conspicuous loaders: redraw it when that changed.
         java.util.Set<Integer> conspicuousNow = new java.util.HashSet<>();
         for (Loader loader : loaders().all()) {
@@ -489,6 +494,10 @@ public final class LagMonitor implements Listener {
     /** The last measurement of a loader, or null (not measured yet, inactive, measuring off). */
     public Activity activity(Loader loader) {
         return activity.get(loader.id());
+    }
+
+    public ActivityHistory history() {
+        return history;
     }
 
     /** Over a warn limit of its own area (last measurement). */

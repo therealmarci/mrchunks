@@ -7,6 +7,7 @@ import at.marcelr.mrchunks.MRChunks;
 import at.marcelr.mrchunks.Messages;
 import at.marcelr.mrchunks.Texts;
 import at.marcelr.mrchunks.lag.Activity;
+import at.marcelr.mrchunks.lag.ActivityHistory;
 import at.marcelr.mrchunks.lag.LagLimits;
 import at.marcelr.mrchunks.lag.LagLock;
 import at.marcelr.mrchunks.lag.Metric;
@@ -30,6 +31,7 @@ import java.util.UUID;
  *  chunks                           number of chunks the loaders keep loaded (cheap, MRadmin asks every second)
  *  loaders                          all loaders with status
  *  loader  {id}                     one loader with every measured value, lock, members
+ *  loaderHistory {id, range}        its measurements for the charts: range 1m | 10m | 30m | 1h | 6h | 12h
  *  action  {id, action, admin}      toggle | unlock | delete | dummy | resize {direction, delta}
  *                                   | suspendLock {duration in ms, 0 = end}  -> null or an error key
  *  player  {uuid}                   one player: loaders, budget and dummy limit (with source), ban, invites, loaders shared with them,
@@ -40,6 +42,12 @@ import java.util.UUID;
  * </pre>
  */
 final class WebData {
+
+    /** The chart ranges in ms. */
+    private static final Map<String, Long> HISTORY_RANGES = Map.of("1m", 60_000L, "10m", 600_000L, "30m", 1_800_000L,
+            "1h", 3_600_000L, "6h", 6 * 3_600_000L, "12h", ActivityHistory.MAX_AGE);
+    /** More points would not fit a chart and only make the answer big; longer ranges show the peaks. */
+    private static final int HISTORY_POINTS = 300;
 
     private WebData() {
     }
@@ -52,6 +60,10 @@ final class WebData {
             case "loader" -> {
                 Loader loader = loader(plugin, args);
                 yield loader == null ? null : detail(plugin, loader);
+            }
+            case "loaderHistory" -> {
+                Loader loader = loader(plugin, args);
+                yield loader == null ? null : history(plugin, loader, HISTORY_RANGES.get(String.valueOf(args.get("range"))));
             }
             case "action" -> action(plugin, args);
             case "player" -> {
@@ -385,6 +397,29 @@ final class WebData {
         addMembers(members, plugin.loaders().members(loader.owner(), loader), "loader");
         addMembers(members, plugin.loaders().members(loader.owner(), null), "all");
         m.put("members", members);
+        return m;
+    }
+
+    /** The chart points of a loader: {from, to, points: [{time, entities, items, ...}]}; null for an unknown range. */
+    private static Map<String, Object> history(MRChunks plugin, Loader loader, Long range) {
+        if (range == null) {
+            return null;
+        }
+        long to = System.currentTimeMillis();
+        long from = to - range;
+        List<Map<String, Object>> points = new ArrayList<>();
+        for (ActivityHistory.Point point : plugin.lag().history().points(loader.id(), from, to, HISTORY_POINTS)) {
+            Map<String, Object> p = new LinkedHashMap<>();
+            p.put("time", point.time());
+            for (Metric metric : Metric.values()) {
+                p.put(metric.key(), Math.round(point.value(metric) * 10) / 10.0);
+            }
+            points.add(p);
+        }
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("from", from);
+        m.put("to", to);
+        m.put("points", points);
         return m;
     }
 
