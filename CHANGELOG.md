@@ -16,6 +16,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ### Behoben & geändert
 - **Lag-Schutz misst alle 20 Sekunden:** Statt alle 30 Sekunden wird jetzt dreimal pro Minute gemessen (`lag-protection.sample-seconds` `20`, `config-version` 24; ersetzt nur den alten Standard `30`). Mit `lock-after-samples` `3` wird ein Loader damit schon nach 1 Minute über der Grenze gesperrt, vorher nach 1,5 Minuten.
+- **Eingeschaltete Loader zählen sofort:** Ein gerade eingeschalteter Loader zählte Redstone, Trichter, Kolben und Spawns erst ab der nächsten Messung, nach einem Serverstart sogar erst nach der Startverzögerung. Die Werte standen so lange fälschlich auf 0.
 - **Welten entladen und laden:** Wurde eine Welt entladen und wieder geladen (z.B. `/mv unload`, `/mv load`), hielten ihre Loader trotz „aktiv“ keine Chunks mehr, bis zum nächsten `/mrchunks reload` oder Neustart. Sie laufen jetzt von selbst weiter.
 - **Dummy-Spieler blockieren das Entladen nicht mehr:** Eine Welt mit Dummy ließ sich nicht entladen, auch nicht mit `/mv unload <welt> --remove-players`. Der Dummy verlässt die Welt jetzt und kommt zurück, sobald sie wieder geladen ist. Bleibt die Welt geladen, sitzt er nach wenigen Sekunden wieder auf seinem Loader.
 - **squaremap:** Zusätzliche Nether-Welten bekommen dieselbe Karten-Einstellung wie der Haupt-Nether und zeigen nicht mehr nur das Bedrock-Dach.

@@ -428,8 +428,9 @@ final class WebData {
         long margin = Math.max(60_000L, range / 50);
         List<ActivityHistory.Point> measured = plugin.lag().history().points(loader.id(), from - margin, to, HISTORY_POINTS);
         if (range <= LIVE_IN_HISTORY) {
+            // A few missed live measurements do not end a stretch (a slow tick, a slow answer).
             measured = ActivityHistory.merged(measured, plugin.lag().livePoints(loader, from - margin, to),
-                    plugin.settings().lag().sampleSeconds() * 1000L);
+                    plugin.settings().lag().liveSeconds() * 3000L);
         }
         for (ActivityHistory.Point point : measured) {
             Map<String, Object> p = new LinkedHashMap<>();

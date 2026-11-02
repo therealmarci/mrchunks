@@ -121,24 +121,22 @@ public final class ActivityHistory {
     }
 
     /**
-     * The normal measurements with the finer live ones (both oldest first): near a live measurement, closer than
-     * {@code nearMillis}, the normal one drops out; where there was no live view it stays.
+     * The normal measurements with the finer live ones (both oldest first). A normal one only drops out inside a
+     * stretch of live ones (two of them at most {@code stepMillis} apart around it). The last one before a stretch and
+     * the first one after it stay, so the line runs on without a gap.
      */
-    public static List<Point> merged(List<Point> normal, List<Point> live, long nearMillis) {
+    public static List<Point> merged(List<Point> normal, List<Point> live, long stepMillis) {
         List<Point> result = new ArrayList<>(normal.size() + live.size());
         int next = 0;
-        int nearby = 0;
         for (Point point : normal) {
-            while (nearby < live.size() && live.get(nearby).time() < point.time() - nearMillis) {
-                nearby++;
-            }
-            if (nearby < live.size() && live.get(nearby).time() <= point.time() + nearMillis) {
-                continue;
-            }
             while (next < live.size() && live.get(next).time() < point.time()) {
                 result.add(live.get(next++));
             }
-            result.add(point);
+            boolean sameTime = next < live.size() && live.get(next).time() == point.time();
+            boolean inside = next > 0 && next < live.size() && live.get(next).time() - live.get(next - 1).time() <= stepMillis;
+            if (!sameTime && !inside) {
+                result.add(point);
+            }
         }
         result.addAll(live.subList(next, live.size()));
         return result;

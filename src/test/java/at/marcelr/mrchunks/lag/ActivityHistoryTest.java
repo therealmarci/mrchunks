@@ -160,8 +160,17 @@ class ActivityHistoryTest {
     void liveMeasurementsReplaceTheNormalOnesOnlyWhereTheyExist() {
         // Live view around 5-7 and 20-21: the normal points between stay.
         List<ActivityHistory.Point> merged = ActivityHistory.merged(at(0, 3, 6, 9, 12, 15, 18, 21, 24),
-                at(5, 6, 7, 20, 21), STEP / 2);
+                at(5, 6, 7, 20, 21), STEP);
         assertEquals(List.of(0L, 3L, 5L, 6L, 7L, 9L, 12L, 15L, 18L, 20L, 21L, 24L), steps(merged));
+    }
+
+    @Test
+    void theLastNormalPointBeforeTheLiveViewStays() {
+        // Opened shortly after a normal measurement: no gap between it and the first live one. Inside the stretch a
+        // normal measurement drops out.
+        assertEquals(List.of(0L, 8L, 9L, 10L, 11L, 12L), steps(ActivityHistory.merged(at(0, 10), at(8, 9, 10, 11, 12), STEP)));
+        assertEquals(List.of(0L, 8L, 10L, 12L), steps(ActivityHistory.merged(at(0, 9), at(8, 10, 12), 2 * STEP)));
+        assertEquals(List.of(0L, 1L, 2L, 9L), steps(ActivityHistory.merged(at(0, 9), at(1, 2), STEP)));
     }
 
     @Test

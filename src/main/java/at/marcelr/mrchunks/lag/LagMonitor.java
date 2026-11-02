@@ -548,12 +548,26 @@ public final class LagMonitor implements Listener {
         }
         if (liveCounts.putIfAbsent(loader.id(), new long[Metric.values().length]) == null) {
             liveStart.put(loader.id(), now);
+            firstLive(loader, now);
         }
         if (liveTask == null) {
             long period = s.liveSeconds() * 20L;
             liveTask = Bukkit.getScheduler().runTaskTimer(plugin, this::liveTick, period, period);
         }
         return liveValues.get(loader.id());
+    }
+
+    /**
+     * Someone opened the loader: measured at once, so the line runs on from the last normal measurement. Its events are
+     * the ones since that measurement - there are no live counts yet.
+     */
+    private void firstLive(Loader loader, long now) {
+        World world = loader.world();
+        if (world != null) {
+            Activity a = measure(loader, world, Math.max(1, (now - windowStart) / 1000.0), now);
+            liveValues.put(loader.id(), a);
+            liveHistory.add(loader.id(), a);
+        }
     }
 
     /** The live measurements of a loader since {@code from}, oldest first. */
@@ -632,6 +646,8 @@ public final class LagMonitor implements Listener {
      * or while nothing is measured (startup, server pause).
      */
     public void phaseChanged(Loader loader) {
+        // A loader switched on counts its events from now on, not only after the next measuring round.
+        areaChanged();
         if (!settings().enabled() || plugin.mradmin() == null) {
             return;
         }
