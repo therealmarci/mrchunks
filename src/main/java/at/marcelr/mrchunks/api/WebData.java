@@ -459,7 +459,9 @@ final class WebData {
             points.add(p);
         }
         List<Map<String, Object>> phases = new ArrayList<>();
-        for (ActivityHistory.Span span : plugin.lag().history().phases(loader.id(), from, to)) {
+        // Three rounds without an entry: the server was away.
+        long maxGap = plugin.settings().lag().sampleSeconds() * 3000L;
+        for (ActivityHistory.Span span : plugin.lag().history().phases(loader.id(), from, to, maxGap)) {
             phases.add(Map.of("from", span.from(), "to", span.to(), "phase", span.phase().name().toLowerCase(Locale.ROOT)));
         }
         Map<String, Object> m = new LinkedHashMap<>();

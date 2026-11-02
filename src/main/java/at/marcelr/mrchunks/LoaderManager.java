@@ -327,7 +327,7 @@ public final class LoaderManager {
     /** What the loader is doing right now, as the charts show it. */
     public ActivityHistory.Phase phase(Loader loader) {
         return lagLocked(loader) ? ActivityHistory.Phase.LOCKED : !loader.active() ? ActivityHistory.Phase.OFF
-                : shed(loader) ? ActivityHistory.Phase.SHED : ActivityHistory.Phase.ON;
+                : shed(loader) ? ActivityHistory.Phase.SHED : paused() ? ActivityHistory.Phase.OFF : ActivityHistory.Phase.ON;
     }
 
     /** For the charts; the lag monitor does not exist yet while the loaders are loaded. */

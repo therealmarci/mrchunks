@@ -293,10 +293,23 @@ public final class ActivityHistory {
      * combined points, so a short phase stays visible on a long chart. A phase ends with the next entry of another one.
      */
     public List<Span> phases(int loader, long from, long to) {
+        return phases(loader, from, to, Long.MAX_VALUE);
+    }
+
+    /**
+     * Like {@link #phases(int, long, long)}. Without an entry for more than {@code maxGap} ms the server was away (every
+     * round writes one): a loader that was on counts as off for that time.
+     */
+    public List<Span> phases(int loader, long from, long to, long maxGap) {
         List<Span> spans = new ArrayList<>();
         Phase current = Phase.ON;
         long start = 0;
+        long previous = -1;
         for (Point point : loaders.getOrDefault(loader, new ArrayDeque<>())) {
+            if (current == Phase.ON && previous >= 0 && point.time() - previous > maxGap && point.time() > from) {
+                spans.add(new Span(Math.max(previous, from), point.time(), Phase.OFF));
+            }
+            previous = point.time();
             if (point.phase() == current) {
                 continue;
             }
@@ -308,6 +321,8 @@ public final class ActivityHistory {
         }
         if (current != Phase.ON) {
             spans.add(new Span(Math.max(start, from), to, current));
+        } else if (previous >= 0 && to - previous > maxGap) {
+            spans.add(new Span(Math.max(previous, from), to, Phase.OFF));
         }
         return spans;
     }

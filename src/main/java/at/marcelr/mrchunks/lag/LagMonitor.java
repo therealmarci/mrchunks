@@ -257,13 +257,23 @@ public final class LagMonitor implements Listener {
         Settings.LagSettings s = settings();
         long now = System.currentTimeMillis();
         loaders().expireLockSuspensions().forEach(plugin.adminActions()::lockSuspensionExpired);
-        if (loaders().paused() || plugin.startupGrace()) {
-            // Server pause or startup: the loaders hold nothing / every tick is slow, so nothing is judged.
+        if (loaders().paused()) {
+            // The loaders hold nothing, so nothing is judged. The rounds are still written: time without an entry means
+            // the server was away.
             strikes.clear();
             counts.clear();
             windowStart = now;
+            Map<Integer, ActivityHistory.Point> off = new HashMap<>();
+            for (Loader loader : loaders().all()) {
+                off.put(loader.id(), history.addPhase(loader.id(), now, loaders().phase(loader)));
+            }
+            if (!off.isEmpty()) {
+                plugin.mradmin().saveHistory(now, ActivityHistory.encode(off));
+            }
             return;
         }
+        // While the server starts every tick is slow: measured for the charts, but not judged.
+        boolean starting = plugin.startupGrace();
         double seconds = Math.max(1, (now - windowStart) / 1000.0);
         boolean serverLags = Bukkit.getAverageTickTime() >= s.serverLagMspt();
 
@@ -290,8 +300,10 @@ public final class LagMonitor implements Listener {
             if (loader.active()) {
                 activity.put(loader.id(), a);
                 round.put(loader.id(), history.add(loader.id(), a, loaders().phase(loader)));
-                judged.add(loader.id());
-                judge(loader, a, serverLags, now);
+                if (!starting) {
+                    judged.add(loader.id());
+                    judge(loader, a, serverLags, now);
+                }
             } else if (a.loadedChunks() > 0) {
                 // Locked: measured while someone keeps (part of) the area loaded, never judged. Otherwise the last
                 // measurement stays, so admins still see why it was locked.

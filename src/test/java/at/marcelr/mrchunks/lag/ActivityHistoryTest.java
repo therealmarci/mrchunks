@@ -207,6 +207,30 @@ class ActivityHistoryTest {
     }
 
     @Test
+    void timeWithoutEntriesCountsAsOff() {
+        ActivityHistory history = new ActivityHistory();
+        history.add(1, activity(START, 5));
+        history.add(1, activity(START + STEP, 5));
+        // The server was away for a while.
+        history.add(1, activity(START + 20 * STEP, 5));
+        history.add(1, activity(START + 21 * STEP, 5));
+        long maxGap = 3 * STEP;
+        assertEquals(List.of(new ActivityHistory.Span(START + STEP, START + 20 * STEP, Phase.OFF)),
+                history.phases(1, START, START + 21 * STEP, maxGap));
+        assertEquals(List.of(new ActivityHistory.Span(START + 21 * STEP, START + 30 * STEP, Phase.OFF)),
+                history.phases(1, START + 21 * STEP, START + 30 * STEP, maxGap));
+    }
+
+    @Test
+    void aLockKeepsItsKindAcrossAGap() {
+        ActivityHistory history = new ActivityHistory();
+        history.addPhase(1, START, Phase.LOCKED);
+        history.addPhase(1, START + 20 * STEP, Phase.LOCKED);
+        assertEquals(List.of(new ActivityHistory.Span(START, START + 21 * STEP, Phase.LOCKED)),
+                history.phases(1, START, START + 21 * STEP, 3 * STEP));
+    }
+
+    @Test
     void noStepKeepsEveryPoint() {
         assertEquals(List.of(1L, 2L), steps(ActivityHistory.combined(at(1, 2), 0)));
     }
