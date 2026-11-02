@@ -1,5 +1,6 @@
 package at.marcelr.mrchunks;
 
+import at.marcelr.mrchunks.lag.ActivityHistory;
 import at.marcelr.mrchunks.lag.LagLock;
 import at.marcelr.mrchunks.lag.Metric;
 import org.bukkit.Bukkit;
@@ -81,9 +82,15 @@ public final class LoaderManager {
     private final Map<UUID, Map<UUID, Long>> ownerMembers = new HashMap<>();
     /** loader id -> lag lock (only admins can lift it) */
     private final Map<Integer, LagLock> lagLocks = new HashMap<>();
+    /** loader id -> admins suspended its lock for exceeding the limits; saved, ends by itself */
+    private final Map<Integer, LockSuspension> lockSuspensions = new HashMap<>();
 
     /** A switch the team flipped in the web interface: who and since when (ms). */
     public record Switch(String by, long since) {
+    }
+
+    /** The lock for exceeding the limits does not apply to a loader until {@code until} (ms). */
+    public record LockSuspension(long until, String by) {
     }
 
     /** Exclusion from chunk loaders. {@code until == Long.MAX_VALUE} means permanent. */
@@ -279,6 +286,7 @@ public final class LoaderManager {
         unindex(loader);
         loaderMembers.remove(loader.id());
         lagLocks.remove(loader.id());
+        lockSuspensions.remove(loader.id());
         shed.remove(loader.id());
         plugin.border().loaderRemoved(loader);
         World world = loader.world();
@@ -309,10 +317,24 @@ public final class LoaderManager {
         } else {
             uncover(loader);
         }
+        phaseChanged(loader);
         save();
         syncDummy(loader);
         plugin.maps().refreshSoon();
         plugin.border().loaderChanged(loader);
+    }
+
+    /** What the loader is doing right now, as the charts show it. */
+    public ActivityHistory.Phase phase(Loader loader) {
+        return lagLocked(loader) ? ActivityHistory.Phase.LOCKED : !loader.active() ? ActivityHistory.Phase.OFF
+                : shed(loader) ? ActivityHistory.Phase.SHED : paused() ? ActivityHistory.Phase.OFF : ActivityHistory.Phase.ON;
+    }
+
+    /** For the charts; the lag monitor does not exist yet while the loaders are loaded. */
+    private void phaseChanged(Loader loader) {
+        if (plugin.lag() != null) {
+            plugin.lag().phaseChanged(loader);
+        }
     }
 
     /**
@@ -426,6 +448,7 @@ public final class LoaderManager {
         if (loader.active()) {
             setActive(loader, false);
         } else {
+            phaseChanged(loader);
             save();
         }
     }
@@ -442,9 +465,57 @@ public final class LoaderManager {
     public boolean lagUnlock(Loader loader) {
         boolean removed = lagLocks.remove(loader.id()) != null;
         if (removed) {
+            phaseChanged(loader);
             save();
         }
         return removed;
+    }
+
+    // ------------------------------------------------- lock suspensions
+
+    /** The running suspension of the loader's limit lock, or null. */
+    public LockSuspension lockSuspension(Loader loader) {
+        LockSuspension suspension = lockSuspensions.get(loader.id());
+        return suspension != null && suspension.until() > System.currentTimeMillis() ? suspension : null;
+    }
+
+    /** Loaders with a running suspension of their limit lock. */
+    public List<Loader> lockSuspended() {
+        return loaders.values().stream().filter(loader -> lockSuspension(loader) != null).toList();
+    }
+
+    public void suspendLock(Loader loader, long until, String by) {
+        lockSuspensions.put(loader.id(), new LockSuspension(until, by));
+        save();
+    }
+
+    /** Ends the suspension before its time. @return whether one was running */
+    public boolean endLockSuspension(Loader loader) {
+        boolean running = lockSuspension(loader) != null;
+        if (lockSuspensions.remove(loader.id()) != null) {
+            save();
+        }
+        return running;
+    }
+
+    /** Removes the suspensions whose time is up. @return their loaders */
+    public List<Loader> expireLockSuspensions() {
+        List<Loader> expired = new ArrayList<>();
+        long now = System.currentTimeMillis();
+        lockSuspensions.entrySet().removeIf(entry -> {
+            if (entry.getValue().until() > now) {
+                return false;
+            }
+            Loader loader = loaders.get(entry.getKey());
+            if (loader != null) {
+                expired.add(loader);
+            }
+            return true;
+        });
+        if (!expired.isEmpty()) {
+            save();
+        }
+        return expired;
     }
 
     /** Sets or (with null) removes the name the player gave the loader. */
@@ -482,6 +553,7 @@ public final class LoaderManager {
             return;
         }
         uncover(loader);
+        phaseChanged(loader);
         syncDummy(loader);
         plugin.maps().refreshSoon();
         plugin.border().loaderChanged(loader);
@@ -494,6 +566,7 @@ public final class LoaderManager {
         }
         if (loader.active()) {
             cover(loader);
+            phaseChanged(loader);
             syncDummy(loader);
         }
         plugin.maps().refreshSoon();
@@ -581,6 +654,18 @@ public final class LoaderManager {
             if (loader.active() && loader.worldId().equals(world.getUID())) {
                 cover(loader);
                 syncDummy(loader);
+            }
+        }
+    }
+
+    /** The world was unloaded and took its tickets along: they are added again by {@link #applyWorld} when it loads. */
+    public void worldUnloaded(World world) {
+        UUID id = world.getUID();
+        coverage.remove(id);
+        forcedByUs.remove(id);
+        for (Loader loader : loaders.values()) {
+            if (loader.worldId().equals(id)) {
+                covered.remove(loader.id());
             }
         }
     }
@@ -1118,6 +1203,7 @@ public final class LoaderManager {
         loaderMembers.clear();
         ownerMembers.clear();
         lagLocks.clear();
+        lockSuspensions.clear();
         adminPause = null;
         monitoringOff = null;
         nextId = 1;
@@ -1203,6 +1289,17 @@ public final class LoaderManager {
                         lagLocks.put(Integer.parseInt(key), new LagLock(s.getLong("since"), metric,
                                 s.getDouble("value"), s.getDouble("limit"), s.getBoolean("notified"), s.getInt("shutdowns")));
                     }
+                } catch (NumberFormatException ignored) {
+                    // broken entry
+                }
+            }
+        }
+        ConfigurationSection suspensionSection = data.getConfigurationSection("lock-suspensions");
+        if (suspensionSection != null) {
+            for (String key : suspensionSection.getKeys(false)) {
+                try {
+                    lockSuspensions.put(Integer.parseInt(key), new LockSuspension(suspensionSection.getLong(key + ".until"),
+                            suspensionSection.getString(key + ".by", "?")));
                 } catch (NumberFormatException ignored) {
                     // broken entry
                 }
@@ -1350,6 +1447,11 @@ public final class LoaderManager {
             if (lock.shutdowns() > 0) {
                 data.set(p + "shutdowns", lock.shutdowns());
             }
+        });
+        lockSuspensions.keySet().removeIf(id -> !loaders.containsKey(id));
+        lockSuspensions.forEach((id, suspension) -> {
+            data.set("lock-suspensions." + id + ".until", suspension.until());
+            data.set("lock-suspensions." + id + ".by", suspension.by());
         });
         bans.forEach((uuid, ban) -> {
             data.set("bans." + uuid + ".until", ban.until());

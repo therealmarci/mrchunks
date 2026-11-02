@@ -69,10 +69,18 @@ public record Settings(
      * a metric is over its lock limit {@code lockAfterSamples} times in a row (and, with {@code onlyWhenServerLags},
      * only while the server's average tick time is at least {@code serverLagMspt}). From {@code forceLockMultiplier}
      * times a lock limit on (0 = off) the server state does not matter. Durations in ms. Limits: see {@link #limitsFor}.
+     * {@code suspensionDurations}: what admins can choose to suspend that lock for one loader (ms, at most 24 h).
+     * {@code live*}: faster measuring of the loaders open in MRadmin's web interface, only for the display.
      */
     public record LagSettings(boolean enabled, int sampleSeconds, int lockAfterSamples, boolean onlyWhenServerLags,
                               double serverLagMspt, double forceLockMultiplier, LagLimits limits, int limitsPerChunks,
-                              LagLimits smallLimits, int smallChunks, int startupDelaySeconds) {
+                              LagLimits smallLimits, int smallChunks, int startupDelaySeconds,
+                              List<Long> suspensionDurations, boolean liveEnabled, int liveSeconds, int liveMaxLoaders) {
+
+        /** The longest suspension of a limit lock (ms). */
+        public long maxSuspension() {
+            return suspensionDurations.getLast();
+        }
 
         /**
          * The limits for an area of {@code chunks} chunks (a loader, or all active loaders of an owner together), in
@@ -90,6 +98,9 @@ public record Settings(
 
     /** Marker for a permanent ban. */
     public static final long PERMANENT = -1L;
+    /** Shortest and longest suspension of a limit lock (ms); the config cannot go beyond them. */
+    public static final long MIN_SUSPENSION = 60_000L;
+    public static final long MAX_SUSPENSION = 24 * 3_600_000L;
 
     public enum LoadMethod { TICKET, FORCELOAD }
 
@@ -286,7 +297,7 @@ public record Settings(
 
         LagSettings lag = new LagSettings(
                 c.getBoolean("lag-protection.enabled", true),
-                Math.clamp(c.getInt("lag-protection.sample-seconds", 30), 5, 600),
+                Math.clamp(c.getInt("lag-protection.sample-seconds", 20), 5, 600),
                 Math.clamp(c.getInt("lag-protection.lock-after-samples", 3), 1, 100),
                 c.getBoolean("lag-protection.only-when-server-lags", true),
                 Math.clamp(c.getDouble("lag-protection.server-lag-mspt", 40), 1, 1000),
@@ -295,7 +306,11 @@ public record Settings(
                 Math.clamp(c.getInt("lag-protection.limits-per-chunks", 49), 1, 10_000),
                 limits(c, "lag-protection.small-loaders.limits", LagLimits.smallDefaults(), log),
                 Math.clamp(c.getInt("lag-protection.small-loaders.max-chunks", 9), 0, 10_000),
-                Math.clamp(c.getInt("lag-protection.startup-delay-seconds", 180), 0, 3600));
+                Math.clamp(c.getInt("lag-protection.startup-delay-seconds", 180), 0, 3600),
+                suspensionDurations(c.getStringList("lag-protection.lock-suspension-durations"), log),
+                c.getBoolean("lag-protection.live-view.enabled", true),
+                Math.clamp(c.getInt("lag-protection.live-view.seconds", 1), 1, 10),
+                Math.clamp(c.getInt("lag-protection.live-view.max-loaders", 5), 1, 50));
 
         double below = Math.clamp(c.getDouble("server-pause.below-tps", 15), 1, 19.9);
         double resume = Math.clamp(c.getDouble("server-pause.resume-tps", 18), 1, 20);
@@ -443,6 +458,21 @@ public record Settings(
     private static List<Long> banDurations(List<String> raw, Logger log) {
         List<Long> result = durations(raw, List.of("1d", "7d", "permanent"), "gui.ban-durations", log);
         return result.size() >= 3 ? result.subList(0, 3) : result;
+    }
+
+    /** Suspensions of a limit lock: at most 7 for the menu, sorted, each 1 minute to 24 hours; never empty. */
+    static List<Long> suspensionDurations(List<String> raw, Logger log) {
+        java.util.TreeSet<Long> result = new java.util.TreeSet<>();
+        for (String value : raw) {
+            long parsed = parseBanDuration(value);
+            if (parsed >= MIN_SUSPENSION && parsed <= MAX_SUSPENSION) {
+                result.add(parsed);
+            } else {
+                log.warning("Invalid duration '" + value + "' in lag-protection.lock-suspension-durations"
+                        + " (allowed: 1m to 24h), ignoring it.");
+            }
+        }
+        return result.isEmpty() ? List.of(MAX_SUSPENSION) : result.stream().limit(7).toList();
     }
 
     /** Quick-select durations; invalid entries fall back to the defaults, at least the defaults' count. */

@@ -18,6 +18,7 @@ import at.marcelr.mrchunks.gui.LoaderIcons;
 import at.marcelr.mrchunks.gui.LoaderMenu;
 import at.marcelr.mrchunks.gui.PlayerIcons;
 import at.marcelr.mrchunks.gui.PlayerLoadersMenu;
+import at.marcelr.mrchunks.lag.ActivityHistory;
 import at.marcelr.mrchunks.lag.LagLock;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -53,10 +54,12 @@ final class MRadminModule implements AdminModule, WebModule {
     /** Health id of the server-pause entry (loaders use their numeric id). */
     private static final String PAUSE_ID = "pause";
     /** Read-only requests of {@link WebData} (its actions go through {@link #action} / {@link #playerAction}). */
-    private static final Set<String> DATA = Set.of("overview", "chunks", "loaders", "loader");
+    private static final Set<String> DATA = Set.of("overview", "chunks", "loaders", "loader", "loaderHistory", "loaderLive");
     /** Ticket category of lag locks and the web push kind about them. */
     private static final String LOCK_KIND = "chunkloader-lock";
     private static final String PUSH_LOCKED = "chunks-locked";
+    /** MRadmin keeps the measurements for the charts since API 6. */
+    private static final int HISTORY_API = 6;
 
     private final MRChunks plugin;
 
@@ -95,6 +98,25 @@ final class MRadminModule implements AdminModule, WebModule {
         if (service != null) {
             service.resolve(ID, String.valueOf(loader.id()),
                     plugin.messages().server(() -> plugin.messages().plain("report-lock-lifted", "admin", admin)));
+        }
+    }
+
+    /** Reads the saved measurements back (MRadmin with API 6, otherwise the charts start empty). */
+    static void restoreHistory(MRChunks plugin) {
+        MRadminService service = MRadminService.get();
+        if (service != null && service.apiVersion() >= HISTORY_API) {
+            Map<Long, String> rounds = service.moduleHistory(ID, System.currentTimeMillis() - ActivityHistory.MAX_AGE);
+            plugin.lag().history().restore(rounds);
+            if (!rounds.isEmpty()) {
+                plugin.getLogger().info("Restored " + rounds.size() + " measuring rounds of the last 12 hours from MRadmin.");
+            }
+        }
+    }
+
+    static void saveHistory(long time, String data) {
+        MRadminService service = MRadminService.get();
+        if (service != null && service.apiVersion() >= HISTORY_API) {
+            service.moduleHistoryAdd(ID, time, data, ActivityHistory.MAX_AGE);
         }
     }
 
@@ -263,21 +285,29 @@ final class MRadminModule implements AdminModule, WebModule {
         return this;
     }
 
-    private static final Map<String, String> PERMISSIONS = Map.of(
-            "manage", "mrchunks.admin.manage", "limit", "mrchunks.admin.limit", "ban", "mrchunks.admin.ban",
-            "toggle", "mrchunks.admin.toggle", "link", "mrchunks.admin.link", "resize", "mrchunks.admin.resize",
-            "toggleConspicuous", "mrchunks.admin.toggle.conspicuous", "pause", "mrchunks.admin.pause",
-            "monitoring", "mrchunks.admin.monitoring");
+    private static final Map<String, String> PERMISSIONS = Map.ofEntries(
+            Map.entry("manage", "mrchunks.admin.manage"), Map.entry("limit", "mrchunks.admin.limit"),
+            Map.entry("ban", "mrchunks.admin.ban"), Map.entry("toggle", "mrchunks.admin.toggle"),
+            Map.entry("link", "mrchunks.admin.link"), Map.entry("resize", "mrchunks.admin.resize"),
+            Map.entry("toggleConspicuous", "mrchunks.admin.toggle.conspicuous"), Map.entry("pause", "mrchunks.admin.pause"),
+            Map.entry("monitoring", "mrchunks.admin.monitoring"), Map.entry("suspendLock", "mrchunks.admin.suspendlock"),
+            Map.entry("live", "mrchunks.admin.live"));
+    private static final Map<String, String> REQUESTS = Map.of("loaderLive", "live");
     private static final Map<String, String> ACTIONS = Map.of(
             "toggle", "toggle", "unlock", "manage", "delete", "manage", "dummy", "manage", "resize", "resize",
             "conspicuousToggle", "toggleConspicuous", "conspicuousDummy", "toggleConspicuous",
-            "pauseAll", "pause", "monitoring", "monitoring");
+            "pauseAll", "pause", "monitoring", "monitoring", "suspendLock", "suspendLock");
     private static final Map<String, String> PLAYER_ACTIONS = Map.of(
             "limit", "limit", "ban", "ban", "unban", "ban", "deleteAll", "manage", "unlink", "link", "link", "link");
 
     @Override
     public Map<String, String> permissions() {
         return PERMISSIONS;
+    }
+
+    @Override
+    public Map<String, String> requests() {
+        return REQUESTS;
     }
 
     @Override

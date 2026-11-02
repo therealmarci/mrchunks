@@ -66,8 +66,8 @@ final class SquaremapSetup {
                 want.put(base + "display-name",
                         new Want(name, new Change("map-setup-change-name", "world", world.getName(), "name", name)));
             }
-            if (key.equals(NETHER)) {
-                // Without this the nether map only shows the bedrock roof.
+            if (world.getEnvironment() == World.Environment.NETHER) {
+                // Without this the nether map only shows the bedrock roof - also in further nether worlds.
                 want.put(base + "iterate-up", new Want(true, new Change("map-setup-change-nether", "world", world.getName())));
                 want.put(base + "max-height", new Want(127, null));
             }

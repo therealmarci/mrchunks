@@ -22,7 +22,7 @@ import java.util.logging.Level;
  */
 public final class ConfigUpdater {
 
-    public static final int CURRENT_VERSION = 22;
+    public static final int CURRENT_VERSION = 25;
     public static final String BOM = "\uFEFF";
     /** Texts whose content changed with new features; the new default replaces the old value. */
     private static final Set<String> REPLACED_KEYS = Set.of();
@@ -144,6 +144,10 @@ public final class ConfigUpdater {
                     replaceDefault(existing, template, small + ".lock", l[6], l[7]);
                 }
                 replaceDefault(existing, template, "lag-protection.force-lock-multiplier", 2, 3);
+            }
+            if (version < 24) {
+                // Three measurements per minute (user), only where the old default is still set.
+                replaceDefault(existing, template, "lag-protection.sample-seconds", 30, 20);
             }
             template.set("config-version", CURRENT_VERSION);
             // Keep long messages on one line instead of folding them.

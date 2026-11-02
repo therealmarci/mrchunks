@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Do not change - tells the plugin which texts need to be renewed on updates.
-lang-version: 20
+lang-version: 21
 
 # Discord log texts (Discord markdown). Placeholders: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. On/off and colour are set in config.yml.
@@ -34,6 +34,8 @@ discord:
   loader-lag-warning: "⚠️ **{name}** of **{player}** is conspicuous: {metric} {value} (warn limit {limit}) - {world} {x}, {y}, {z}"
   loader-lag-locked: "🔒 **{name}** of **{player}** was locked because of lag: {metric} {value} (limit {limit}) - {world} {x}, {y}, {z}"
   loader-lag-unlocked: "🔓 **{admin}** lifted the lag lock of **{name}** ({player})."
+  loader-lock-suspended: "⏳ **{admin}** suspended the limit lock of **{name}** ({player}) for {time}."
+  loader-lock-suspension-ended: "⌛ The limit lock of **{name}** ({player}) applies again."
   server-paused: "⏸️ The server is lagging ({value} TPS) - all chunk loaders are paused ({count} chunks released)."
   server-resumed: "▶️ The server runs smoothly again ({value} TPS) - the chunk loaders load again (pause: {time})."
   dummy-toggled: "🧍 The dummy on **{name}** of **{player}** is now **{state}** (changed by {admin})."
@@ -151,8 +153,19 @@ lag-locked-toggle: "<prefix><hover:show_text:'<gray>Since <time>: <metric> <valu
 lag-unlocked: "<prefix><hover:show_text:'<gray>The loader is still off, the owner switches it on.'><green><white><name></white> unlocked.</hover>"
 lag-unlocked-owner: "<prefix><hover:show_text:'<gray>Unlocked by <admin>.<newline>Please make sure the farm no longer lags.'><green><white><name></white> unlocked - you can switch it on.</hover>"
 lag-not-locked: "<prefix><gray><white><name></white> is not locked."
+lock-suspended: "<prefix><hover:show_text:'<gray>Until <time>. It is still measured.<newline>The staged shutdown and the lock after repeated shutdowns still apply.'><green>Limit lock of <white><name></white> suspended: <white><duration></white></hover>"
+lock-suspended-unlocked: "<prefix><hover:show_text:'<gray>Until <time>. The lock is lifted.<newline>The loader is still off, the owner switches it on.'><green>Limit lock of <white><name></white> suspended: <white><duration></white></hover>"
+lock-suspended-owner: "<prefix><hover:show_text:'<gray>By <admin>, until <time>.<newline>Under heavy server load it can still be disabled.'><green>Limit lock of <white><name></white> suspended for <white><duration></white></hover>"
+lock-suspended-unlocked-owner: "<prefix><hover:show_text:'<gray>By <admin>, until <time>.<newline>Under heavy server load it can still be disabled.'><green><white><name></white> unlocked - limit lock suspended for <white><duration></white></hover>"
+lock-suspension-ended: "<prefix><green>Limit lock of <white><name></white> applies again."
+lock-suspension-ended-owner: "<prefix><hover:show_text:'<gray>Over the limits it can be locked again.'><yellow>Limit lock of <white><name></white> applies again</hover>"
+lock-suspension-none: "<prefix><gray>The limit lock of <white><name></white> is not suspended."
+lock-suspension-invalid: "<prefix><hover:show_text:'<gray>For example 30m, 6h or 24h<newline>lag-protection.lock-suspension-durations'><red>Give a duration from 1 minute to <white><max></white>.</hover>"
+lock-suspension-repeated: "<prefix><hover:show_text:'<gray>Locked after repeated lag shutdowns.<newline>This lock cannot be suspended, only lifted.'><red>Unlock <white><name></white> first.</hover>"
+lag-list-suspended: "<prefix><hover:show_text:'<gray>By <admin>'><aqua>⏳ <white><name></white> <gray>- limit lock suspended until <white><time></white></hover>"
 lag-disabled: "<prefix><hover:show_text:'<gray>lag-protection.enabled'><yellow>Lag protection is off.</hover>"
 startup-delay-status: "<prefix><hover:show_text:'<gray>Lag protection, shutdown and pause wait after the start.<newline>lag-protection.startup-delay-seconds'><gray>Starting up: <white><seconds> s</white> left</hover>"
+live-status: "<prefix><hover:show_text:'<gray>Every <seconds> s for the page open in the web.<newline>Display only, it locks nothing.'><aqua>Live: <white><count></white> loader(s), <white><millis> ms</white> per round</hover>"
 lag-list-header: "<prefix><gray>Conspicuous and locked chunk loaders:"
 lag-list-entry: "<dark_gray>- <gold><name></gold> <gray>of <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray><metric>: <white><value></white> <dark_gray>(warn limit <limit>)"
 lag-list-locked: "<dark_gray>- <red>🔒 <name></red> <gray>of <white><player></white> <dark_gray>(<world> <x> <y> <z>)</dark_gray> <gray>locked since <time>: <metric> <value>"
@@ -276,6 +289,7 @@ admin-usage: |-
   <green>/mrchunks toggle <player> <no></green> <dark_gray>- <gray>Turn a chunk loader on/off
   <green>/mrchunks delete <player> <no></green> <dark_gray>- <gray>Delete a chunk loader
   <green>/mrchunks unlock <player> <no></green> <dark_gray>- <gray>Lift a lag lock
+  <green>/mrchunks suspendlock <player> <no> <duration|off></green> <dark_gray>- <gray>Suspend the limit lock
   <green>/mrchunks dummy <player> <no></green> <dark_gray>- <gray>Dummy player on/off
   <green>/mrchunks lag</green> <dark_gray>- <gray>Conspicuous and locked chunk loaders
   <green>/mrchunks limit <player> <budget|dummy> <amount|reset></green> <dark_gray>- <gray>Chunk budget / dummies
@@ -416,6 +430,27 @@ gui-unlock-name: "<green><bold>Lift lag lock"
 gui-unlock-lore:
   - "<gray>Since <white><time></white>: <metric> <white><value></white> <dark_gray>(limit <limit>)"
   - "<gray>Stays off, the owner switches it on."
+gui-loader-suspended:
+  - ""
+  - "<aqua>⏳ Limit lock suspended <gray>until <time>"
+gui-title-suspend: "<dark_gray>Limit lock » <dark_green><name>"
+gui-suspend-name: "<aqua>Suspend limit lock"
+gui-suspend-lore:
+  - "<gray>For this loader, up to <white><max></white>."
+  - "<gray>Shutdown under server load still applies."
+gui-suspend-active-name: "<aqua>Limit lock suspended"
+gui-suspend-active-lore:
+  - "<gray>Until <white><time></white> <dark_gray>(<by>)"
+  - "<gray>Click: change or end."
+gui-suspend-choice-name: "<green><duration>"
+gui-suspend-choice-lore:
+  - "<gray>Click: suspend for <white><duration></white> from now."
+gui-suspend-choice-locked-lore:
+  - "<gray>Click: unlock and suspend for <white><duration></white>."
+  - "<gray>Stays off, the owner switches it on."
+gui-suspend-end-name: "<red>End suspension"
+gui-suspend-end-lore:
+  - "<gray>The limit lock applies again at once."
 gui-activity-header-ok: "<gray>Activity: <green>normal"
 gui-activity-header-warn: "<gray>Activity: <gold>conspicuous"
 gui-activity-header-high: "<gray>Activity: <red>above the lock limit"
@@ -758,6 +793,7 @@ self-limits-none: "Not measured yet - measuring happens while the area is loaded
 self-limits-off: "Lag protection is switched off on this server."
 self-locked-detail: "Locked for <metric>: <value> (limit <limit>), since <since>. Only an admin can lift the lock."
 self-shed-detail: "Disabled by lag since <since>: the server was under heavy load. The loader stays on and loads again by itself, probably <back> (one after the other, once the server has recovered)."
+self-suspended-detail: "The team suspended the limit lock until <until>. Under heavy server load the loader can still be disabled."
 self-members-text: "Invited players may switch all your loaders on and off - nothing else. Invites for a single loader are in its card."
 self-until: "until <date>"
 self-online: "online"

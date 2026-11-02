@@ -27,6 +27,8 @@ public final class AdminActions {
     public static final String PERM_VIEW = "mrchunks.view";
     /** Admins: delete, rename, dummies, block, lift lag locks - and everything below. */
     public static final String PERM_MANAGE = "mrchunks.admin.manage";
+    /** Admins: suspend the lock for exceeding the limits for a single loader, for a while. */
+    public static final String PERM_SUSPEND_LOCK = "mrchunks.admin.suspendlock";
     /** Staff: switch other players' loaders on and off (within the owner's budget). */
     public static final String PERM_TOGGLE = "mrchunks.admin.toggle";
     /** Support: switch a conspicuous loader (over a warn limit) and its dummy off - and on again. */
@@ -203,6 +205,86 @@ public final class AdminActions {
         plugin.getLogger().info(sender.getName() + " lifted the lag lock of " + Texts.consoleName(plugin, loader) + ".");
         plugin.discord().log("loader-lag-unlocked", discordTags(loader, "admin", sender.getName()));
         plugin.mradmin().lagUnlocked(loader, sender.getName());
+    }
+
+    /**
+     * Suspends the loader's lock for exceeding its limits for {@code duration} ms (mrchunks.admin.suspendlock), a new
+     * duration replaces a running one. A lock for exceeding the limits is lifted with it (the loader stays off); a lock
+     * after repeated shutdowns has nothing to do with the limits and stays.
+     */
+    public void suspendLock(CommandSender sender, Loader loader, long duration) {
+        if (!sender.hasPermission(PERM_SUSPEND_LOCK)) {
+            messages().send(sender, "no-permission");
+            return;
+        }
+        String problem = suspendProblem(loader, duration);
+        if (problem != null) {
+            messages().send(sender, problem.equals("invalid-duration") ? "lock-suspension-invalid" : "lock-suspension-repeated",
+                    Texts.loader(plugin, loader), tag("max", Texts.duration(plugin, plugin.settings().lag().maxSuspension())));
+            return;
+        }
+        boolean wasLocked = applySuspension(loader, duration, sender.getName());
+        long until = loaders().lockSuspension(loader).until();
+        messages().send(sender, wasLocked ? "lock-suspended-unlocked" : "lock-suspended", suspensionTags(loader, until, duration));
+        plugin.getLogger().info(sender.getName() + " suspended the limit lock of " + Texts.consoleName(plugin, loader)
+                + " for " + at.marcelr.mrchunks.util.DurationUtil.format(duration) + ".");
+    }
+
+    /** Ends a suspension before its time (mrchunks.admin.suspendlock). */
+    public void endLockSuspension(CommandSender sender, Loader loader) {
+        if (!sender.hasPermission(PERM_SUSPEND_LOCK)) {
+            messages().send(sender, "no-permission");
+            return;
+        }
+        if (!loaders().endLockSuspension(loader)) {
+            messages().send(sender, "lock-suspension-none", Texts.loader(plugin, loader));
+            return;
+        }
+        messages().send(sender, "lock-suspension-ended", Texts.loader(plugin, loader));
+        lockSuspensionOver(loader);
+        plugin.getLogger().info(sender.getName() + " ended the suspended limit lock of " + Texts.consoleName(plugin, loader) + ".");
+    }
+
+    /** The time of a suspension is up. */
+    public void lockSuspensionExpired(Loader loader) {
+        lockSuspensionOver(loader);
+        plugin.getLogger().info("The limit lock of " + Texts.consoleName(plugin, loader) + " applies again.");
+    }
+
+    private void lockSuspensionOver(Loader loader) {
+        notifyOwner(loader.owner(), "lock-suspension-ended-owner", Texts.loader(plugin, loader));
+        plugin.discord().log("loader-lock-suspension-ended", discordTags(loader));
+    }
+
+    /** Why the limit lock of this loader cannot be suspended for this long (error key), or null. */
+    private String suspendProblem(Loader loader, long duration) {
+        if (duration < Settings.MIN_SUSPENSION || duration > plugin.settings().lag().maxSuspension()) {
+            return "invalid-duration";
+        }
+        LagLock lock = loaders().lagLock(loader);
+        return lock != null && lock.repeated() ? "loader-lock-repeated" : null;
+    }
+
+    /** Lifts a lock for exceeding the limits and suspends it. @return whether the loader was locked */
+    private boolean applySuspension(Loader loader, long duration, String admin) {
+        boolean locked = loaders().lagUnlock(loader);
+        if (locked) {
+            plugin.lag().unlocked(loader);
+            plugin.mradmin().lagUnlocked(loader, admin);
+        }
+        long until = System.currentTimeMillis() + duration;
+        loaders().suspendLock(loader, until, admin);
+        notifyOwner(loader.owner(), locked ? "lock-suspended-unlocked-owner" : "lock-suspended-owner",
+                suspensionTags(loader, until, duration), tag("admin", admin));
+        plugin.discord().log("loader-lock-suspended", discordTags(loader, "admin", admin,
+                "time", at.marcelr.mrchunks.util.DurationUtil.format(duration)));
+        return locked;
+    }
+
+    private TagResolver suspensionTags(Loader loader, long until, long duration) {
+        return TagResolver.resolver(Texts.loader(plugin, loader),
+                tag("duration", at.marcelr.mrchunks.util.DurationUtil.format(duration)),
+                Messages.lazy("time", () -> Texts.date(messages(), until)));
     }
 
     public void delete(CommandSender sender, Loader loader) {
@@ -549,6 +631,26 @@ public final class AdminActions {
         plugin.getLogger().info(admin + " (web) lifted the lag lock of " + Texts.consoleName(plugin, loader) + ".");
         plugin.discord().log("loader-lag-unlocked", discordTags(loader, "admin", admin));
         plugin.mradmin().lagUnlocked(loader, admin);
+        return null;
+    }
+
+    /** Suspends the limit lock like {@link #suspendLock}; {@code duration} 0 ends a running suspension. */
+    public String webSuspendLock(String admin, Loader loader, long duration) {
+        if (duration == 0) {
+            if (!loaders().endLockSuspension(loader)) {
+                return "loader-not-suspended";
+            }
+            lockSuspensionOver(loader);
+            plugin.getLogger().info(admin + " (web) ended the suspended limit lock of " + Texts.consoleName(plugin, loader) + ".");
+            return null;
+        }
+        String problem = suspendProblem(loader, duration);
+        if (problem != null) {
+            return problem;
+        }
+        applySuspension(loader, duration, admin);
+        plugin.getLogger().info(admin + " (web) suspended the limit lock of " + Texts.consoleName(plugin, loader)
+                + " for " + at.marcelr.mrchunks.util.DurationUtil.format(duration) + ".");
         return null;
     }
 

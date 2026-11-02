@@ -16,7 +16,7 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 22
+config-version: 25
 
 # Language of the texts (chat, menus, items). The texts are in plugins/MRchunks/lang/<language>.yml.
 #   auto = every player gets the language set in their Minecraft client:
@@ -155,16 +155,18 @@ dummies:
 # status, if installed), plus a Discord log (at most once per hour).
 # If a loader is above "lock" several times in a row, only this loader is switched off and LOCKED:
 # only admins can lift the lock (loader menu or /mrchunks unlock <player> <nr>). The owner is informed.
+# Admins can suspend this lock for a single loader for a while (loader menu, MRadmin web interface or
+# /mrchunks suspendlock <player> <nr> <duration|off>). The staged shutdown and the server pause still apply to it.
 # A value of 0 switches the respective measurement off (e.g. hoppers: { warn: 0, lock: 0 }).
 lag-protection:
   enabled: true
   # Measure every this many seconds.
-  sample-seconds: 30
+  sample-seconds: 20
   # After a server start, wait this many seconds (from the first tick) before judging anything: loading the worlds
   # makes the tick time spike and would otherwise switch off or lock loaders on every boot. Also applies to the
   # staged shutdown (incl. hard cap) and the server pause. 0 = no delay.
   startup-delay-seconds: 180
-  # This many measurements in a row above "lock" before locking (3 x 30 s = 1.5 minutes).
+  # This many measurements in a row above "lock" before locking (3 x 20 s = 1 minute).
   # This also applies after unlocking: it can lock again after this many new measurements at the earliest.
   lock-after-samples: 3
   # true = only lock if the server really lags at that time (average tick time from server-lag-mspt).
@@ -178,6 +180,17 @@ lag-protection:
   # 1 = as soon as "lock" is exceeded, 3 = from three times the limit (e.g. 750 entities with lock 250), 1.5 works too.
   # 0 = off, then it never locks without server lag.
   force-lock-multiplier: 3
+  # Durations admins can choose to suspend the lock of one loader (at most 7, from 1m to 24h).
+  # The longest entry is also the maximum for /mrchunks suspendlock.
+  lock-suspension-durations: ["1h", "3h", "6h", "12h", "24h"]
+  # Live view in MRadmin's web interface: a loader whose page someone has open is measured more often. It costs nothing
+  # while nobody looks, and these measurements are only displayed - they lock nothing and are not saved.
+  live-view:
+    enabled: true
+    # Seconds between two live measurements (1-10).
+    seconds: 1
+    # At most this many loaders at once; further ones stay with the normal measurements.
+    max-loaders: 5
   # The limits below apply to this many chunks (49 = one 7x7 loader) and are scaled to the actual area:
   # a 5x5 loader (25 chunks) gets 25/49 of them, a 9x9 loader (81 chunks) 81/49 - for each loader on its own
   # (up to 3x3 see small-loaders).
@@ -453,6 +466,12 @@ discord:
     loader-lag-unlocked:
       enabled: true
       color: "#27AE60"
+    loader-lock-suspended:
+      enabled: true
+      color: "#3498DB"
+    loader-lock-suspension-ended:
+      enabled: true
+      color: "#95A5A6"
     server-paused:
       enabled: true
       color: "#E67E22"

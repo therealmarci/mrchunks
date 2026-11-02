@@ -7,6 +7,7 @@ import at.marcelr.mrchunks.MRChunks;
 import at.marcelr.mrchunks.Messages;
 import at.marcelr.mrchunks.Texts;
 import at.marcelr.mrchunks.lag.Activity;
+import at.marcelr.mrchunks.lag.ActivityHistory;
 import at.marcelr.mrchunks.lag.LagLimits;
 import at.marcelr.mrchunks.lag.LagLock;
 import at.marcelr.mrchunks.lag.Metric;
@@ -30,7 +31,11 @@ import java.util.UUID;
  *  chunks                           number of chunks the loaders keep loaded (cheap, MRadmin asks every second)
  *  loaders                          all loaders with status
  *  loader  {id}                     one loader with every measured value, lock, members
- *  action  {id, action, admin}      toggle | unlock | delete | dummy | resize {direction, delta}  -> null or an error key
+ *  loaderHistory {id, range, end?}  its measurements for the charts: range 1m | 10m | 30m | 1h | 6h | 12h, the detail
+ *                                   falls with the range (HISTORY_STEPS); end (ms) = paused at that time
+ *  loaderLive {id}                  the live view of a loader; asking keeps it measured (see LagMonitor#live)
+ *  action  {id, action, admin}      toggle | unlock | delete | dummy | resize {direction, delta}
+ *                                   | suspendLock {duration in ms, 0 = end}  -> null or an error key
  *  player  {uuid}                   one player: loaders, budget and dummy limit (with source), ban, invites, loaders shared with them,
  *                                   linked accounts (main, secondAccounts), dummies
  *  flags                            uuid -> marks for MRadmin's player list (chunks-locked, chunks-warn, chunks-banned)
@@ -39,6 +44,17 @@ import java.util.UUID;
  * </pre>
  */
 final class WebData {
+
+    /** The chart ranges in ms. */
+    private static final Map<String, Long> HISTORY_RANGES = Map.of("1m", 60_000L, "10m", 600_000L, "30m", 1_800_000L,
+            "1h", 3_600_000L, "6h", 6 * 3_600_000L, "12h", ActivityHistory.MAX_AGE);
+    /** The detail falls with the range: one point per this many ms, each with the peaks of its time (0 = every one). */
+    private static final Map<Long, Long> HISTORY_STEPS = Map.of(60_000L, 0L, 600_000L, 5_000L, 1_800_000L, 20_000L,
+            3_600_000L, 60_000L, 6 * 3_600_000L, 300_000L, ActivityHistory.MAX_AGE, 600_000L);
+    /** Up to this range the fine live measurements count; they are kept for 15 minutes anyway. */
+    private static final long LIVE_IN_HISTORY = 3_600_000L;
+    /** Ranges loaded on both sides while paused, so scrolling runs on without waiting for every answer. */
+    private static final int HISTORY_AHEAD = 2;
 
     private WebData() {
     }
@@ -51,6 +67,15 @@ final class WebData {
             case "loader" -> {
                 Loader loader = loader(plugin, args);
                 yield loader == null ? null : detail(plugin, loader);
+            }
+            case "loaderHistory" -> {
+                Loader loader = loader(plugin, args);
+                yield loader == null ? null
+                        : history(plugin, loader, HISTORY_RANGES.get(String.valueOf(args.get("range"))), args.get("end"));
+            }
+            case "loaderLive" -> {
+                Loader loader = loader(plugin, args);
+                yield loader == null ? null : live(plugin, loader);
             }
             case "action" -> action(plugin, args);
             case "player" -> {
@@ -330,7 +355,11 @@ final class WebData {
         LagLock lock = plugin.loaders().lagLock(loader);
         if (lock != null) {
             m.put("lock", Map.of("metric", messages.plain("lag-metric-" + lock.metric().key()), "value", lock.value(),
-                    "limit", lock.limit(), "since", lock.since()));
+                    "limit", lock.limit(), "since", lock.since(), "repeated", lock.repeated()));
+        }
+        LoaderManager.LockSuspension suspension = plugin.loaders().lockSuspension(loader);
+        if (suspension != null) {
+            m.put("suspension", Map.of("until", suspension.until(), "by", suspension.by()));
         }
         if (plugin.loaders().shed(loader)) {
             long since = plugin.loaders().shedSince(loader);
@@ -354,31 +383,110 @@ final class WebData {
         m.put("dummiesEnabled", plugin.dummies().enabled());
         m.put("dummyFits", at.marcelr.mrchunks.dummy.Dummies.fits(loader));
         m.put("maxReach", plugin.settings().loaders().maxReach());
+        m.put("suspendDurations", plugin.settings().lag().enabled() ? plugin.settings().lag().suspensionDurations() : List.of());
         OfflinePlayer owner = Bukkit.getOfflinePlayer(loader.owner());
         LoaderManager.Limit budget = plugin.loaders().budget(owner);
         m.put("budget", budget.value() == Integer.MAX_VALUE ? -1 : budget.value());
         m.put("budgetUsed", plugin.loaders().usedBudget(loader.owner()));
         Messages messages = plugin.messages();
-        Activity a = plugin.settings().lag().enabled() ? plugin.lag().activity(loader) : null;
-        if (a != null) {
+        if (plugin.settings().lag().enabled()) {
+            // A loader that is off has no current measurement: its tiles show the last one from the history.
+            Activity a = plugin.lag().activity(loader);
+            ActivityHistory.Point last = a == null ? plugin.lag().history().last(loader.id()) : null;
             LagLimits limits = plugin.settings().lag().limitsFor(loader.area());
             List<Map<String, Object>> metrics = new ArrayList<>();
             for (Metric metric : Metric.values()) {
                 if (limits.warn(metric) > 0 || limits.lock(metric) > 0) {
                     metrics.add(Map.of("key", metric.key(), "label", messages.plain("lag-metric-" + metric.key()),
-                            "value", a.value(metric), "warn", limits.warn(metric), "lock", limits.lock(metric),
-                            "rate", metric.rate()));
+                            "value", a != null ? a.value(metric) : last != null ? last.value(metric) : 0,
+                            "warn", limits.warn(metric), "lock", limits.lock(metric), "rate", metric.rate()));
                 }
             }
             m.put("metrics", metrics);
-            m.put("measured", a.time());
-            m.put("loadedChunks", a.loadedChunks());
-            m.put("totalChunks", a.totalChunks());
+            if (a != null) {
+                m.put("measured", a.time());
+                m.put("loadedChunks", a.loadedChunks());
+                m.put("totalChunks", a.totalChunks());
+            } else if (last != null) {
+                m.put("measured", last.time());
+            }
         }
         List<Map<String, Object>> members = new ArrayList<>();
         addMembers(members, plugin.loaders().members(loader.owner(), loader), "loader");
         addMembers(members, plugin.loaders().members(loader.owner(), null), "all");
         m.put("members", members);
+        return m;
+    }
+
+    /**
+     * The charts of a loader: {from, to, points: [{time, entities, items, ...}], phases: [{from, to, phase off|shed|locked}]};
+     * null for an unknown range.
+     */
+    private static Map<String, Object> history(MRChunks plugin, Loader loader, Long range, Object end) {
+        if (range == null) {
+            return null;
+        }
+        long now = System.currentTimeMillis();
+        long to = now;
+        long from = to - range;
+        if (end != null) {
+            // Paused at an earlier time: more on both sides, in the same detail as the live chart.
+            long wanted;
+            try {
+                wanted = Long.parseLong(String.valueOf(end));
+            } catch (NumberFormatException e) {
+                return null;
+            }
+            long view = Math.min(now, Math.max(now - ActivityHistory.MAX_AGE + range, wanted));
+            from = view - (1 + HISTORY_AHEAD) * range;
+            to = Math.min(now, view + HISTORY_AHEAD * range);
+        }
+        List<Map<String, Object>> points = new ArrayList<>();
+        // A little more than the range: the web page moves the chart on until the next answer.
+        long margin = Math.max(60_000L, range / 50);
+        List<ActivityHistory.Point> measured = plugin.lag().history().points(loader.id(), from - margin, to, Integer.MAX_VALUE);
+        if (range <= LIVE_IN_HISTORY) {
+            // A few missed live measurements do not end a stretch (a slow tick, a slow answer).
+            measured = ActivityHistory.merged(measured, plugin.lag().livePoints(loader, from - margin, to),
+                    plugin.settings().lag().liveSeconds() * 3000L);
+        }
+        for (ActivityHistory.Point point : ActivityHistory.combined(measured, HISTORY_STEPS.get(range))) {
+            Map<String, Object> p = new LinkedHashMap<>();
+            p.put("time", point.time());
+            for (Metric metric : Metric.values()) {
+                p.put(metric.key(), Math.round(point.value(metric) * 10) / 10.0);
+            }
+            points.add(p);
+        }
+        List<Map<String, Object>> phases = new ArrayList<>();
+        // Three rounds without an entry: the server was away.
+        long maxGap = plugin.settings().lag().sampleSeconds() * 3000L;
+        for (ActivityHistory.Span span : plugin.lag().history().phases(loader.id(), from, to, maxGap)) {
+            phases.add(Map.of("from", span.from(), "to", span.to(), "phase", span.phase().name().toLowerCase(Locale.ROOT)));
+        }
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("from", from);
+        m.put("to", to);
+        m.put("points", points);
+        m.put("phases", phases);
+        m.put("oldest", plugin.lag().history().oldest(loader.id()));
+        return m;
+    }
+
+    /** {live, seconds, point?}: live false = this loader is not measured live (off, switched off in the config, too many). */
+    private static Map<String, Object> live(MRChunks plugin, Loader loader) {
+        Activity a = plugin.lag().live(loader);
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("live", plugin.lag().liveWatched(loader));
+        m.put("seconds", plugin.settings().lag().liveSeconds());
+        if (a != null) {
+            Map<String, Object> point = new LinkedHashMap<>();
+            point.put("time", a.time());
+            for (Metric metric : Metric.values()) {
+                point.put(metric.key(), Math.round(a.value(metric) * 10) / 10.0);
+            }
+            m.put("point", point);
+        }
         return m;
     }
 
@@ -413,6 +521,18 @@ final class WebData {
             case "dummy" -> plugin.adminActions().webToggleDummy(admin, loader);
             case "conspicuousToggle" -> plugin.adminActions().webConspicuousToggle(admin, loader);
             case "conspicuousDummy" -> plugin.adminActions().webConspicuousDummy(admin, loader);
+            case "suspendLock" -> {
+                long duration;
+                try {
+                    duration = Long.parseLong(String.valueOf(args.get("duration")));
+                } catch (NumberFormatException e) {
+                    yield "invalid-duration";
+                }
+                if (duration != 0 && !plugin.settings().lag().suspensionDurations().contains(duration)) {
+                    yield "invalid-duration";
+                }
+                yield plugin.adminActions().webSuspendLock(admin, loader, duration);
+            }
             case "resize" -> {
                 // direction north|south|west|east or all, delta +1 / -1
                 String raw = String.valueOf(args.get("direction")).toUpperCase(Locale.ROOT);

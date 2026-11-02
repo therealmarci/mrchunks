@@ -49,13 +49,16 @@ import static at.marcelr.mrchunks.Messages.tag;
  * Every loader is judged on its own against the limits of its area (see {@link Settings.LagSettings#limitsFor}): up to
  * 3x3 fixed limits, above that they grow with the area, never below the 3x3 ones. When a loader is over a lock limit
  * {@code lock-after-samples} times in a row - by default only while the server is actually lagging, or without lag
- * once it reaches {@code force-lock-multiplier} times the limit - only that loader is locked.
+ * once it reaches {@code force-lock-multiplier} times the limit - only that loader is locked. Admins can suspend this
+ * lock for a single loader for a while; it is still measured and the lock after repeated shutdowns still applies.
  * Listeners are only registered for metrics that have a limit, so switching e.g. hoppers off costs nothing.
  */
 public final class LagMonitor implements Listener {
 
     /** Discord warnings for the same loader at most this often. */
     private static final long WARN_INTERVAL = 60 * 60_000L;
+    /** The chart keeps the fine live measurements this long (ms), older ones it has the normal ones for. */
+    private static final long LIVE_KEEP = 15 * 60_000L;
 
     private final MRChunks plugin;
     private final List<Listener> registered = new ArrayList<>();
@@ -69,6 +72,20 @@ public final class LagMonitor implements Listener {
 
     /** loader id -> last measurement, judged against the limits of the loader's area */
     private final Map<Integer, Activity> activity = new HashMap<>();
+    /** The measurements of the last 12 hours, for the charts in MRadmin's web interface. */
+    private final ActivityHistory history = new ActivityHistory();
+
+    // Live view: the loaders someone has open in the web interface are measured faster, only for the display.
+    private final LiveWatch liveWatch = new LiveWatch();
+    /** loader id -> event counts since its last live measurement, only for watched loaders */
+    private final Map<Integer, long[]> liveCounts = new HashMap<>();
+    private final Map<Integer, Long> liveStart = new HashMap<>();
+    private final Map<Integer, Activity> liveValues = new HashMap<>();
+    /** The live measurements of the last minutes, so a reload of the page keeps them. Only in memory. */
+    private final ActivityHistory liveHistory = new ActivityHistory(LIVE_KEEP);
+    private BukkitTask liveTask;
+    /** What one round of live measurements costs the server thread (ms, smoothed). */
+    private double liveMillis;
     /** loader id -> samples in a row over a lock limit */
     private final Map<Integer, Integer> strikes = new HashMap<>();
     /** loader id -> samples judged since an admin lifted its lock (cooldown, removed after lock-after-samples) */
@@ -156,6 +173,7 @@ public final class LagMonitor implements Listener {
             task.cancel();
             task = null;
         }
+        stopLive();
         HandlerList.unregisterAll(this);
         registered.forEach(HandlerList::unregisterAll);
         registered.clear();
@@ -195,6 +213,10 @@ public final class LagMonitor implements Listener {
         }
         for (int id : ids) {
             counts.computeIfAbsent(id, k -> new long[Metric.values().length])[metric.ordinal()]++;
+            long[] live = liveCounts.isEmpty() ? null : liveCounts.get(id);
+            if (live != null) {
+                live[metric.ordinal()]++;
+            }
         }
     }
 
@@ -234,21 +256,34 @@ public final class LagMonitor implements Listener {
     private void sample() {
         Settings.LagSettings s = settings();
         long now = System.currentTimeMillis();
-        if (loaders().paused() || plugin.startupGrace()) {
-            // Server pause or startup: the loaders hold nothing / every tick is slow, so nothing is judged.
+        loaders().expireLockSuspensions().forEach(plugin.adminActions()::lockSuspensionExpired);
+        if (loaders().paused()) {
+            // The loaders hold nothing, so nothing is judged. The rounds are still written: time without an entry means
+            // the server was away.
             strikes.clear();
             counts.clear();
             windowStart = now;
+            Map<Integer, ActivityHistory.Point> off = new HashMap<>();
+            for (Loader loader : loaders().all()) {
+                off.put(loader.id(), history.addPhase(loader.id(), now, loaders().phase(loader)));
+            }
+            if (!off.isEmpty()) {
+                plugin.mradmin().saveHistory(now, ActivityHistory.encode(off));
+            }
             return;
         }
+        // While the server starts every tick is slow: measured for the charts, but not judged.
+        boolean starting = plugin.startupGrace();
         double seconds = Math.max(1, (now - windowStart) / 1000.0);
         boolean serverLags = Bukkit.getAverageTickTime() >= s.serverLagMspt();
 
         java.util.Set<Integer> judged = new java.util.HashSet<>();
+        Map<Integer, ActivityHistory.Point> round = new HashMap<>();
         for (Loader loader : new ArrayList<>(loaders().all())) {
             boolean locked = loaders().lagLocked(loader);
             if (!loader.active() && !locked) {
                 activity.remove(loader.id());
+                round.put(loader.id(), history.addPhase(loader.id(), now, loaders().phase(loader)));
                 continue;
             }
             World world = loader.world();
@@ -258,21 +293,34 @@ public final class LagMonitor implements Listener {
             if (loader.active() && loaders().shed(loader)) {
                 // Disabled by lag: holds no chunks, so nothing measured there is its doing - the last measurement
                 // stays (shows why it was chosen), it is not judged.
+                round.put(loader.id(), history.addPhase(loader.id(), now, loaders().phase(loader)));
                 continue;
             }
             Activity a = measure(loader, world, seconds, now);
             if (loader.active()) {
                 activity.put(loader.id(), a);
-                judged.add(loader.id());
-                judge(loader, a, serverLags, now);
+                round.put(loader.id(), history.add(loader.id(), a, loaders().phase(loader)));
+                if (!starting) {
+                    judged.add(loader.id());
+                    judge(loader, a, serverLags, now);
+                }
             } else if (a.loadedChunks() > 0) {
                 // Locked: measured while someone keeps (part of) the area loaded, never judged. Otherwise the last
                 // measurement stays, so admins still see why it was locked.
                 activity.put(loader.id(), a);
+                round.put(loader.id(), history.add(loader.id(), a, loaders().phase(loader)));
+            } else {
+                round.put(loader.id(), history.addPhase(loader.id(), now, loaders().phase(loader)));
             }
         }
         strikes.keySet().retainAll(judged);
         activity.keySet().removeIf(id -> loaders().byId(id) == null);
+        history.retain(id -> loaders().byId(id) != null);
+        liveHistory.retain(id -> loaders().byId(id) != null);
+        liveHistory.trim(now);
+        if (!round.isEmpty()) {
+            plugin.mradmin().saveHistory(now, ActivityHistory.encode(round));
+        }
         // The web map colours conspicuous loaders: redraw it when that changed.
         java.util.Set<Integer> conspicuousNow = new java.util.HashSet<>();
         for (Loader loader : loaders().all()) {
@@ -291,6 +339,10 @@ public final class LagMonitor implements Listener {
 
     /** Counts entities and items in the loaded chunks of the area and the events since the last sample. */
     private Activity measure(Loader loader, World world, double seconds, long now) {
+        return measure(loader, world, counts.get(loader.id()), seconds, now);
+    }
+
+    private Activity measure(Loader loader, World world, long[] c, double seconds, long now) {
         Map<Metric, Double> values = new EnumMap<>(Metric.class);
         int entities = 0;
         int items = 0;
@@ -315,7 +367,6 @@ public final class LagMonitor implements Listener {
         }
         values.put(Metric.ENTITIES, (double) entities);
         values.put(Metric.ITEMS, (double) items);
-        long[] c = counts.get(loader.id());
         for (Metric metric : Metric.values()) {
             if (metric.rate()) {
                 values.put(metric, c == null ? 0 : c[metric.ordinal()] / seconds);
@@ -331,7 +382,8 @@ public final class LagMonitor implements Listener {
         sinceUnlock.computeIfPresent(loader.id(), (k, n) -> n + 1 >= s.lockAfterSamples() ? null : n + 1);
         // Far enough over a lock limit (force-lock-multiplier), the loader is locked even while the server copes.
         boolean forced = s.forceLockMultiplier() > 0 && a.lockRatio() >= s.forceLockMultiplier();
-        if (a.lockRatio() >= 1 && (!s.onlyWhenServerLags() || serverLags || forced)) {
+        boolean suspended = loaders().lockSuspension(loader) != null;
+        if (!suspended && a.lockRatio() >= 1 && (!s.onlyWhenServerLags() || serverLags || forced)) {
             int count = strikes.merge(loader.id(), 1, Integer::sum);
             if (count >= s.lockAfterSamples()) {
                 lock(loader, a, now, 0);
@@ -446,7 +498,7 @@ public final class LagMonitor implements Listener {
      * Called right before a server pause releases all chunks: every loader over a lock limit now is locked at once
      * (the server lags for sure). Otherwise the pause would hide them - their chunks unload, the lag is gone, the pause
      * ends and it starts again, without the cause ever being locked. Loaders still in their cooldown after an unlock
-     * are left alone.
+     * and loaders with a suspended lock are left alone.
      */
     public void lockOffendersBeforePause() {
         if (!settings().enabled()) {
@@ -461,7 +513,7 @@ public final class LagMonitor implements Listener {
             }
             Activity a = measure(loader, world, seconds, now);
             activity.put(loader.id(), a);
-            if (a.lockRatio() >= 1 && !sinceUnlock.containsKey(loader.id())) {
+            if (a.lockRatio() >= 1 && !sinceUnlock.containsKey(loader.id()) && loaders().lockSuspension(loader) == null) {
                 lock(loader, a, now, 0);
             }
         }
@@ -486,6 +538,134 @@ public final class LagMonitor implements Listener {
     /** The last measurement of a loader, or null (not measured yet, inactive, measuring off). */
     public Activity activity(Loader loader) {
         return activity.get(loader.id());
+    }
+
+    public ActivityHistory history() {
+        return history;
+    }
+
+    // -------------------------------------------------------------- live view
+
+    /**
+     * The fast measurement of a loader someone has open in the web interface, and the request that keeps it going: the
+     * measuring only runs while someone asks, and for at most lag-protection.live-view.max-loaders loaders. Only for the
+     * display - nothing here is judged or saved, locks stay with the normal measurements.
+     * @return the newest live measurement, or null if there is none (yet)
+     */
+    public Activity live(Loader loader) {
+        Settings.LagSettings s = settings();
+        long now = System.currentTimeMillis();
+        if (!s.enabled() || !s.liveEnabled() || !measurable(loader) || !liveWatch.watch(loader.id(), now, s.liveMaxLoaders())) {
+            return null;
+        }
+        if (liveCounts.putIfAbsent(loader.id(), new long[Metric.values().length]) == null) {
+            liveStart.put(loader.id(), now);
+            firstLive(loader, now);
+        }
+        if (liveTask == null) {
+            long period = s.liveSeconds() * 20L;
+            liveTask = Bukkit.getScheduler().runTaskTimer(plugin, this::liveTick, period, period);
+        }
+        return liveValues.get(loader.id());
+    }
+
+    /**
+     * Someone opened the loader: measured at once, so the line runs on from the last normal measurement. Its events are
+     * the ones since that measurement - there are no live counts yet.
+     */
+    private void firstLive(Loader loader, long now) {
+        World world = loader.world();
+        if (world != null) {
+            Activity a = measure(loader, world, Math.max(1, (now - windowStart) / 1000.0), now);
+            liveValues.put(loader.id(), a);
+            liveHistory.add(loader.id(), a);
+        }
+    }
+
+    /** The live measurements of a loader since {@code from}, oldest first. */
+    public List<ActivityHistory.Point> livePoints(Loader loader, long from, long to) {
+        return liveHistory.points(loader.id(), from, to, Integer.MAX_VALUE);
+    }
+
+    /** Whether {@link #live} keeps this loader measured. */
+    public boolean liveWatched(Loader loader) {
+        return liveWatch.contains(loader.id()) && measurable(loader);
+    }
+
+    /** How many loaders are measured live right now. */
+    public int liveCount() {
+        return liveWatch.size();
+    }
+
+    /** What one round of live measurements costs the server thread (ms). */
+    public double liveMillis() {
+        return liveMillis;
+    }
+
+    private boolean measurable(Loader loader) {
+        return loader.active() && !loaders().shed(loader) && !loaders().paused();
+    }
+
+    private void liveTick() {
+        long now = System.currentTimeMillis();
+        for (int id : liveWatch.expire(now)) {
+            forgetLive(id);
+        }
+        if (liveWatch.size() == 0) {
+            stopLive();
+            return;
+        }
+        long begin = System.nanoTime();
+        for (int id : liveWatch.loaders()) {
+            Loader loader = loaders().byId(id);
+            World world = loader == null ? null : loader.world();
+            long[] c = liveCounts.get(id);
+            if (world == null || c == null || !measurable(loader)) {
+                liveValues.remove(id);
+                continue;
+            }
+            double seconds = Math.max(0.05, (now - liveStart.get(id)) / 1000.0);
+            Activity a = measure(loader, world, c, seconds, now);
+            liveValues.put(id, a);
+            liveHistory.add(id, a);
+            java.util.Arrays.fill(c, 0);
+            liveStart.put(id, now);
+        }
+        double millis = (System.nanoTime() - begin) / 1_000_000.0;
+        liveMillis = liveMillis == 0 ? millis : liveMillis * 0.8 + millis * 0.2;
+    }
+
+    private void forgetLive(int id) {
+        liveCounts.remove(id);
+        liveStart.remove(id);
+        liveValues.remove(id);
+    }
+
+    private void stopLive() {
+        if (liveTask != null) {
+            liveTask.cancel();
+            liveTask = null;
+        }
+        liveWatch.clear();
+        liveCounts.clear();
+        liveStart.clear();
+        liveValues.clear();
+        liveMillis = 0;
+    }
+
+    /**
+     * A loader went on or off: noted with the exact time, so the charts also show a phase between two measuring rounds
+     * or while nothing is measured (startup, server pause).
+     */
+    public void phaseChanged(Loader loader) {
+        // A loader switched on counts its events from now on, not only after the next measuring round.
+        areaChanged();
+        if (!settings().enabled() || plugin.mradmin() == null) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        ActivityHistory.Point point = history.addPhase(loader.id(), now, loaders().phase(loader));
+        plugin.mradmin().saveHistory(now, ActivityHistory.encode(Map.of(loader.id(), point)));
     }
 
     /** Over a warn limit of its own area (last measurement). */

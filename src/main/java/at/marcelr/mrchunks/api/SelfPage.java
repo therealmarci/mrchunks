@@ -166,6 +166,10 @@ final class SelfPage {
                     Texts.date(m, plugin.loaders().shedSince(loader)), "back", Texts.date(m,
                             plugin.shedder().expectedBack(loader))), "warn"));
         }
+        LoaderManager.LockSuspension suspension = plugin.loaders().lockSuspension(loader);
+        if (suspension != null) {
+            details.add(new SelfBlock.Text(m.plain("self-suspended-detail", "until", Texts.date(m, suspension.until())), ""));
+        }
         details.add(limits(plugin, loader));
         if (actions && plugin.settings().invites().enabled() && viewer.has(INVITE)) {
             details.add(invites(plugin, loader.owner(), loader));

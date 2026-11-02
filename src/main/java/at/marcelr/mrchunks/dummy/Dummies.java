@@ -92,6 +92,9 @@ public final class Dummies implements Listener {
     private boolean shuttingDown;
     private BukkitTask watchdog;
 
+    /** How long a dummy that was moved out of its world stays away - time for the world to unload. */
+    private static final long RETURN_TICKS = 100L;
+
     private record Spawned(Player player, UUID owner, Entity seat) {
     }
 
@@ -475,8 +478,27 @@ public final class Dummies implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onTeleport(PlayerTeleportEvent event) {
-        if (!internal && isOurs(event.getPlayer())) {
+        if (internal || !isOurs(event.getPlayer())) {
+            return;
+        }
+        if (event.getFrom().getWorld().equals(event.getTo().getWorld())) {
             event.setCancelled(true);
+            return;
+        }
+        // Into another world: something empties this one (/mv unload --remove-players), which only works without
+        // players. The dummy goes along, is removed there and comes back if its world stays loaded.
+        for (Map.Entry<Integer, Spawned> entry : spawned.entrySet()) {
+            if (entry.getValue().player().equals(event.getPlayer())) {
+                int loaderId = entry.getKey();
+                Bukkit.getScheduler().runTask(plugin, () -> despawn(loaderId));
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    Loader loader = plugin.loaders().byId(loaderId);
+                    if (loader != null) {
+                        sync(loader);
+                    }
+                }, RETURN_TICKS);
+                return;
+            }
         }
     }
 

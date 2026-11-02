@@ -26,6 +26,8 @@ import static at.marcelr.mrchunks.Messages.tag;
  *  . [members] . [toggle] [border] [dummy] . [settings] .   (members only with invites, dummy only with dummies.enabled)
  *  [back] . . . [close] . . . .          (with mrchunks.admin.teleport: [back] . . [close] . [teleport] . . .)
  * </pre>
+ * With mrchunks.admin.suspendlock the button for the limit lock sits on the middle axis of the last row, between close
+ * and teleport (without teleport: right of the middle, where teleport would be).
  * Size, block, name and delete are in {@link LoaderSettingsMenu}. Toggle needs ownership, an invite or
  * mrchunks.admin.manage; invites and the dummy only ownership or the admin permission.
  */
@@ -133,13 +135,24 @@ public final class LoaderMenu extends Menu {
         }
         // Admins with teleport: close one to the left of the middle, teleport one to the right.
         boolean teleport = viewer.hasPermission(AdminActions.PERM_TELEPORT);
-        set(teleport ? 21 : 22, Items.of(Material.BARRIER).name(messages.item("gui-close")).build(),
+        boolean suspend = viewer.hasPermission(AdminActions.PERM_SUSPEND_LOCK) && plugin.settings().lag().enabled();
+        set(teleport || suspend ? 21 : 22, Items.of(Material.BARRIER).name(messages.item("gui-close")).build(),
                 click -> viewer.closeInventory());
         if (teleport) {
             button(23, Material.COMPASS, "gui-teleport-name", null, true, () -> {
                 viewer.closeInventory();
                 actions.teleport(viewer, loader);
             }, tags);
+        }
+        if (suspend) {
+            var suspension = plugin.loaders().lockSuspension(loader);
+            TagResolver suspendTags = TagResolver.resolver(tags,
+                    tag("max", Texts.duration(plugin, plugin.settings().lag().maxSuspension())),
+                    tag("time", suspension == null ? "" : Texts.date(messages, suspension.until())),
+                    tag("by", suspension == null ? "" : suspension.by()));
+            button(teleport ? 22 : 23, Material.CLOCK, suspension == null ? "gui-suspend-name" : "gui-suspend-active-name",
+                    suspension == null ? "gui-suspend-lore" : "gui-suspend-active-lore", true,
+                    () -> new LockSuspensionMenu(plugin, viewer, loader.id(), this).open(), suspendTags);
         }
 
         for (int row = 0; row < 3; row++) {
