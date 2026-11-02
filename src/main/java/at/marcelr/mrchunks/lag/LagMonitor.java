@@ -254,6 +254,7 @@ public final class LagMonitor implements Listener {
             boolean locked = loaders().lagLocked(loader);
             if (!loader.active() && !locked) {
                 activity.remove(loader.id());
+                round.put(loader.id(), history.addOff(loader.id(), now));
                 continue;
             }
             World world = loader.world();
@@ -263,6 +264,7 @@ public final class LagMonitor implements Listener {
             if (loader.active() && loaders().shed(loader)) {
                 // Disabled by lag: holds no chunks, so nothing measured there is its doing - the last measurement
                 // stays (shows why it was chosen), it is not judged.
+                round.put(loader.id(), history.addOff(loader.id(), now));
                 continue;
             }
             Activity a = measure(loader, world, seconds, now);
@@ -276,6 +278,8 @@ public final class LagMonitor implements Listener {
                 // measurement stays, so admins still see why it was locked.
                 activity.put(loader.id(), a);
                 round.put(loader.id(), history.add(loader.id(), a));
+            } else {
+                round.put(loader.id(), history.addOff(loader.id(), now));
             }
         }
         strikes.keySet().retainAll(judged);

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -67,6 +68,35 @@ class ActivityHistoryTest {
         assertEquals(12.3, point.value(Metric.REDSTONE), 0.01);
         assertEquals(0.5, point.value(Metric.SPAWNS));
         assertEquals(7, restored.points(35, 0, START, 300).getFirst().value(Metric.ENTITIES));
+    }
+
+    @Test
+    void offRoundsComeBackAndTheLastMeasurementStays() {
+        ActivityHistory history = new ActivityHistory();
+        Map<Integer, ActivityHistory.Point> round = new LinkedHashMap<>();
+        round.put(4, history.addOff(4, START));
+
+        ActivityHistory restored = new ActivityHistory();
+        restored.restore(new TreeMap<>(Map.of(START - STEP, "4:9,0,0,0,0,0", START, ActivityHistory.encode(round))));
+
+        assertTrue(restored.points(4, 0, START, 300).getLast().off());
+        assertEquals(9, restored.last(4).value(Metric.ENTITIES));
+    }
+
+    @Test
+    void aSliceIsOnlyOffIfTheLoaderWasOffAllOfIt() {
+        ActivityHistory history = new ActivityHistory();
+        for (int i = 0; i < 1000; i++) {
+            if (i >= 500 && i != 900) {
+                history.addOff(1, START + i * STEP);
+            } else {
+                history.add(1, activity(START + i * STEP, 5));
+            }
+        }
+        List<ActivityHistory.Point> points = history.points(1, START, START + 999 * STEP, 10);
+        assertEquals(5, points.get(2).value(Metric.ENTITIES));
+        assertTrue(points.get(7).off());
+        assertEquals(5, points.get(9).value(Metric.ENTITIES));
     }
 
     @Test

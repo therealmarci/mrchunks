@@ -377,21 +377,27 @@ final class WebData {
         m.put("budget", budget.value() == Integer.MAX_VALUE ? -1 : budget.value());
         m.put("budgetUsed", plugin.loaders().usedBudget(loader.owner()));
         Messages messages = plugin.messages();
-        Activity a = plugin.settings().lag().enabled() ? plugin.lag().activity(loader) : null;
-        if (a != null) {
+        if (plugin.settings().lag().enabled()) {
+            // A loader that is off has no current measurement: its tiles show the last one from the history.
+            Activity a = plugin.lag().activity(loader);
+            ActivityHistory.Point last = a == null ? plugin.lag().history().last(loader.id()) : null;
             LagLimits limits = plugin.settings().lag().limitsFor(loader.area());
             List<Map<String, Object>> metrics = new ArrayList<>();
             for (Metric metric : Metric.values()) {
                 if (limits.warn(metric) > 0 || limits.lock(metric) > 0) {
                     metrics.add(Map.of("key", metric.key(), "label", messages.plain("lag-metric-" + metric.key()),
-                            "value", a.value(metric), "warn", limits.warn(metric), "lock", limits.lock(metric),
-                            "rate", metric.rate()));
+                            "value", a != null ? a.value(metric) : last != null ? last.value(metric) : 0,
+                            "warn", limits.warn(metric), "lock", limits.lock(metric), "rate", metric.rate()));
                 }
             }
             m.put("metrics", metrics);
-            m.put("measured", a.time());
-            m.put("loadedChunks", a.loadedChunks());
-            m.put("totalChunks", a.totalChunks());
+            if (a != null) {
+                m.put("measured", a.time());
+                m.put("loadedChunks", a.loadedChunks());
+                m.put("totalChunks", a.totalChunks());
+            } else if (last != null) {
+                m.put("measured", last.time());
+            }
         }
         List<Map<String, Object>> members = new ArrayList<>();
         addMembers(members, plugin.loaders().members(loader.owner(), loader), "loader");
@@ -400,7 +406,7 @@ final class WebData {
         return m;
     }
 
-    /** The chart points of a loader: {from, to, points: [{time, entities, items, ...}]}; null for an unknown range. */
+    /** The chart points of a loader: {from, to, points: [{time, entities, items, ...} or {time, off}]}; null for an unknown range. */
     private static Map<String, Object> history(MRChunks plugin, Loader loader, Long range) {
         if (range == null) {
             return null;
@@ -411,8 +417,12 @@ final class WebData {
         for (ActivityHistory.Point point : plugin.lag().history().points(loader.id(), from, to, HISTORY_POINTS)) {
             Map<String, Object> p = new LinkedHashMap<>();
             p.put("time", point.time());
-            for (Metric metric : Metric.values()) {
-                p.put(metric.key(), Math.round(point.value(metric) * 10) / 10.0);
+            if (point.off()) {
+                p.put("off", true);
+            } else {
+                for (Metric metric : Metric.values()) {
+                    p.put(metric.key(), Math.round(point.value(metric) * 10) / 10.0);
+                }
             }
             points.add(p);
         }
