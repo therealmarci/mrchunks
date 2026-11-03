@@ -9,6 +9,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+### Behoben & geändert
+- **Diagramme ab 1 Stunde durchgehend:** Ab dem Zeitraum 1h war die Linie in der MRadmin-Weboberfläche gestrichelt, weil die zusammengefassten Punkte weiter auseinanderliegen als der Abstand, ab dem das Diagramm eine Lücke annahm. MRchunks schickt jetzt den passenden Abstand je Zeitraum mit.
+
 ## [1.1.0] - 2026-11-02
 
 ### Neu
