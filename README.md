@@ -1,13 +1,13 @@
 # MRchunks
 
-**Chunkloader für Survival-Server:** Ein Block, und deine Farm läuft weiter - auch wenn du offline bist. Mit einem Chunk-Budget, das jeder selbst auf seine Loader verteilt, Einladungen für Mitspieler, Lag-Schutz und einer Webkarte.
+**Chunkloader für Survival-Server:** Ein Block, und deine Farm läuft weiter - auch wenn du offline bist. Mit einem Chunk-Budget, das jeder selbst auf seine Loader verteilt, Einladungen für Mitspieler, Lag-Schutz und einer Karte im Browser (mit MRadmin).
 
 **[⬇ Download](https://mrtechnology.marcelr.at/download/mrchunks/)** · **[📖 Anleitung online](https://mrtechnology.marcelr.at/docs/mrchunks/)** · **[🐞 Fehler melden](https://mrtechnology.marcelr.at/report/mrchunks/)**
 
 | Auf einen Blick | |
 |---|---|
 | Server | Paper 26.3 (oder ein Fork wie Purpur), Java 25 |
-| Benötigt | nichts - LuckPerms ist empfohlen, MRadmin optional (mit [squaremap](https://modrinth.com/plugin/squaremap) für die Webkarte) |
+| Benötigt | nichts - LuckPerms ist empfohlen, MRadmin optional (für Weboberfläche und Karte) |
 | Sprachen | Deutsch, Englisch - jeder Spieler automatisch in der Sprache seines Minecraft-Clients |
 | Status | stabil (1.x) |
 
@@ -19,7 +19,7 @@
 - **Zweit-Accounts verknüpfen:** Haupt- und AFK-Account teilen sich Loader und Budget.
 - **Unzerstörbar:** kein Abbauen, keine Explosionen, Kolben, Wither oder Endermen.
 - **Lag-Schutz:** Loader, die den Server ausbremsen, werden erkannt und gesperrt. Ist der Server ausgelastet, schaltet die gestaffelte Abschaltung die aufwendigsten Loader vorübergehend ab. Laggt der ganze Server, pausieren alle Loader automatisch.
-- **Webkarte** mit echtem Gelände über squaremap - mit MRadmin, automatisch eingerichtet.
+- **Karte** mit echtem Gelände auf der Spielerseite von MRadmin - MRadmin installiert und richtet die Karte selbst ein.
 - **Menüs statt Befehle** für Spieler, ein Admin-Menü für das Team, **Discord-Logs** und **Update-Prüfung**.
 
 ## Schnellstart
@@ -37,7 +37,7 @@
 **Update:** Die alte JAR durch die neue ersetzen und den Server neu starten. Die Config wird automatisch angepasst: Deine Werte bleiben, neue Optionen kommen dazu, und die alte Datei wird als `config.v<N>.backup.yml` gesichert.
 
 > [!WARNING]
-> **Update von 1.1 oder älter:** Die Webkarte ist zu MRadmin umgezogen - aktualisiere MRadmin und MRchunks gemeinsam. Details unter [Webkarte](#webkarte-squaremap-über-mradmin).
+> **Update von 1.1 oder älter:** Die Webkarte ist zu MRadmin umgezogen - aktualisiere MRadmin und MRchunks gemeinsam. Details unter [Karte](#karte-über-mradmin).
 
 > [!WARNING]
 > **Update auf das Chunk-Budget:** Die Limits `mrchunks.limit.<n>`, `mrchunks.active.<n>` (und `.unlimited`) gibt es nicht mehr - stattdessen `mrchunks.budget.<n>`. Vorhandene Loader behalten ihre Größe, und niemand verliert etwas: Das Budget wird beim Update aus dem alten Aktiv-Limit berechnet (3 aktive 7×7-Loader = 147 Chunks), auch für Admin-Limits. **Permissions musst du selbst umstellen**, z.B. `/lp group vip permission unset mrchunks.active.5` und `/lp group vip permission set mrchunks.budget.245 true` (5 × 49). Details unter [Chunk-Budget](#chunk-budget).
@@ -67,7 +67,7 @@ Die Menüleiste in `/chunkloader` von links nach rechts:
 | **Mitglieder für alle Loader** | Spieler für alle deine Loader einladen | `mrchunks.invite` |
 | **Mit mir geteilt** | Loader anderer Spieler, zu denen du eingeladen bist | – |
 | **Verknüpfte Accounts** | Zweit-Account verknüpfen oder lösen | `mrchunks.link` |
-| **Webkarte** | Link zur Webkarte im Chat (nur mit MRadmin und squaremap) | `mrchunks.map` |
+| **Webkarte** | Link zur Karte der Spielerseite im Chat (nur mit MRadmin) | `mrchunks.map` |
 | **Chunkloader holen** / **zurückgeben** | Loader-Items holen oder zurückgeben | `mrchunks.use` |
 
 Hast du mehr als 45 Loader, erscheinen Pfeile zum Blättern.
@@ -87,7 +87,7 @@ Hast du mehr als 45 Loader, erscheinen Pfeile zum Blättern.
 - **Braucht trotzdem einen Spieler in der Nähe:** natürliches Mob-Spawning, Spawner und volle Mob-KI (Mobs bewegen sich ohne Spieler kaum und laufen z.B. nicht durch Portale). Dafür gibt es [Dummy-Spieler](#dummy-spieler).
 
 ### Namen, Nummern und Grenze
-- Jeder Loader bekommt die **kleinste freie Nummer** („Chunkloader 4“). Über **Umbenennen** gibst du ihm einen eigenen Namen - er erscheint im Chat, in Menüs, auf der Webkarte und in Discord.
+- Jeder Loader bekommt die **kleinste freie Nummer** („Chunkloader 4“). Über **Umbenennen** gibst du ihm einen eigenen Namen - er erscheint im Chat, in Menüs, auf der Karte und in Discord.
 - **Block ändern** wählt, als welcher Block dein Loader in der Welt steht (z.B. Diamant-, Gold- oder Netheritblock). Nur der Block in der Welt ändert sich - in Menüs und als Item bleibt es der Smaragdblock. Die Auswahl legt der Server fest (`item.block-choices`), du brauchst `mrchunks.block`.
 - **Grenze anzeigen** zeichnet einen leuchtenden Zaun an die Außenkante des Bereichs, sichtbar auch durch Blöcke und nur für dich. Er verschwindet nach einer Weile von selbst.
 
@@ -109,9 +109,9 @@ Hast du einen Zweit-Account (z.B. zum AFK-Farmen), verknüpf ihn mit deinem Haup
 - Erlaubt ist standardmäßig ein Zweit-Account (`linked-accounts.max-accounts`). Eine Sperre gilt für alle verknüpften Accounts.
 
 ### Im Browser (mit MRadmin)
-Ist MRadmin installiert und die Spielerseite eingeschaltet, gibt `/web` im Spiel einen Link zu deiner eigenen Seite. Unter **Chunkloader** siehst du oben dein Budget und Warnungen (z.B. Lag-Sperre), darunter jeden Loader als Karte mit Status, Größe und Auslastung - mit einem Knopf zum Ein- und Ausschalten. Ein Klick auf eine Karte zeigt die Grenzwerte des Lag-Schutzes (Warnung und Sperre), eine Live-Karte rund um den Loader (mit squaremap) und die Knöpfe zum Umbenennen, für den Dummy und zum Löschen. Darunter lädst du Spieler für alle Loader ein und siehst, wer eingeladen ist (Dauer aus `invites.durations`); Einladungen für einen einzelnen Loader stehen in seiner Karte. Nur die **Größe** änderst du im Spiel. Braucht MRadmin ab der Version mit Modul-API 5.
+Ist MRadmin installiert und die Spielerseite eingeschaltet, gibt `/web` im Spiel einen Link zu deiner eigenen Seite. Unter **Chunkloader** siehst du oben dein Budget und Warnungen (z.B. Lag-Sperre), darunter jeden Loader als Karte mit Status, Größe und Auslastung - mit einem Knopf zum Ein- und Ausschalten. Ein Klick auf eine Karte zeigt die Grenzwerte des Lag-Schutzes (Warnung und Sperre) und die Knöpfe zum Umbenennen, für den Dummy und zum Löschen. Darunter lädst du Spieler für alle Loader ein und siehst, wer eingeladen ist (Dauer aus `invites.durations`); Einladungen für einen einzelnen Loader stehen in seiner Karte. Nur die **Größe** änderst du im Spiel. Braucht MRadmin ab der Version mit Modul-API 5.
 
-Auf dem Tab **Karte** der Spielerseite (mit squaremap) stehen deine eigenen Chunkloader und die, zu denen du eingeladen bist, als Flächen in der Farbe ihres Zustands. Ein Klick zeigt Zustand und Größe, ein **Rechtsklick** schaltet den Loader an oder aus.
+Auf dem Tab **Karte** der Spielerseite stehen deine eigenen Chunkloader und die, zu denen du eingeladen bist, als Flächen in der Farbe ihres Zustands. Ein Klick zeigt Zustand und Größe, ein **Rechtsklick** schaltet den Loader an oder aus.
 
 ### Dummy-Spieler
 Ein Chunkloader hält Chunks geladen - für den Server steht dort aber **kein Spieler**. Mobs sind deshalb fast inaktiv, und es spawnt nichts. Ein **Dummy** ist ein künstlicher Spieler, der auf dem Loader sitzt und als Spieler in der Nähe zählt.
@@ -351,16 +351,15 @@ Alles steht in `plugins/MRchunks/config.yml`. Jede Option ist in der Datei komme
 | `dummies` | an/aus (Standard aus), Limit, Skin, sitzend |
 | `lag-protection` · `staged-shutdown` · `server-pause` | Mess- und Sperrgrenzen, MSPT-Stufen der gestaffelten Abschaltung, TPS-Schwellen |
 | `item` · `border` | Aussehen des Loaders und der Grenze, `item.block-choices`: Blöcke, die Spieler für ihre Loader wählen dürfen (leere Liste `[]` = keine Auswahl) |
-| `map-layer` | Chunkloader auf der Webkarte (über MRadmin): Farben (auch nach Status), getrennte Ebenen, Dummy-Symbol |
 | `discord` · `update-checker` · `gui` | Logs, Update-Hinweise, Menüs |
 
 **Überschneidende Loader** (`loaders.overlap`): `allow` erlaubt einfach, `warn` (Standard) erlaubt mit Hinweis und zeigt die Grenze, `deny-own` verbietet Überschneidungen mit eigenen Loadern, `deny-all` mit allen - beim Setzen und beim Vergrößern. Jeder Chunk wird ohnehin nur **einmal** geladen gehalten, im Budget zählt er aber für jeden Loader.
 
 ### Sprache & Texte
 - **Jeder Spieler bekommt seine Sprache:** Mit `language: auto` (Standard) richtet sich MRchunks nach der Sprache, die der Spieler in Minecraft eingestellt hat - Deutsch (auch Österreich und Schweiz) bekommt Deutsch, Englisch bekommt Englisch. Für Sprachen ohne eigene Datei gilt `fallback-language` (Standard Englisch). Mit `language: de` oder `en` bekommen alle dieselbe Sprache.
-- **Server-Sprache:** Discord-Logs, die Webkarte und Tickets in MRadmin haben keinen einzelnen Empfänger - sie kommen in `server-language` (Standard `en`). Auf einem deutschen Server also `server-language: de` setzen.
+- **Server-Sprache:** Discord-Logs und Tickets in MRadmin haben keinen einzelnen Empfänger - sie kommen in `server-language` (Standard `en`). Auf einem deutschen Server also `server-language: de` setzen.
 - Die Konsole ist immer Englisch.
-- Alle Texte - Chat, Menüs, Item, Webkarte, Discord - stehen in `plugins/MRchunks/lang/<sprache>.yml`. Ein leerer Text (`""`) schaltet die Nachricht ab.
+- Alle Texte - Chat, Menüs, Item, Spielerseite, Discord - stehen in `plugins/MRchunks/lang/<sprache>.yml`. Ein leerer Text (`""`) schaltet die Nachricht ab.
 - **Eigene Sprache:** `lang/en.yml` kopieren (z.B. als `lang/fr.yml`) und übersetzen - mit `language: auto` bekommen französische Spieler sie automatisch. Neue Texte aus Updates werden automatisch ergänzt.
 
 ### Discord
@@ -368,17 +367,11 @@ Webhook anlegen (*Kanal bearbeiten → Integrationen → Webhooks*), `discord.en
 
 ---
 
-## Webkarte (squaremap, über MRadmin)
-Mit **[MRadmin](https://mrtechnology.marcelr.at/docs/mradmin/)** und **[squaremap](https://modrinth.com/plugin/squaremap)** stehen alle Chunkloader auf einer Webkarte mit echtem Minecraft-Gelände. Die Karte selbst gehört zu MRadmin: Einrichtung, Adresse, Chunkraster und der Link-Befehl `/mradmin map` stehen in der [Anleitung von MRadmin](https://mrtechnology.marcelr.at/docs/mradmin/). Ohne MRadmin oder squaremap gibt es keine Webkarte - alles andere funktioniert trotzdem.
+## Karte (über MRadmin)
+Mit **[MRadmin](https://mrtechnology.marcelr.at/docs/mradmin/)** hat die Spielerseite einen Tab **Karte** mit echtem Minecraft-Gelände. Jeder Spieler sieht dort seine eigenen Chunkloader und die, zu denen er eingeladen ist - in der Farbe ihres Zustands (aktiv grün, aus grau, gesperrt rot, auffällig oder durch Lags deaktiviert gelb). Ein Klick zeigt Zustand und Größe, ein **Rechtsklick** schaltet den Loader an oder aus. Die Karte gehört ganz zu MRadmin: MRadmin installiert und aktualisiert squaremap selbst, richtet es ein und zeigt die Karte nur in der eigenen Weboberfläche (siehe [Anleitung von MRadmin](https://mrtechnology.marcelr.at/docs/mradmin/)). In MRchunks gibt es dafür nichts einzustellen. Ohne MRadmin gibt es keine Karte - alles andere funktioniert trotzdem.
 
 > [!WARNING]
-> **Update von MRchunks 1.1 oder älter:** Die Webkarte ist zu MRadmin umgezogen. Aktualisiere **MRadmin und MRchunks gemeinsam**. MRadmin übernimmt dabei Adresse, Raster und die übrigen Karteneinstellungen aus deiner alten MRchunks-Config. `/mrchunks map` und `mrchunks.admin.map` gibt es nicht mehr, stattdessen `/mradmin map` (`mradmin.map.admin`).
-
-Wie die Chunkloader aussehen, stellst du in MRchunks unter `map-layer` ein. Auf der Karte gibt es Ebenen, die jeder Besucher oben links ein- und ausschaltet:
-- **Chunkloader** (aktive Loader, grün), **Chunkloader (aus)** (grau) und **Chunkloader (gesperrt)** (rot) - mit `map-layer.split-layers: false` alles in einer Ebene. Gesperrte Loader sind immer zu sehen. In MRadmin heißen die Ebenen `mrchunks:active`, `mrchunks:inactive` und `mrchunks:locked` (bzw. `mrchunks:loaders`). Dort kannst du einzelne abschalten oder standardmäßig ausblenden (`map.layers`).
-- **Farbe nach Zustand** wie in der Weboberfläche: aktiv grün, aus grau, gesperrt rot, auffällig (über einer Warngrenze), durch Lags deaktiviert und während einer Server-Pause gelb (`map-layer.color: status`, Farben unter `active-color`, `inactive-color`, `locked-color`, `warn-color`, `paused-color`). `color: owner` gibt aktiven Loadern stattdessen eine eigene Farbe pro Spieler. Mit `status-colors: false` sehen gesperrte und auffällige Loader wie die anderen aus.
-- **Beim Anklicken:** Owner, Position, Größe und Kosten im Budget sowie der Status. Bei gesperrten und auffälligen Loadern steht der Grund dabei (z.B. „gesperrt (Entities 900, Grenze 800)“), außerdem ob ein Dummy sitzt. Die Texte stehen in den Sprachdateien (`map-click-tooltip`, `map-tooltip-*`).
-- **Dummy-Symbol:** Sitzt ein Dummy auf dem Loader, zeigt die Karte eine kleine Figur statt des Loader-Symbols (`map-layer.show-dummy-icon`).
+> **Update von MRchunks 1.1 oder älter:** Die Webkarte ist zu MRadmin umgezogen. Aktualisiere **MRadmin und MRchunks gemeinsam**. Die öffentliche squaremap-Webseite mit allen Chunkloadern gibt es nicht mehr, die Einstellungen `squaremap.*` fallen weg (MRadmin übernimmt Adresse und Einrichtung). `/mrchunks map` und `mrchunks.admin.map` gibt es nicht mehr, stattdessen `/mradmin map` (`mradmin.map.admin`).
 
 ---
 
@@ -391,7 +384,7 @@ MRchunks läuft **allein**. Zusammen mit anderen MRtechnology-Plugins kann es me
 | Eigene Chunkloader im Browser verwalten (`/web`, Spielerseite) | MRadmin |
 | Automatisches Ticket für den Owner bei einer Lag-Sperre | MRadmin |
 | In der Arena-Welt von MRpvp lassen sich keine Loader setzen | MRadmin + MRpvp |
-| Chunkloader auf der Webkarte | MRadmin + squaremap |
+| Chunkloader auf der Karte der Spielerseite | MRadmin |
 | Dummy-Spieler zählen bei MRsleep, MRadmin und MRpvp nicht als Spieler | nichts |
 
 ### Mehrere Welten (Multiverse)

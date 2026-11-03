@@ -20,7 +20,6 @@ public record Settings(
         LoaderSettings loaders,
         ItemSettings item,
         BorderSettings border,
-        MapLayerSettings mapLayer,
         UpdateSettings update,
         GuiSettings gui,
         InviteSettings invites,
@@ -138,26 +137,6 @@ public record Settings(
                                  int below, int above, int lineSpacing) {
     }
 
-    /**
-     * The chunk loader layers on the web map, which MRadmin draws (map-layer). {@code color == null} means one colour
-     * per owner. Texts (layer names, tooltips) in the server language.
-     */
-    public record MapLayerSettings(boolean enabled, String layerName, boolean defaultHidden, boolean showInactive,
-                                   java.awt.Color color, java.awt.Color inactiveColor, java.awt.Color pausedColor,
-                                   double fillOpacity, boolean showIcon, String hoverTooltip, String clickTooltip,
-                                   StatusSettings status) {
-    }
-
-    /**
-     * Extras of the chunk loader layer: own colours for locked and conspicuous loaders ({@code colors}), one layer
-     * each for active, switched-off and locked loaders ({@code splitLayers}, names from the language file), a dummy
-     * icon on loaders with a dummy, and the texts of the click tooltip for these states.
-     */
-    public record StatusSettings(boolean colors, java.awt.Color lockedColor, java.awt.Color warnColor,
-                                 boolean splitLayers, String inactiveLayerName, String lockedLayerName,
-                                 boolean dummyIcon, String tooltipLocked, String tooltipWarn, String tooltipDummy) {
-    }
-
     public record UpdateSettings(boolean enabled, String source, boolean includePrereleases,
                                  int intervalHours, boolean notifyOnJoin) {
     }
@@ -219,33 +198,6 @@ public record Settings(
                 Math.clamp(c.getInt("border.below", 1), 0, 32),
                 Math.clamp(c.getInt("border.above", 5), 0, 64),
                 Math.clamp(c.getInt("border.line-spacing", 3), 1, 16));
-
-        String rawColor = c.getString("map-layer.color", "status");
-        MapLayerSettings mapLayer = new MapLayerSettings(
-                c.getBoolean("map-layer.enabled", true),
-                texts.optional("map-layer-name"),
-                c.getBoolean("map-layer.default-hidden", false),
-                c.getBoolean("map-layer.show-inactive", true),
-                rawColor.equalsIgnoreCase("owner") ? null : rawColor.equalsIgnoreCase("status")
-                        ? parseColor(c.getString("map-layer.active-color", "#2ECC71"), "map-layer.active-color", log)
-                        : parseColor(rawColor, "map-layer.color", log),
-                parseColor(c.getString("map-layer.inactive-color", "#8A958E"), "map-layer.inactive-color", log),
-                parseColor(c.getString("map-layer.paused-color", "#F1C40F"), "map-layer.paused-color", log),
-                Math.clamp(c.getDouble("map-layer.fill-opacity", 0.25), 0.0, 1.0),
-                c.getBoolean("map-layer.show-icon", true),
-                texts.optional("map-hover-tooltip"),
-                texts.optional("map-click-tooltip"),
-                new StatusSettings(
-                        c.getBoolean("map-layer.status-colors", true),
-                        parseColor(c.getString("map-layer.locked-color", "#E74C3C"), "map-layer.locked-color", log),
-                        parseColor(c.getString("map-layer.warn-color", "#F1C40F"), "map-layer.warn-color", log),
-                        c.getBoolean("map-layer.split-layers", true),
-                        texts.optional("map-layer-inactive"),
-                        texts.optional("map-layer-locked"),
-                        c.getBoolean("map-layer.show-dummy-icon", true),
-                        texts.optional("map-tooltip-locked"),
-                        texts.optional("map-tooltip-warn"),
-                        texts.optional("map-tooltip-dummy")));
 
         String source = c.getString("update-checker.source", "github").toLowerCase(Locale.ROOT);
         if (!source.equals("modrinth") && !source.equals("github")) {
@@ -340,16 +292,7 @@ public record Settings(
                 Math.clamp(c.getInt("linked-accounts.max-accounts", 1), 1, 10),
                 Math.clamp(c.getInt("linked-accounts.request-seconds", 120), 10, 3600));
 
-        return new Settings(loaders, item, border, mapLayer, update, gui, invites, lag, pause, shed, dummies, links);
-    }
-
-    private static java.awt.Color parseColor(String raw, String path, Logger log) {
-        try {
-            return new java.awt.Color(Integer.parseInt(raw.replace("#", "").trim(), 16));
-        } catch (RuntimeException e) {
-            log.warning("Invalid colour '" + raw + "' for " + path + ", using #8A958E.");
-            return new java.awt.Color(0x8A958E);
-        }
+        return new Settings(loaders, item, border, update, gui, invites, lag, pause, shed, dummies, links);
     }
 
     /** Top and bottom are whole faces (no slab, stairs, fence ...) - unlike isOccluding() also true for glowstone. */

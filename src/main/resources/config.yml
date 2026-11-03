@@ -16,7 +16,7 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 26
+config-version: 27
 
 # Language of the texts (chat, menus, items). The texts are in plugins/MRchunks/lang/<language>.yml.
 #   auto = every player gets the language set in their Minecraft client:
@@ -29,7 +29,7 @@ language: auto
 # Language for players whose Minecraft language has no file of its own.
 fallback-language: en
 
-# Language of texts that are not meant for a single player: Discord logs, the web map (squaremap),
+# Language of texts that are not meant for a single player: Discord logs,
 # tickets in MRadmin.
 server-language: en
 
@@ -320,47 +320,7 @@ border:
 
 
 # ------------------------------------------------------------------------------
-#   6) WEB MAP (squaremap, through MRadmin)
-# ------------------------------------------------------------------------------
-# The web map belongs to MRadmin: with MRadmin and squaremap (https://modrinth.com/plugin/squaremap) installed,
-# MRadmin draws the chunk loaders on it. The map itself - address, chunk grid, setting up squaremap, the link
-# command /mradmin map - is set in MRadmin's config.yml (section map). Here: how the chunk loaders look on it.
-# Without MRadmin or squaremap there is no web map - apart from that MRchunks works completely normally.
-map-layer:
-  enabled: true
-  # true = the layers are hidden when the map opens (can be switched on in the layer selection).
-  default-hidden: false
-  # Also show switched-off chunk loaders (grey).
-  show-inactive: true
-  # Colour of the areas, so the map shows the state of every chunk loader at a glance:
-  # "status" = active-color for active chunk loaders (switched off grey, locked red, conspicuous and paused yellow),
-  # "owner" = an own, constant colour per player, or a fixed value like "#2ECC71".
-  color: status
-  active-color: "#2ECC71"
-  inactive-color: "#8A958E"
-  # Colour of active chunk loaders during a server pause (see server-pause).
-  paused-color: "#F1C40F"
-  # Colour by status: locked chunk loaders (lag protection) and conspicuous ones (above a warn limit) get their own
-  # colour, so problems stand out on the map. false = they look like the others.
-  status-colors: true
-  locked-color: "#E74C3C"
-  warn-color: "#F1C40F"
-  # true = three layers that visitors switch on and off separately in the layer menu (top left): active,
-  #        switched-off and locked chunk loaders (names in the language file, map-layer-*). Locked ones are always
-  #        shown, also with show-inactive: false. In MRadmin they are mrchunks:active, mrchunks:inactive and
-  #        mrchunks:locked (map.layers there can switch single ones off).
-  # false = one layer for all (mrchunks:loaders).
-  split-layers: true
-  # A small figure instead of the loader icon where a dummy player sits (see dummies).
-  show-dummy-icon: true
-  # Opacity of the area (0.0 - 1.0).
-  fill-opacity: 0.25
-  # Small chunk loader icon in the middle of the area.
-  show-icon: true
-
-
-# ------------------------------------------------------------------------------
-#   7) DISCORD LOGS
+#   6) DISCORD LOGS
 # ------------------------------------------------------------------------------
 # Create a webhook: Discord channel -> Edit Channel -> Integrations -> Webhooks
 #                   -> New Webhook -> Copy Webhook URL.
@@ -481,7 +441,7 @@ discord:
 
 
 # ------------------------------------------------------------------------------
-#   8) UPDATE CHECK
+#   7) UPDATE CHECK
 # ------------------------------------------------------------------------------
 update-checker:
   enabled: true
@@ -495,7 +455,7 @@ update-checker:
 
 
 # ------------------------------------------------------------------------------
-#   9) MENUS
+#   8) MENUS
 # ------------------------------------------------------------------------------
 gui:
   # How often open menus are refreshed (in ticks, 20 = 1 second).

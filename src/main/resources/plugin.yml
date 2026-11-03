@@ -74,7 +74,7 @@ permissions:
     description: Get chunk loaders (/chunkloader), place them and manage your own.
     default: op
   mrchunks.map:
-    description: Button "Web map" in /chunkloader - link to the web map (needs MRadmin with squaremap).
+    description: Button "Web map" in /chunkloader - link to the map of the player page (needs MRadmin with squaremap).
     default: op
   mrchunks.view:
     description: Open the menu of other players' chunk loaders (view only and show the border).

@@ -22,30 +22,16 @@ import java.util.logging.Level;
  */
 public final class ConfigUpdater {
 
-    public static final int CURRENT_VERSION = 26;
+    public static final int CURRENT_VERSION = 27;
     public static final String BOM = "\uFEFF";
     /** Texts whose content changed with new features; the new default replaces the old value. */
     private static final Set<String> REPLACED_KEYS = Set.of();
     /**
-     * Keys that were renamed: old path -> new path (the value is carried over). v26: the web map moved to MRadmin -
-     * the chunk loader layers keep their settings under map-layer; the rest of squaremap.* (address, grid ...) MRadmin
-     * takes over from the backup of the old file.
+     * Keys that were renamed: old path -> new path (the value is carried over). v27: the web map belongs to MRadmin
+     * (squaremap only renders, MRadmin shows the map on the player page) - squaremap.* and map-layer.* are gone,
+     * MRadmin takes over what it still needs from the backup of the old file.
      */
-    private static final Map<String, String> RENAMED_KEYS = Map.ofEntries(
-            Map.entry("squaremap.enabled", "map-layer.enabled"),
-            Map.entry("squaremap.default-hidden", "map-layer.default-hidden"),
-            Map.entry("squaremap.show-inactive", "map-layer.show-inactive"),
-            Map.entry("squaremap.color", "map-layer.color"),
-            Map.entry("squaremap.active-color", "map-layer.active-color"),
-            Map.entry("squaremap.inactive-color", "map-layer.inactive-color"),
-            Map.entry("squaremap.paused-color", "map-layer.paused-color"),
-            Map.entry("squaremap.status-colors", "map-layer.status-colors"),
-            Map.entry("squaremap.locked-color", "map-layer.locked-color"),
-            Map.entry("squaremap.warn-color", "map-layer.warn-color"),
-            Map.entry("squaremap.split-layers", "map-layer.split-layers"),
-            Map.entry("squaremap.show-dummy-icon", "map-layer.show-dummy-icon"),
-            Map.entry("squaremap.fill-opacity", "map-layer.fill-opacity"),
-            Map.entry("squaremap.show-icon", "map-layer.show-icon"));
+    private static final Map<String, String> RENAMED_KEYS = Map.of();
 
     private ConfigUpdater() {
     }
@@ -105,13 +91,6 @@ public final class ConfigUpdater {
                 template.set("loaders.max-reach", Math.max(radius, template.getInt("loaders.max-reach", 7)));
                 template.set("loaders.default-budget", Math.max(0, existing.getInt("loaders.default-active-limit", 3)) * area);
                 template.set("lag-protection.limits-per-chunks", area);
-            }
-            // v16: the map colours show the state (active green, conspicuous and paused yellow) - only the old defaults
-            // are replaced, own colours stay.
-            if (version < 16) {
-                replaceDefault(existing, template, "squaremap.color", "map-layer.color", "owner", "status");
-                replaceDefault(existing, template, "squaremap.paused-color", "map-layer.paused-color", "#F39C12", "#F1C40F");
-                replaceDefault(existing, template, "squaremap.warn-color", "map-layer.warn-color", "#E67E22", "#F1C40F");
             }
             // v18: halved entity limits (staged shutdown protects the performance) - only the old defaults are replaced.
             if (version < 18) {
@@ -179,18 +158,7 @@ public final class ConfigUpdater {
         }
     }
 
-    /**
-     * Sets {@code key} to {@code value} if the old file still had the old default {@code old} under {@code oldKey}
-     * (any other value was carried over).
-     */
-    private static void replaceDefault(YamlConfiguration existing, YamlConfiguration template, String oldKey, String key,
-                                       String old, String value) {
-        if (old.equalsIgnoreCase(existing.getString(oldKey, old).trim())) {
-            template.set(key, value);
-        }
-    }
-
-    /** Like {@link #replaceDefault(YamlConfiguration, YamlConfiguration, String, String, String, String)} for numbers (same key). */
+    /** Sets {@code value} if the old file did not have the key or still had the old default {@code old}. */
     private static void replaceDefault(YamlConfiguration existing, YamlConfiguration template, String key, int old,
                                        int value) {
         if (!existing.contains(key) || existing.getDouble(key) == old) {

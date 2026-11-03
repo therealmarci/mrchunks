@@ -11,7 +11,7 @@ Build, Config-Migration, Discord, Update-Checker, Menü-Grundgerüst und Release
 | Plattform | Paper 26.3 (`paper-api:26.3.build.200-stable`), Java 25 |
 | Build | Gradle 9.8.1 (Wrapper), JUnit 6, Minotaur für Modrinth |
 | Paket | `at.marcelr.mrchunks` |
-| Abhängigkeiten | keine Pflicht. Optional MRadmin (Modul-API, `compileOnly`, `softdepend`) - auch für die Webkarte |
+| Abhängigkeiten | keine Pflicht. Optional MRadmin (Modul-API, `compileOnly`, `softdepend`) - auch für die Karte der Spielerseite |
 
 ## 2. Projektstruktur
 ```text
@@ -135,12 +135,11 @@ bans:
 - **Verlauf:** `lag/ActivityHistory` (ohne Bukkit, getestet) hält pro Loader die Messungen der letzten 12 Stunden im Speicher (`LagMonitor#sample` trägt ein, gelöschte Loader fallen über `retain` weg). Jeder Eintrag trägt seine `Phase` (`ON`, `OFF`, `SHED`, `LOCKED` aus `LoaderManager#phase`); ohne Messung bleibt `values` null. `LoaderManager` meldet jeden Wechsel sofort an `LagMonitor#phaseChanged`, damit Phasen zwischen zwei Messungen und während der Startverzögerung die genaue Uhrzeit haben. `phases` rechnet die Phasen aus allen Einträgen aus, nicht aus den zusammengefassten Punkten. `last` liefert die letzte echte Messung für die Kacheln. Jede Messrunde geht als eine Textzeile (`encode`) über `MRadminLink#saveHistory` an `moduleHistoryAdd` (Modul-API 6), beim Start liest `restoreHistory` sie zurück. Web-Abfrage `loaderHistory {id, range}` fasst je nach Zeitraum zusammen (`HISTORY_STEPS`, `ActivityHistory#combined`, an der Uhrzeit ausgerichtet), mit dem Höchstwert je Messwert, damit Spitzen gegen die Grenzen sichtbar bleiben.
 - **Live-Ansicht:** Web-Abfrage `loaderLive {id}` (über `requests()` an `mrchunks.admin.live` gebunden) ruft `LagMonitor#live`: Die Abfrage selbst hält den Loader in `LiveWatch` (ohne Bukkit, getestet; fällt nach 5 s ohne Abfrage heraus, höchstens `max-loaders`). Der Takt läuft nur, solange etwas beobachtet wird. Ereignisse zählt `count` zusätzlich in `liveCounts`, Messung über dasselbe `measure`. Nichts davon geht an `judge` oder in den gespeicherten Verlauf; `liveHistory` hält die Punkte 15 Minuten im Speicher, `ActivityHistory#merged` fügt sie in `loaderHistory` ein (bis 1h, normale Punkte fallen nur innerhalb einer Live-Strecke weg). Beim Öffnen misst `firstLive` sofort, damit die Linie ohne Spalt weiterläuft.
 
-## 8. Webkarte über MRadmin (`api/LoaderMap.java`)
-- Die Webkarte (squaremap) gehört seit MRadmin-API 7 zu **MRadmin**: Einrichtung der squaremap-Config, Chunkraster, Spieler ausblenden, Adresse und `/mradmin map` (siehe MRadmins `docs/DOKUMENTATION.md`). MRchunks hat keine squaremap-Abhängigkeit mehr.
-- MRchunks liefert nur seine Ebenen: `MRadminModule#mapLayers()` → `LoaderMap.layers()` baut `MapLayer`s (`active`, `inactive`, `locked` bzw. mit `map-layer.split-layers: false` eine Ebene `loaders`) aus `MapMarker.Area` (Fläche in Blockkoordinaten, Farbe nach Zustand) und `MapMarker.Icon` (Loader- bzw. Dummy-Symbol, `mapIcons()` zeichnet beide im Code). Tooltips sind HTML, Namen werden escaped; alles in der Server-Sprache (`messages().server`).
-- **Aktualisierung:** `LoaderManager`, `LagMonitor` und `Dummies` rufen nach jeder Änderung `mradmin().mapChanged()` auf (→ `MRadminService#mapChanged`), MRadmin fasst mehrere Aufrufe in einem Tick zusammen und zeichnet zusätzlich alle `map.update-seconds` neu. `reload()` meldet ebenfalls eine Änderung (Farben).
-- **Links:** Knopf **Webkarte**, `sendMapLink` und die Kartenausschnitte der Spielerseite holen die Adresse über `MRadminLink#mapUrl()` bzw. `mapUrl(loader)` (MRadmin baut `?world=…&zoom=4&x=…&z=…`). Ohne MRadmin (oder mit MRadmin-API < 7) ist sie leer, der Knopf erscheint dann nicht.
-- **Migration (config-version 26):** `squaremap.*`-Werte der Ebenen werden per `RENAMED_KEYS` zu `map-layer.*`. Die übrigen (Adresse, Raster …) bleiben in `config.v25.backup.yml`, MRadmin übernimmt sie von dort bzw. aus der noch alten config.yml (MRadmin startet vorher).
+## 8. Karte über MRadmin (`api/SelfPage.java`)
+- Die Karte gehört ganz zu **MRadmin** (Installation, Einrichtung und Kacheln von squaremap, Viewer auf der Spielerseite, `/mradmin map`; siehe MRadmins `docs/DOKUMENTATION.md`). MRchunks hat keine squaremap-Abhängigkeit und keine Karten-Einstellungen.
+- MRchunks liefert nur die Ebene der Spielerseite (Modul-API 8): `MRadminModule#selfMap` → `SelfPage.mapLayers` baut eine `SelfMapLayer` `loaders` mit den eigenen und geteilten Loadern des Betrachters (Fläche in Blockkoordinaten, Farbe nach Zustand). Rechtsklick → `selfMapAction` → `SelfPage.mapAction`, gleiche Prüfungen wie die Knöpfe der Seite. Die Ebenen der alten API 7 (`mapLayers`/`mapIcons`) liefert MRchunks nicht mehr.
+- **Links:** Knopf **Webkarte** und `sendMapLink` holen die Adresse über `MRadminLink#mapUrl()` (Tab „Karte“ der Spielerseite). Ohne MRadmin ist sie leer, der Knopf erscheint dann nicht.
+- **Migration (config-version 27):** der Abschnitt `map-layer` (bzw. `squaremap` aus 1.1) fällt weg. Adresse und Einrichtung übernimmt MRadmin aus `config.v25.backup.yml` bzw. der noch alten config.yml (MRadmin startet vorher).
 
 ## 9. Entwicklung
 ```text
@@ -160,7 +159,7 @@ Der Release-Ablauf entspricht MRsleep, siehe **[RELEASES.md](RELEASES.md)**: Ver
 | 7 | Loader im Nether | Bereich geladen (`execute in minecraft:the_nether if loaded …`) |
 | 8 | `/mrchunks ban <spieler>` | alle seine Loader weg, Items aus dem Inventar entfernt, `give` verweigert |
 | 9 | `/mrchunks limit <spieler> budget 200` | Kopf im Admin-Menü zeigt Budget 200 „(individuell)“, überzählige Loader gehen aus |
-| 10 | Start mit MRadmin und squaremap, `/mradmin map` | Ebenen `mrchunks:active`, `:inactive`, `:locked` gelistet, live unter `http://<host>:8080/tiles/minecraft_overworld/markers.json` mit `"id":"mradmin_mrchunks_active"` |
+| 10 | Start mit MRadmin, Spielerseite `/me/map` öffnen | Ebene „Meine Chunkloader“ zeigt eigene + geteilte Loader, Rechtsklick schaltet an/aus |
 | 11 | Loader-Menü → Größe, Osten +1 bei aktivem Loader | neue Chunk-Spalte geladen, Grenze und Karte folgen, Budget steigt um die Länge |
 | 12 | Vergrößern mit vollem Budget | abgelehnt mit Hinweis, Größe unverändert |
 | 13 | Dummy auf 3×3 oder Rechteck einschalten | abgelehnt („nur quadratisch ab 5×5“) |

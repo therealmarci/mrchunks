@@ -201,7 +201,6 @@ public final class MRChunks extends JavaPlugin {
         shedder.start();
         updateChecker.start();
         menuListener.start();
-        mradmin.mapChanged(); // colours and layers of the web map may have changed
         // Permissions may have changed (e.g. mrchunks.exempt given via LuckPerms).
         Bukkit.getOnlinePlayers().forEach(adminActions::enforceExempt);
     }

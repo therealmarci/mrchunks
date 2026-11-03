@@ -59,21 +59,6 @@ item-lore:
   - ""
   - "<dark_gray>Rechtsklick: Menü · Sneak: bauen"
 
-# --- Webkarte (squaremap) --------------------------------------------------------
-# Name der Ebene in der Ebenen-Auswahl der Karte.
-map-layer-name: "Chunkloader"
-# Weitere Ebenen mit map-layer.split-layers: true (die aktiven Loader stehen in map-layer-name)
-map-layer-inactive: "Chunkloader (aus)"
-map-layer-locked: "Chunkloader (gesperrt)"
-# Texte auf der Karte (HTML erlaubt). Platzhalter: {name} {number} {player} {world} {x} {y} {z} {width} {length} {chunks}
-# {state} (aktiv/aus/pausiert), {status} (wie {state}, bei gesperrten und auffälligen Loadern mit Grund), {dummy}
-map-hover-tooltip: "{name} - {player}"
-map-click-tooltip: "<b>{name}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br>Größe: {width}x{length} Chunks ({chunks} im Budget)<br>Status: {status}{dummy}"
-# Status mit Grund (Platzhalter {metric} {value} {limit}) und der Zusatz für einen sitzenden Dummy
-map-tooltip-locked: "<span style=\"color:#E74C3C\">gesperrt</span> ({metric} {value}, Grenze {limit})"
-map-tooltip-warn: "<span style=\"color:#E67E22\">auffällig</span> ({metric} {value}, Warngrenze {limit})"
-map-tooltip-dummy: "<br>Dummy sitzt auf dem Loader"
-
 # Grund, der bei Sperren über das Admin-Menü eingetragen wird.
 gui-ban-reason: "über das Admin-Menü"
 
@@ -756,7 +741,6 @@ self-card-place: "<world> · <x>, <z>"
 self-card-size: "Größe"
 self-card-chunks: "Chunks"
 self-card-dummy: "Dummy"
-self-card-map: "Karte rund um den Loader"
 self-dummy-present: "sitzt"
 self-dummy-waiting: "wartet"
 self-shared-sub: "von <owner> · <place>"
@@ -783,8 +767,6 @@ self-members-loader-text: "Diese Spieler dürfen nur diesen Loader an- und aussc
 self-members-loader-empty: "Niemand nur für diesen Loader eingeladen."
 self-members-list: "Eingeladen (<count>)"
 self-shared: "Mit dir geteilt"
-self-map: "Karte deiner Chunkloader"
-self-map-open: "Große Karte öffnen"
 self-err-not-found: "Diesen Chunkloader gibt es nicht mehr."
 self-err-locked: "Der Loader ist wegen Lag gesperrt - nur ein Admin kann die Sperre aufheben."
 self-err-budget: "Dafür reicht dein Budget nicht: <chunks> Chunks nötig, <free> frei."

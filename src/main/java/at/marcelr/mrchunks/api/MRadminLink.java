@@ -80,21 +80,7 @@ public final class MRadminLink implements Listener {
         }
     }
 
-    /**
-     * Something on the web map changed (a loader placed, switched, locked ...) - MRadmin draws the chunk loader layers
-     * again. The map belongs to MRadmin since its API 7; without MRadmin there is none.
-     */
-    public void mapChanged() {
-        if (connected) {
-            try {
-                MRadminModule.mapChanged();
-            } catch (LinkageError | RuntimeException e) {
-                plugin.getLogger().warning("Could not update the web map in MRadmin: " + e);
-            }
-        }
-    }
-
-    /** Public link to the web map, or "" if there is none (no MRadmin, no squaremap, address unknown). */
+    /** Link to the map of the player page in MRadmin, or "" if there is none (no MRadmin, squaremap or address). */
     public String mapUrl() {
         try {
             return connected ? MRadminModule.mapUrl() : "";
@@ -103,7 +89,7 @@ public final class MRadminLink implements Listener {
         }
     }
 
-    /** Link to the web map centred on the loader, or "" if there is none. */
+    /** Link to the map of the player page centred on the loader, or "" if there is none. */
     public String mapUrl(Loader loader) {
         World world = loader.world();
         try {

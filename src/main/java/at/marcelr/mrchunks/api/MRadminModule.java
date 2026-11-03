@@ -122,13 +122,6 @@ final class MRadminModule implements AdminModule, WebModule {
         }
     }
 
-    static void mapChanged() {
-        MRadminService service = MRadminService.get();
-        if (service != null && service.apiVersion() >= MAP_API) {
-            service.mapChanged(ID);
-        }
-    }
-
     static String mapUrl() {
         MRadminService service = MRadminService.get();
         String url = service != null && service.apiVersion() >= MAP_API ? service.mapUrl() : null;
@@ -158,16 +151,6 @@ final class MRadminModule implements AdminModule, WebModule {
     @Override
     public Plugin plugin() {
         return plugin;
-    }
-
-    @Override
-    public List<at.marcelr.mradmin.api.MapLayer> mapLayers() {
-        return LoaderMap.layers(plugin);
-    }
-
-    @Override
-    public Map<String, java.awt.image.BufferedImage> mapIcons() {
-        return LoaderMap.icons();
     }
 
     @Override

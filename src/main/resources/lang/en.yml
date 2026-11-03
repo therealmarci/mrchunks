@@ -59,22 +59,6 @@ item-lore:
   - ""
   - "<dark_gray>Right-click: menu · sneak: build"
 
-# --- Web map (squaremap) ---------------------------------------------------------
-# Name of the layer in the map's layer selection.
-map-layer-name: "Chunk Loaders"
-# More layers with map-layer.split-layers: true (the active loaders are in map-layer-name)
-map-layer-inactive: "Chunk Loaders (off)"
-map-layer-locked: "Chunk Loaders (locked)"
-# Texts on the map (HTML allowed). Placeholders: {name} {number} {player} {world} {x} {y} {z} {width} {length} {chunks}
-# {state} (active/off/paused), {status} (like {state}, with the reason for locked and conspicuous loaders), {dummy}
-map-hover-tooltip: "{name} - {player}"
-map-click-tooltip: "<b>{name}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br>Size: {width}x{length} chunks ({chunks} of the budget)<br>Status: {status}{dummy}"
-# Status with reason (placeholders {metric} {value} {limit}) and the addition for a sitting dummy
-map-tooltip-locked: "<span style=\"color:#E74C3C\">locked</span> ({metric} {value}, limit {limit})"
-map-tooltip-warn: "<span style=\"color:#E67E22\">conspicuous</span> ({metric} {value}, warn limit {limit})"
-map-tooltip-dummy: "<br>A dummy sits on the loader"
-# Name of the chunk grid in the map's layer menu.
-
 # Reason entered when banning via the admin menu.
 gui-ban-reason: "via the admin menu"
 
@@ -757,7 +741,6 @@ self-card-place: "<world> · <x>, <z>"
 self-card-size: "Size"
 self-card-chunks: "Chunks"
 self-card-dummy: "Dummy"
-self-card-map: "Map around the loader"
 self-dummy-present: "present"
 self-dummy-waiting: "waiting"
 self-shared-sub: "by <owner> · <place>"
@@ -784,8 +767,6 @@ self-members-loader-text: "These players may only switch this loader on and off.
 self-members-loader-empty: "Nobody is invited to just this loader."
 self-members-list: "Invited (<count>)"
 self-shared: "Shared with you"
-self-map: "Map of your chunk loaders"
-self-map-open: "Open the big map"
 self-err-not-found: "This chunk loader does not exist anymore."
 self-err-locked: "The loader is locked because of lag - only an admin can lift the lock."
 self-err-budget: "Your budget is not enough: <chunks> chunks needed, <free> free."
