@@ -9,7 +9,11 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+### Entfernt
+- **Webkarte zieht zu MRadmin:** MRchunks bindet squaremap nicht mehr selbst an. Mit MRadmin und squaremap stehen die Chunkloader wie bisher auf der Karte, ohne MRadmin gibt es keine Webkarte mehr. **MRadmin und MRchunks gemeinsam aktualisieren** - MRadmin übernimmt Adresse, Raster und die übrigen Karteneinstellungen aus der alten MRchunks-Config. Weggefallen: `/mrchunks map [setup]` und die Permission `mrchunks.admin.map` (stattdessen `/mradmin map` mit `mradmin.map.admin`), die Config-Schlüssel `squaremap.auto-configure`, `hide-players`, `update-seconds`, `address`, `reverse-proxy`, `detect-public-ip` und `chunk-grid` (jetzt in MRadmin unter `map`).
+
 ### Behoben & geändert
+- **Aussehen der Chunkloader auf der Karte unter `map-layer`:** Farben, getrennte Ebenen, Dummy-Symbol und Deckkraft heißen jetzt `map-layer.*` statt `squaremap.*` - deine Werte werden beim Update übernommen (config-version 26). Der Knopf **Webkarte** in `/chunkloader` (`mrchunks.map`) bleibt und erscheint, sobald MRadmin eine Karte hat.
 - **Diagramme ab 1 Stunde durchgehend:** Ab dem Zeitraum 1h war die Linie in der MRadmin-Weboberfläche gestrichelt, weil die zusammengefassten Punkte weiter auseinanderliegen als der Abstand, ab dem das Diagramm eine Lücke annahm. MRchunks schickt jetzt den passenden Abstand je Zeitraum mit.
 
 ## [1.1.0] - 2026-11-02

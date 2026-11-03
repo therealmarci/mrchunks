@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Nicht ändern - damit erkennt das Plugin bei Updates, welche Texte erneuert werden müssen.
-lang-version: 21
+lang-version: 22
 
 # Texte der Discord-Logs (Markdown wie in Discord). Platzhalter: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. An/aus und Farbe stehen in der config.yml.
@@ -60,13 +60,9 @@ item-lore:
   - "<dark_gray>Rechtsklick: Menü · Sneak: bauen"
 
 # --- Webkarte (squaremap) --------------------------------------------------------
-# Namen der Dimensionen in der Welt-Auswahl (werden bei der Einrichtung von squaremap gesetzt).
-map-dimension-overworld: "Overworld"
-map-dimension-nether: "Nether"
-map-dimension-end: "End"
 # Name der Ebene in der Ebenen-Auswahl der Karte.
 map-layer-name: "Chunkloader"
-# Weitere Ebenen mit squaremap.split-layers: true (die aktiven Loader stehen in map-layer-name)
+# Weitere Ebenen mit map-layer.split-layers: true (die aktiven Loader stehen in map-layer-name)
 map-layer-inactive: "Chunkloader (aus)"
 map-layer-locked: "Chunkloader (gesperrt)"
 # Texte auf der Karte (HTML erlaubt). Platzhalter: {name} {number} {player} {world} {x} {y} {z} {width} {length} {chunks}
@@ -77,8 +73,6 @@ map-click-tooltip: "<b>{name}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br
 map-tooltip-locked: "<span style=\"color:#E74C3C\">gesperrt</span> ({metric} {value}, Grenze {limit})"
 map-tooltip-warn: "<span style=\"color:#E67E22\">auffällig</span> ({metric} {value}, Warngrenze {limit})"
 map-tooltip-dummy: "<br>Dummy sitzt auf dem Loader"
-# Name des Chunkrasters im Ebenen-Menü der Karte.
-map-grid-label: "Chunkraster"
 
 # Grund, der bei Sperren über das Admin-Menü eingetragen wird.
 gui-ban-reason: "über das Admin-Menü"
@@ -298,7 +292,6 @@ admin-usage: |-
   <green>/mrchunks bans</green> <dark_gray>- <gray>Alle Sperren
   <green>/mrchunks link <haupt-account> <zweit-account></green> <dark_gray>- <gray>Accounts verknüpfen
   <green>/mrchunks unlink <spieler></green> <dark_gray>- <gray>Verknüpfung lösen
-  <green>/mrchunks map [setup]</green> <dark_gray>- <gray>Status der Webkarte / squaremap neu einrichten
   <green>/mrchunks discord [test]</green> <dark_gray>- <gray>Discord-Status / Testnachricht
   <green>/mrchunks reload</green> <dark_gray>- <gray>Konfiguration neu laden
   <green>/mrchunks version</green> <dark_gray>- <gray>Version & Update-Status
@@ -318,23 +311,6 @@ unban-notify: "<prefix><green>Du darfst wieder Chunkloader setzen."
 bans-header: "<prefix><gray>Gesperrte Spieler:"
 bans-entry: "<dark_gray> - <white><player></white> <gray>(<duration>, Grund: <reason>, von <by>)"
 bans-empty: "<prefix><gray>Niemand ist gesperrt."
-map-status-on: "<prefix><green>Webkarte aktiv <gray>(squaremap, Ebene \"Chunkloader\"): <link>"
-map-status-off: "<prefix><hover:show_text:'<gray>https://modrinth.com/plugin/squaremap'><gray>Keine Webkarte: squaremap ist <white><status></white></hover>"
-map-url-unknown: "<gray>Adresse unbekannt - trage squaremap.address ein"
-map-squaremap-missing: "<prefix><red>squaremap ist nicht installiert."
-map-setup-done: "<prefix><hover:show_text:'<gray><changes>'><green>squaremap eingerichtet, wird neu geladen</hover>"
-map-setup-nothing: "<prefix><gray>squaremap ist bereits passend eingerichtet."
-map-setup-failed: "<prefix><red>squaremap konnte nicht eingerichtet werden: <white><reason>"
-map-setup-change-interval: "Karte aktualisiert alle 5 Sekunden"
-map-setup-change-tracker: "keine Spieler-Standorte auf der Karte"
-map-setup-change-sidebar: "Welt-Auswahl immer sichtbar"
-map-setup-change-name: "<world> heißt \"<name>\""
-map-setup-change-nether: "<world> wird von innen gezeigt"
-map-setup-change-removed: "alte Einstellung <setting> entfernt"
-map-state-active: "aktiv"
-map-state-missing: "nicht installiert"
-map-state-disabled: "in der Config ausgeschaltet"
-map-state-error: "Fehler: <error>"
 
 # --- Discord -----------------------------------------------------------------
 discord-status-active: "<prefix><green>Discord aktiv <gray>(<events>/<total> Events)"

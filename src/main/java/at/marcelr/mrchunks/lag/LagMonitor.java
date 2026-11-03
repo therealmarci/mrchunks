@@ -330,7 +330,7 @@ public final class LagMonitor implements Listener {
         }
         if (!conspicuousNow.equals(lastConspicuous)) {
             lastConspicuous = conspicuousNow;
-            plugin.maps().refreshSoon();
+            plugin.mradmin().mapChanged();
         }
         counts.clear();
         windowStart = now;

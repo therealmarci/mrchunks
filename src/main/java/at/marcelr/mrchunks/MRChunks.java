@@ -9,7 +9,6 @@ import at.marcelr.mrchunks.lag.LagMonitor;
 import at.marcelr.mrchunks.lag.LoadShedder;
 import at.marcelr.mrchunks.lag.ServerPause;
 import at.marcelr.mrchunks.link.LinkRequests;
-import at.marcelr.mrchunks.map.MapHooks;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.command.TabExecutor;
@@ -27,7 +26,9 @@ public final class MRChunks extends JavaPlugin {
     private FileConfiguration config;
     private Settings settings;
     /** lang-version 2: version display with MC version; 3: loaders by name/number; 4: squaremap.address; 5: merged admin commands; 6: shorter window titles; 7: lag protection (admin usage); 8: /chunkloader is only the menu (invite notice); 9: get/return as two buttons; 11: dummies and linked accounts (admin usage). */
-    private final Messages messages = new Messages(21, Map.ofEntries(
+    private final Messages messages = new Messages(22, Map.ofEntries(
+            // 22: the web map moved to MRadmin - /mrchunks map is gone from the admin usage.
+            Map.entry(22, Set.of("admin-usage")),
             Map.entry(2, Set.of("version", "gui-info-name")),
             Map.entry(3, Set.of("discord.loader-placed", "discord.loader-deleted", "discord.loader-toggled",
                     "discord.loader-restored", "discord.loader-removed-missing", "discord.admin-delete",
@@ -98,7 +99,6 @@ public final class MRChunks extends JavaPlugin {
     private BorderDisplay border;
     private UpdateChecker updateChecker;
     private MenuListener menuListener;
-    private MapHooks maps;
     private LagMonitor lag;
     private ServerPause pause;
     private LoadShedder shedder;
@@ -113,7 +113,8 @@ public final class MRChunks extends JavaPlugin {
         loadConfiguration();
 
         loaderItem = new LoaderItem(this);
-        maps = new MapHooks(this);
+        // Created first (loaders report map changes through it), connected at the end of enabling.
+        mradmin = new MRadminLink(this);
         border = new BorderDisplay(this);
         loaders = new LoaderManager(this);
         loaders.load();
@@ -139,7 +140,6 @@ public final class MRChunks extends JavaPlugin {
         updateChecker.start();
         menuListener = new MenuListener(this);
         menuListener.start();
-        maps.start();
 
         getServer().getPluginManager().registerEvents(new LoaderListener(this), this);
         getServer().getPluginManager().registerEvents(border, this);
@@ -148,7 +148,6 @@ public final class MRChunks extends JavaPlugin {
         register("chunkloader", new ChunkloaderCommand(this));
         register("mrchunks", new MRChunksCommand(this));
         // Optional: MRadmin (module API) - dashboard, player menu, server health, tickets, web interface.
-        mradmin = new MRadminLink(this);
         getServer().getPluginManager().registerEvents(mradmin, this);
         mradmin.connect();
 
@@ -163,9 +162,6 @@ public final class MRChunks extends JavaPlugin {
         }
         if (border != null) {
             border.stopAll();
-        }
-        if (maps != null) {
-            maps.stop();
         }
         if (updateChecker != null) {
             updateChecker.stop();
@@ -205,7 +201,7 @@ public final class MRChunks extends JavaPlugin {
         shedder.start();
         updateChecker.start();
         menuListener.start();
-        maps.start();
+        mradmin.mapChanged(); // colours and layers of the web map may have changed
         // Permissions may have changed (e.g. mrchunks.exempt given via LuckPerms).
         Bukkit.getOnlinePlayers().forEach(adminActions::enforceExempt);
     }
@@ -332,10 +328,6 @@ public final class MRChunks extends JavaPlugin {
 
     public LoadShedder shedder() {
         return shedder;
-    }
-
-    public MapHooks maps() {
-        return maps;
     }
 
     /** The optional connection to MRadmin. */

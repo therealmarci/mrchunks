@@ -60,6 +60,8 @@ final class MRadminModule implements AdminModule, WebModule {
     private static final String PUSH_LOCKED = "chunks-locked";
     /** MRadmin keeps the measurements for the charts since API 6. */
     private static final int HISTORY_API = 6;
+    /** MRadmin draws the web map since API 7. */
+    private static final int MAP_API = 7;
 
     private final MRChunks plugin;
 
@@ -120,6 +122,25 @@ final class MRadminModule implements AdminModule, WebModule {
         }
     }
 
+    static void mapChanged() {
+        MRadminService service = MRadminService.get();
+        if (service != null && service.apiVersion() >= MAP_API) {
+            service.mapChanged(ID);
+        }
+    }
+
+    static String mapUrl() {
+        MRadminService service = MRadminService.get();
+        String url = service != null && service.apiVersion() >= MAP_API ? service.mapUrl() : null;
+        return url == null ? "" : url;
+    }
+
+    static String mapUrl(org.bukkit.World world, int x, int z) {
+        MRadminService service = MRadminService.get();
+        String url = service != null && service.apiVersion() >= MAP_API ? service.mapUrl(world, x, z) : null;
+        return url == null ? "" : url;
+    }
+
     /** The world belongs to another module (e.g. MRpvp's arena world). */
     static boolean reservedWorld(org.bukkit.World world) {
         MRadminService service = MRadminService.get();
@@ -137,6 +158,16 @@ final class MRadminModule implements AdminModule, WebModule {
     @Override
     public Plugin plugin() {
         return plugin;
+    }
+
+    @Override
+    public List<at.marcelr.mradmin.api.MapLayer> mapLayers() {
+        return LoaderMap.layers(plugin);
+    }
+
+    @Override
+    public Map<String, java.awt.image.BufferedImage> mapIcons() {
+        return LoaderMap.icons();
     }
 
     @Override

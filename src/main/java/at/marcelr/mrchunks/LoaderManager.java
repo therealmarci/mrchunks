@@ -272,7 +272,7 @@ public final class LoaderManager {
             cover(loader);
         }
         save();
-        plugin.maps().refreshSoon();
+        plugin.mradmin().mapChanged();
         return loader;
     }
 
@@ -297,7 +297,7 @@ public final class LoaderManager {
             }
         }
         save();
-        plugin.maps().refreshSoon();
+        plugin.mradmin().mapChanged();
     }
 
     /** @return number of deleted loaders */
@@ -320,7 +320,7 @@ public final class LoaderManager {
         phaseChanged(loader);
         save();
         syncDummy(loader);
-        plugin.maps().refreshSoon();
+        plugin.mradmin().mapChanged();
         plugin.border().loaderChanged(loader);
     }
 
@@ -351,7 +351,7 @@ public final class LoaderManager {
         }
         save();
         syncDummy(loader);
-        plugin.maps().refreshSoon();
+        plugin.mradmin().mapChanged();
         plugin.border().loaderChanged(loader);
         plugin.lag().areaChanged();
     }
@@ -522,7 +522,7 @@ public final class LoaderManager {
     public void rename(Loader loader, String name) {
         loader.setName(name);
         save();
-        plugin.maps().refreshSoon();
+        plugin.mradmin().mapChanged();
     }
 
     // ---------------------------------------------------- staged shutdown
@@ -555,7 +555,7 @@ public final class LoaderManager {
         uncover(loader);
         phaseChanged(loader);
         syncDummy(loader);
-        plugin.maps().refreshSoon();
+        plugin.mradmin().mapChanged();
         plugin.border().loaderChanged(loader);
     }
 
@@ -569,7 +569,7 @@ public final class LoaderManager {
             phaseChanged(loader);
             syncDummy(loader);
         }
-        plugin.maps().refreshSoon();
+        plugin.mradmin().mapChanged();
         plugin.border().loaderChanged(loader);
     }
 
@@ -625,7 +625,7 @@ public final class LoaderManager {
         } else {
             applyAll();
         }
-        plugin.maps().refreshSoon();
+        plugin.mradmin().mapChanged();
     }
 
     /** Who switched the staged shutdown off in the web interface, or null (on as configured). */
@@ -1066,7 +1066,7 @@ public final class LoaderManager {
         if (moved > 0) {
             // The dummies of the taken loaders now belong to (and look like) the main account.
             syncDummies();
-            plugin.maps().refreshSoon();
+            plugin.mradmin().mapChanged();
         }
         return moved;
     }

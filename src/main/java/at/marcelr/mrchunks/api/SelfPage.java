@@ -19,7 +19,6 @@ import at.marcelr.mrchunks.lag.Metric;
 import at.marcelr.mrchunks.util.DurationUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -74,7 +73,7 @@ final class SelfPage {
         LoaderManager.Limit budget = loaders.budget(player);
         long free = loaders.freeBudget(player);
         LoaderManager.Ban ban = loaders.groupBan(viewer.player());
-        String mapUrl = viewer.has(MAP) ? plugin.maps().mapUrl() : "";
+        String mapUrl = viewer.has(MAP) ? plugin.mradmin().mapUrl() : "";
 
         // Head of the page and tile on the start page: active loaders big, budget and placed loaders as bars
         // ("a / b"); a ban, lag locks, loaders near the lag limit and an exceeded budget as warning lines (MRadmin also
@@ -175,7 +174,7 @@ final class SelfPage {
             details.add(invites(plugin, loader.owner(), loader));
         }
         if (!mapUrl.isEmpty()) {
-            details.add(new SelfBlock.Embed(m.plain("self-card-map"), mapAt(mapUrl, loader), 320, m.plain("self-map-open")));
+            details.add(new SelfBlock.Embed(m.plain("self-card-map"), mapAt(plugin, mapUrl, loader), 320, m.plain("self-map-open")));
         }
         return new SelfBlock.Card(id, Texts.name(plugin, loader), place(plugin, loader), state(plugin, loader, status),
                 tone(status), cardStats(plugin, loader), load(plugin, loader), primary, buttons, details);
@@ -191,7 +190,7 @@ final class SelfPage {
         List<SelfBlock> details = new ArrayList<>();
         details.add(limits(plugin, loader));
         if (!mapUrl.isEmpty()) {
-            details.add(new SelfBlock.Embed(m.plain("self-card-map"), mapAt(mapUrl, loader), 320, m.plain("self-map-open")));
+            details.add(new SelfBlock.Embed(m.plain("self-card-map"), mapAt(plugin, mapUrl, loader), 320, m.plain("self-map-open")));
         }
         return new SelfBlock.Card("shared-" + loader.id(), Texts.name(plugin, loader),
                 m.plain("self-shared-sub", "owner", LoaderManager.name(loader.owner()), "place", place(plugin, loader)),
@@ -283,12 +282,10 @@ final class SelfPage {
         return lock > 0 && value >= lock ? "bad" : warn > 0 && value >= warn ? "warn" : "good";
     }
 
-    /** squaremap centred on the loader (?world=...&zoom=...&x=...&z=...). */
-    private static String mapAt(String mapUrl, Loader loader) {
-        World world = loader.world();
-        String id = world == null ? loader.worldName() : world.getKey().asString().replace(':', '_');
-        String base = mapUrl.contains("?") ? mapUrl + "&" : mapUrl.endsWith("/") ? mapUrl + "?" : mapUrl + "/?";
-        return base + "world=" + id + "&zoom=4&x=" + loader.x() + "&z=" + loader.z();
+    /** The web map centred on the loader (MRadmin builds the link), or the whole map if its world is not on it. */
+    private static String mapAt(MRChunks plugin, String mapUrl, Loader loader) {
+        String at = plugin.mradmin().mapUrl(loader);
+        return at.isEmpty() ? mapUrl : at;
     }
 
     /**

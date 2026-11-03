@@ -920,13 +920,13 @@ public final class AdminActions {
         messages().send(player, removed == 0 ? "remove-none" : "remove-ok", tag("count", removed));
     }
 
-    /** Clickable link to the squaremap web map (only if squaremap is installed and its address is known). */
+    /** Clickable link to the web map (only with MRadmin, squaremap and a known address). */
     public void sendMapLink(Player player) {
         if (!player.hasPermission(PERM_MAP)) {
             messages().send(player, "no-permission");
             return;
         }
-        String url = plugin.maps().mapUrl();
+        String url = plugin.mradmin().mapUrl();
         if (url.isEmpty()) {
             messages().send(player, "map-unavailable");
             return;

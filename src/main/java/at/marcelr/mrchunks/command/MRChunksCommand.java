@@ -35,9 +35,8 @@ public final class MRChunksCommand implements TabExecutor {
 
     private static final String PERM_GUI = "mrchunks.admin.gui";
     private static final String PERM_RELOAD = "mrchunks.admin.reload";
-    private static final String PERM_MAP = "mrchunks.admin.map";
     private static final String PERM_DISCORD = "mrchunks.admin.discord";
-    private static final List<String> ADMIN_PERMS = List.of(PERM_GUI, PERM_RELOAD, PERM_MAP, PERM_DISCORD,
+    private static final List<String> ADMIN_PERMS = List.of(PERM_GUI, PERM_RELOAD, PERM_DISCORD,
             AdminActions.PERM_MANAGE, AdminActions.PERM_TOGGLE, AdminActions.PERM_LINK_OTHERS, AdminActions.PERM_INVITES,
             AdminActions.PERM_TELEPORT, AdminActions.PERM_LIMIT, AdminActions.PERM_BAN, AdminActions.PERM_SUSPEND_LOCK);
 
@@ -112,11 +111,6 @@ public final class MRChunksCommand implements TabExecutor {
             case "bans" -> {
                 if (check(sender, AdminActions.PERM_BAN)) {
                     bans(sender);
-                }
-            }
-            case "map", "web" -> {
-                if (check(sender, PERM_MAP)) {
-                    map(sender, args);
                 }
             }
             case "discord" -> {
@@ -277,26 +271,6 @@ public final class MRChunksCommand implements TabExecutor {
 
     // ---------------------------------------------------------------- misc
 
-    /** /mrchunks map - squaremap status; /mrchunks map setup - apply the recommended squaremap settings again. */
-    private void map(CommandSender sender, String[] args) {
-        if (args.length > 1 && args[1].equalsIgnoreCase("setup")) {
-            if (!plugin.maps().squaremapInstalled()) {
-                messages().send(sender, "map-squaremap-missing");
-                return;
-            }
-            plugin.maps().runSetup(sender, true);
-            return;
-        }
-        if (plugin.maps().squaremapActive()) {
-            String url = plugin.maps().mapUrl();
-            Component link = url.isEmpty() ? messages().get("map-url-unknown")
-                    : messages().get("map-link-label", tag("url", url)).clickEvent(ClickEvent.openUrl(url));
-            messages().send(sender, "map-status-on", tag("link", link));
-        } else {
-            messages().send(sender, "map-status-off", tag("status", plugin.maps().squaremapStatus()));
-        }
-    }
-
     private void discord(CommandSender sender, String[] args) {
         DiscordWebhook discord = plugin.discord();
         if (discord.enabled()) {
@@ -430,7 +404,6 @@ public final class MRChunksCommand implements TabExecutor {
             addIf(sender, AdminActions.PERM_SUSPEND_LOCK, options, "suspendlock");
             addIf(sender, AdminActions.PERM_LIMIT, options, "limit");
             addIf(sender, AdminActions.PERM_BAN, options, "ban", "unban", "bans");
-            addIf(sender, PERM_MAP, options, "map");
             addIf(sender, PERM_DISCORD, options, "discord");
             addIf(sender, PERM_RELOAD, options, "reload");
         } else {
@@ -485,11 +458,6 @@ public final class MRChunksCommand implements TabExecutor {
                 case "discord" -> {
                     if (args.length == 2) {
                         options.add("test");
-                    }
-                }
-                case "map" -> {
-                    if (args.length == 2) {
-                        options.add("setup");
                     }
                 }
                 default -> {

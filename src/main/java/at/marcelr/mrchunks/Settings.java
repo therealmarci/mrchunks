@@ -20,7 +20,7 @@ public record Settings(
         LoaderSettings loaders,
         ItemSettings item,
         BorderSettings border,
-        SquaremapSettings squaremap,
+        MapLayerSettings mapLayer,
         UpdateSettings update,
         GuiSettings gui,
         InviteSettings invites,
@@ -138,13 +138,14 @@ public record Settings(
                                  int below, int above, int lineSpacing) {
     }
 
-    /** {@code color == null} means one colour per owner. */
-    public record SquaremapSettings(boolean enabled, boolean autoConfigure, String overworldName, String netherName,
-                                    String endName, boolean hidePlayers, String layerName, boolean defaultHidden, boolean showInactive,
-                                    java.awt.Color color, java.awt.Color inactiveColor, java.awt.Color pausedColor, double fillOpacity,
-                                    boolean showIcon, String hoverTooltip, String clickTooltip, int updateSeconds,
-                                    String address, boolean reverseProxy, boolean detectPublicIp, GridSettings grid,
-                                    StatusSettings status) {
+    /**
+     * The chunk loader layers on the web map, which MRadmin draws (map-layer). {@code color == null} means one colour
+     * per owner. Texts (layer names, tooltips) in the server language.
+     */
+    public record MapLayerSettings(boolean enabled, String layerName, boolean defaultHidden, boolean showInactive,
+                                   java.awt.Color color, java.awt.Color inactiveColor, java.awt.Color pausedColor,
+                                   double fillOpacity, boolean showIcon, String hoverTooltip, String clickTooltip,
+                                   StatusSettings status) {
     }
 
     /**
@@ -155,11 +156,6 @@ public record Settings(
     public record StatusSettings(boolean colors, java.awt.Color lockedColor, java.awt.Color warnColor,
                                  boolean splitLayers, String inactiveLayerName, String lockedLayerName,
                                  boolean dummyIcon, String tooltipLocked, String tooltipWarn, String tooltipDummy) {
-    }
-
-    public record GridSettings(boolean enabled, boolean defaultVisible, String color, double opacity,
-                               int minChunkPixels, boolean regionLines, String regionColor, boolean labels,
-                               String label) {
     }
 
     public record UpdateSettings(boolean enabled, String source, boolean includePrereleases,
@@ -224,48 +220,29 @@ public record Settings(
                 Math.clamp(c.getInt("border.above", 5), 0, 64),
                 Math.clamp(c.getInt("border.line-spacing", 3), 1, 16));
 
-        String rawColor = c.getString("squaremap.color", "status");
-        SquaremapSettings squaremap = new SquaremapSettings(
-                c.getBoolean("squaremap.enabled", true),
-                c.getBoolean("squaremap.auto-configure", true),
-                texts.optional("map-dimension-overworld"),
-                texts.optional("map-dimension-nether"),
-                texts.optional("map-dimension-end"),
-                c.getBoolean("squaremap.hide-players", true),
+        String rawColor = c.getString("map-layer.color", "status");
+        MapLayerSettings mapLayer = new MapLayerSettings(
+                c.getBoolean("map-layer.enabled", true),
                 texts.optional("map-layer-name"),
-                c.getBoolean("squaremap.default-hidden", false),
-                c.getBoolean("squaremap.show-inactive", true),
+                c.getBoolean("map-layer.default-hidden", false),
+                c.getBoolean("map-layer.show-inactive", true),
                 rawColor.equalsIgnoreCase("owner") ? null : rawColor.equalsIgnoreCase("status")
-                        ? parseColor(c.getString("squaremap.active-color", "#2ECC71"), "squaremap.active-color", log)
-                        : parseColor(rawColor, "squaremap.color", log),
-                parseColor(c.getString("squaremap.inactive-color", "#8A958E"), "squaremap.inactive-color", log),
-                parseColor(c.getString("squaremap.paused-color", "#F1C40F"), "squaremap.paused-color", log),
-                Math.clamp(c.getDouble("squaremap.fill-opacity", 0.25), 0.0, 1.0),
-                c.getBoolean("squaremap.show-icon", true),
+                        ? parseColor(c.getString("map-layer.active-color", "#2ECC71"), "map-layer.active-color", log)
+                        : parseColor(rawColor, "map-layer.color", log),
+                parseColor(c.getString("map-layer.inactive-color", "#8A958E"), "map-layer.inactive-color", log),
+                parseColor(c.getString("map-layer.paused-color", "#F1C40F"), "map-layer.paused-color", log),
+                Math.clamp(c.getDouble("map-layer.fill-opacity", 0.25), 0.0, 1.0),
+                c.getBoolean("map-layer.show-icon", true),
                 texts.optional("map-hover-tooltip"),
                 texts.optional("map-click-tooltip"),
-                Math.clamp(c.getInt("squaremap.update-seconds", 60), 5, 3600),
-                c.getString("squaremap.address", "").trim(),
-                c.getBoolean("squaremap.reverse-proxy", false),
-                c.getBoolean("squaremap.detect-public-ip", true),
-                new GridSettings(
-                        c.getBoolean("squaremap.chunk-grid.enabled", true),
-                        c.getBoolean("squaremap.chunk-grid.default-visible", true),
-                        hexColor(c.getString("squaremap.chunk-grid.color", "#FFFFFF"), "#FFFFFF"),
-                        Math.clamp(c.getDouble("squaremap.chunk-grid.opacity", 0.35), 0.0, 1.0),
-                        Math.clamp(c.getInt("squaremap.chunk-grid.min-chunk-pixels", 8), 2, 64),
-                        c.getBoolean("squaremap.chunk-grid.region-lines", true),
-                        hexColor(c.getString("squaremap.chunk-grid.region-color", "#FFD54F"), "#FFD54F"),
-                        c.getBoolean("squaremap.chunk-grid.labels", true),
-                        texts.optional("map-grid-label")),
                 new StatusSettings(
-                        c.getBoolean("squaremap.status-colors", true),
-                        parseColor(c.getString("squaremap.locked-color", "#E74C3C"), "squaremap.locked-color", log),
-                        parseColor(c.getString("squaremap.warn-color", "#F1C40F"), "squaremap.warn-color", log),
-                        c.getBoolean("squaremap.split-layers", true),
+                        c.getBoolean("map-layer.status-colors", true),
+                        parseColor(c.getString("map-layer.locked-color", "#E74C3C"), "map-layer.locked-color", log),
+                        parseColor(c.getString("map-layer.warn-color", "#F1C40F"), "map-layer.warn-color", log),
+                        c.getBoolean("map-layer.split-layers", true),
                         texts.optional("map-layer-inactive"),
                         texts.optional("map-layer-locked"),
-                        c.getBoolean("squaremap.show-dummy-icon", true),
+                        c.getBoolean("map-layer.show-dummy-icon", true),
                         texts.optional("map-tooltip-locked"),
                         texts.optional("map-tooltip-warn"),
                         texts.optional("map-tooltip-dummy")));
@@ -363,13 +340,7 @@ public record Settings(
                 Math.clamp(c.getInt("linked-accounts.max-accounts", 1), 1, 10),
                 Math.clamp(c.getInt("linked-accounts.request-seconds", 120), 10, 3600));
 
-        return new Settings(loaders, item, border, squaremap, update, gui, invites, lag, pause, shed, dummies, links);
-    }
-
-    /** "#RRGGBB" as written to the web page; anything else becomes the fallback (no script injection). */
-    private static String hexColor(String raw, String fallback) {
-        String value = raw == null ? "" : raw.trim();
-        return value.matches("#[0-9a-fA-F]{6}") ? value : fallback;
+        return new Settings(loaders, item, border, mapLayer, update, gui, invites, lag, pause, shed, dummies, links);
     }
 
     private static java.awt.Color parseColor(String raw, String path, Logger log) {

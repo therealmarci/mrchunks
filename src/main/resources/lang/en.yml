@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Do not change - tells the plugin which texts need to be renewed on updates.
-lang-version: 21
+lang-version: 22
 
 # Discord log texts (Discord markdown). Placeholders: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. On/off and colour are set in config.yml.
@@ -60,13 +60,9 @@ item-lore:
   - "<dark_gray>Right-click: menu · sneak: build"
 
 # --- Web map (squaremap) ---------------------------------------------------------
-# Names of the dimensions in the world selection (set when squaremap is configured).
-map-dimension-overworld: "Overworld"
-map-dimension-nether: "Nether"
-map-dimension-end: "End"
 # Name of the layer in the map's layer selection.
 map-layer-name: "Chunk Loaders"
-# More layers with squaremap.split-layers: true (the active loaders are in map-layer-name)
+# More layers with map-layer.split-layers: true (the active loaders are in map-layer-name)
 map-layer-inactive: "Chunk Loaders (off)"
 map-layer-locked: "Chunk Loaders (locked)"
 # Texts on the map (HTML allowed). Placeholders: {name} {number} {player} {world} {x} {y} {z} {width} {length} {chunks}
@@ -78,7 +74,6 @@ map-tooltip-locked: "<span style=\"color:#E74C3C\">locked</span> ({metric} {valu
 map-tooltip-warn: "<span style=\"color:#E67E22\">conspicuous</span> ({metric} {value}, warn limit {limit})"
 map-tooltip-dummy: "<br>A dummy sits on the loader"
 # Name of the chunk grid in the map's layer menu.
-map-grid-label: "Chunk Grid"
 
 # Reason entered when banning via the admin menu.
 gui-ban-reason: "via the admin menu"
@@ -298,7 +293,6 @@ admin-usage: |-
   <green>/mrchunks bans</green> <dark_gray>- <gray>All bans
   <green>/mrchunks link <main-account> <second-account></green> <dark_gray>- <gray>Link accounts
   <green>/mrchunks unlink <player></green> <dark_gray>- <gray>Remove a link
-  <green>/mrchunks map [setup]</green> <dark_gray>- <gray>Web map status / set up squaremap again
   <green>/mrchunks discord [test]</green> <dark_gray>- <gray>Discord status / test message
   <green>/mrchunks reload</green> <dark_gray>- <gray>Reload the configuration
   <green>/mrchunks version</green> <dark_gray>- <gray>Version & update status
@@ -318,23 +312,6 @@ unban-notify: "<prefix><green>You may place chunk loaders again."
 bans-header: "<prefix><gray>Banned players:"
 bans-entry: "<dark_gray> - <white><player></white> <gray>(<duration>, reason: <reason>, by <by>)"
 bans-empty: "<prefix><gray>Nobody is banned."
-map-status-on: "<prefix><green>Web map active <gray>(squaremap, layer \"Chunk Loaders\"): <link>"
-map-status-off: "<prefix><hover:show_text:'<gray>https://modrinth.com/plugin/squaremap'><gray>No web map: squaremap is <white><status></white></hover>"
-map-url-unknown: "<gray>address unknown - set squaremap.address"
-map-squaremap-missing: "<prefix><red>squaremap is not installed."
-map-setup-done: "<prefix><hover:show_text:'<gray><changes>'><green>squaremap set up, reloading</hover>"
-map-setup-nothing: "<prefix><gray>squaremap is already set up correctly."
-map-setup-failed: "<prefix><red>squaremap could not be set up: <white><reason>"
-map-setup-change-interval: "map updates every 5 seconds"
-map-setup-change-tracker: "no player locations on the map"
-map-setup-change-sidebar: "world selection always visible"
-map-setup-change-name: "<world> is called \"<name>\""
-map-setup-change-nether: "<world> is shown from inside"
-map-setup-change-removed: "old setting <setting> removed"
-map-state-active: "active"
-map-state-missing: "not installed"
-map-state-disabled: "disabled in the config"
-map-state-error: "error: <error>"
 
 # --- Discord -----------------------------------------------------------------
 discord-status-active: "<prefix><green>Discord active <gray>(<events>/<total> events)"
