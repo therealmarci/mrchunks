@@ -10,7 +10,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 ## [Unveröffentlicht]
 
 ### Neu
-- **Chunkloader auf der Karte der Spielerseite** (MRadmin mit API 8, Tab „Karte“): eigene und geteilte Loader als Flächen in der Farbe ihres Zustands, Rechtsklick schaltet sie an oder aus - dieselben Prüfungen wie die Knöpfe der Seite.
+- **Chunkloader auf der Karte der Spielerseite** (MRadmin mit API 8, Tab „Karte“): eigene und geteilte Loader als Flächen in der Farbe ihres Zustands, Rechtsklick schaltet sie an oder aus - dieselben Prüfungen wie die Knöpfe der Seite. Mit MRadmin ab API 9 stehen sie unter der Überschrift **Chunkloader** als „Meine Chunkloader“ und **„Andere Chunkloader“** (die Loader aller anderen Spieler mit Name, Besitzer und Größe, ohne Aktionen). Beide Ebenen einzeln abschaltbar im neuen Config-Abschnitt `player-map` (`own`, `others`; config-version 28).
 
 ### Entfernt
 - **Webkarte zieht zu MRadmin:** MRchunks bindet squaremap nicht mehr selbst an, die öffentliche squaremap-Webseite mit allen Chunkloadern gibt es nicht mehr. Stattdessen zeigt MRadmin die Karte auf der Spielerseite (Tab „Karte“) - jeder Spieler sieht dort seine eigenen und geteilten Loader. MRadmin installiert und richtet squaremap selbst ein. **MRadmin und MRchunks gemeinsam aktualisieren** - MRadmin übernimmt Adresse und Einrichtung aus der alten MRchunks-Config. Weggefallen: `/mrchunks map [setup]`, die Permission `mrchunks.admin.map` (stattdessen `/mradmin map` mit `mradmin.map.admin`) und der ganze Config-Abschnitt `squaremap` samt Kartentexten in den Sprachdateien (config-version 27). Der Knopf **Webkarte** in `/chunkloader` (`mrchunks.map`) bleibt und verlinkt die Karte der Spielerseite.

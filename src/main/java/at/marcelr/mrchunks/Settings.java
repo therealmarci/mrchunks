@@ -27,7 +27,8 @@ public record Settings(
         PauseSettings pause,
         ShedSettings shed,
         DummySettings dummies,
-        LinkSettings links
+        LinkSettings links,
+        PlayerMapSettings playerMap
 ) {
 
     /**
@@ -35,6 +36,10 @@ public record Settings(
      * {@code defaultLimit} = dummies per player, {@code seat} = sitting on the block instead of standing,
      * {@code ownerSkin} = the owner's skin instead of the default one.
      */
+    /** Layers on the map of MRadmin's player page: own (and shared) loaders, the loaders of the others. */
+    public record PlayerMapSettings(boolean own, boolean others) {
+    }
+
     public record DummySettings(boolean enabled, int defaultLimit, boolean seat, boolean ownerSkin) {
     }
 
@@ -292,7 +297,11 @@ public record Settings(
                 Math.clamp(c.getInt("linked-accounts.max-accounts", 1), 1, 10),
                 Math.clamp(c.getInt("linked-accounts.request-seconds", 120), 10, 3600));
 
-        return new Settings(loaders, item, border, update, gui, invites, lag, pause, shed, dummies, links);
+        PlayerMapSettings playerMap = new PlayerMapSettings(
+                c.getBoolean("player-map.own", true),
+                c.getBoolean("player-map.others", true));
+
+        return new Settings(loaders, item, border, update, gui, invites, lag, pause, shed, dummies, links, playerMap);
     }
 
     /** Top and bottom are whole faces (no slab, stairs, fence ...) - unlike isOccluding() also true for glowstone. */
