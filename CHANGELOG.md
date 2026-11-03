@@ -9,6 +9,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+### Neu
+- **Chunkloader auf der Karte der Spielerseite** (MRadmin mit API 8, Tab „Karte“): eigene und geteilte Loader als Flächen in der Farbe ihres Zustands, Rechtsklick schaltet sie an oder aus - dieselben Prüfungen wie die Knöpfe der Seite.
+
 ### Entfernt
 - **Webkarte zieht zu MRadmin:** MRchunks bindet squaremap nicht mehr selbst an. Mit MRadmin und squaremap stehen die Chunkloader wie bisher auf der Karte, ohne MRadmin gibt es keine Webkarte mehr. **MRadmin und MRchunks gemeinsam aktualisieren** - MRadmin übernimmt Adresse, Raster und die übrigen Karteneinstellungen aus der alten MRchunks-Config. Weggefallen: `/mrchunks map [setup]` und die Permission `mrchunks.admin.map` (stattdessen `/mradmin map` mit `mradmin.map.admin`), die Config-Schlüssel `squaremap.auto-configure`, `hide-players`, `update-seconds`, `address`, `reverse-proxy`, `detect-public-ip` und `chunk-grid` (jetzt in MRadmin unter `map`).
 

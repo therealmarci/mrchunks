@@ -349,6 +349,67 @@ final class SelfPage {
         };
     }
 
+    // ------------------------------------------------------ map (MRadmin API 8)
+
+    /**
+     * The player's chunk loaders on the map of their page: their own and those they are invited to, as areas in the
+     * colour of their state; a right-click switches them on or off - the same checks as the buttons of the page.
+     */
+    static List<at.marcelr.mradmin.api.SelfMapLayer> mapLayers(MRChunks plugin, SelfViewer viewer) {
+        if (!allowed(viewer)) {
+            return List.of();
+        }
+        return plugin.messages().in(viewer.lang(), () -> {
+            Messages m = plugin.messages();
+            LoaderManager loaders = plugin.loaders();
+            UUID owner = loaders.main(viewer.player());
+            boolean banned = loaders.groupBan(viewer.player()) != null;
+            List<at.marcelr.mradmin.api.SelfMapLayer.Marker> markers = new ArrayList<>();
+            for (Loader loader : loaders.all()) {
+                boolean own = loader.owner().equals(owner);
+                if ((!own && !loaders.isMember(viewer.player(), loader)) || loader.world() == null) {
+                    continue;
+                }
+                LoaderStatus status = LoaderStatus.of(plugin, loader);
+                List<at.marcelr.mradmin.api.SelfMapLayer.Action> actions = banned || status == LoaderStatus.LOCKED ? List.of()
+                        : List.of(new at.marcelr.mradmin.api.SelfMapLayer.Action(own ? "toggle" : "shared",
+                        m.plain(loader.active() ? "self-off" : "self-on"), loader.active() ? "" : "good", null, null));
+                List<String> details = new ArrayList<>();
+                details.add(state(plugin, loader, status));
+                details.add(loader.width() + "×" + loader.length() + " · " + loader.area() + " " + m.plain("self-card-chunks"));
+                if (!own) {
+                    details.add(m.plain("self-shared-sub", "owner", LoaderManager.name(loader.owner()), "place",
+                            place(plugin, loader)));
+                }
+                int minX = loader.minChunkX() << 4;
+                int minZ = loader.minChunkZ() << 4;
+                markers.add(new at.marcelr.mradmin.api.SelfMapLayer.Marker(String.valueOf(loader.id()),
+                        loader.world().getKey().asString(), minX, minZ, ((loader.maxChunkX() + 1) << 4) - minX,
+                        ((loader.maxChunkZ() + 1) << 4) - minZ, Texts.name(plugin, loader), color(status), details, actions));
+            }
+            return List.of(new at.marcelr.mradmin.api.SelfMapLayer("loaders", m.plain("self-map-layer"), "#2ECC71", markers,
+                    List.of(), null));
+        });
+    }
+
+    /** The map's colours of the states, like the web map and the team pages. */
+    private static String color(LoaderStatus status) {
+        return switch (status) {
+            case LOCKED -> "#E74C3C";
+            case WARN, PAUSED, SHED -> "#F1C40F";
+            case INACTIVE -> "#8A958E";
+            case OK -> "#2ECC71";
+        };
+    }
+
+    /** A right-click on the map: the marker is the loader id, otherwise like a button of the page. */
+    static String mapAction(MRChunks plugin, SelfViewer viewer, String action, Map<String, String> args) {
+        if (!action.equals("toggle") && !action.equals("shared")) {
+            return "?";
+        }
+        return action(plugin, viewer, action, Map.of("id", args.getOrDefault("marker", "")));
+    }
+
     // -------------------------------------------------------------- actions
 
     /** @return null if done, otherwise the reason in the viewer's language */

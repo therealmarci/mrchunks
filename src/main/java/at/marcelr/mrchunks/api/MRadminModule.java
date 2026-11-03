@@ -455,6 +455,17 @@ final class MRadminModule implements AdminModule, WebModule {
     }
 
     @Override
+    public List<at.marcelr.mradmin.api.SelfMapLayer> selfMap(at.marcelr.mradmin.api.SelfViewer viewer) {
+        return SelfPage.mapLayers(plugin, viewer);
+    }
+
+    @Override
+    public @Nullable String selfMapAction(at.marcelr.mradmin.api.SelfViewer viewer, String layer, String action,
+                                          Map<String, String> args) {
+        return "loaders".equals(layer) ? SelfPage.mapAction(plugin, viewer, action, args) : "?";
+    }
+
+    @Override
     public @Nullable String selfAction(at.marcelr.mradmin.api.SelfViewer viewer, String area, String action,
                                        Map<String, String> args) {
         return SelfPage.AREA.equals(area) ? SelfPage.action(plugin, viewer, action, args) : "?";

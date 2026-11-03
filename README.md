@@ -111,6 +111,8 @@ Hast du einen Zweit-Account (z.B. zum AFK-Farmen), verknüpf ihn mit deinem Haup
 ### Im Browser (mit MRadmin)
 Ist MRadmin installiert und die Spielerseite eingeschaltet, gibt `/web` im Spiel einen Link zu deiner eigenen Seite. Unter **Chunkloader** siehst du oben dein Budget und Warnungen (z.B. Lag-Sperre), darunter jeden Loader als Karte mit Status, Größe und Auslastung - mit einem Knopf zum Ein- und Ausschalten. Ein Klick auf eine Karte zeigt die Grenzwerte des Lag-Schutzes (Warnung und Sperre), eine Live-Karte rund um den Loader (mit squaremap) und die Knöpfe zum Umbenennen, für den Dummy und zum Löschen. Darunter lädst du Spieler für alle Loader ein und siehst, wer eingeladen ist (Dauer aus `invites.durations`); Einladungen für einen einzelnen Loader stehen in seiner Karte. Nur die **Größe** änderst du im Spiel. Braucht MRadmin ab der Version mit Modul-API 5.
 
+Auf dem Tab **Karte** der Spielerseite (mit squaremap) stehen deine eigenen Chunkloader und die, zu denen du eingeladen bist, als Flächen in der Farbe ihres Zustands. Ein Klick zeigt Zustand und Größe, ein **Rechtsklick** schaltet den Loader an oder aus.
+
 ### Dummy-Spieler
 Ein Chunkloader hält Chunks geladen - für den Server steht dort aber **kein Spieler**. Mobs sind deshalb fast inaktiv, und es spawnt nichts. Ein **Dummy** ist ein künstlicher Spieler, der auf dem Loader sitzt und als Spieler in der Nähe zählt.
 
