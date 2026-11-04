@@ -53,6 +53,14 @@ import static at.marcelr.mrchunks.Messages.tag;
  */
 final class MRadminModule implements AdminModule, WebModule {
 
+    /** Into MRadmin's log (only with API 13 or newer). */
+    static void log(String event, String text, int color) {
+        MRadminService service = MRadminService.get();
+        if (service != null && service.apiVersion() >= 13) {
+            service.log(ID, event, text, color);
+        }
+    }
+
     static final String ID = "mrchunks";
     private static final String PERM_GUI = "mrchunks.admin.gui";
     private static final int MAX_HEALTH = 21;

@@ -181,10 +181,18 @@ public final class DiscordWebhook {
      */
     public void log(String eventKey, Object... placeholders) {
         Config current = config;
+        Event event = current.events().get(eventKey);
+        String logged = plugin.messages().server(() -> plugin.messages().optional("discord." + eventKey));
+        if (!logged.isEmpty()) {
+            // Every event also goes into MRadmin's log (web interface, page "Log"), whether Discord is on or not.
+            for (int i = 0; i + 1 < placeholders.length; i += 2) {
+                logged = logged.replace("{" + placeholders[i] + "}", String.valueOf(placeholders[i + 1]));
+            }
+            plugin.mradmin().log(eventKey, logged, event == null ? 0x5865F2 : event.color());
+        }
         if (!current.enabled()) {
             return;
         }
-        Event event = current.events().get(eventKey);
         if (event == null) {
             // Should not happen thanks to the defaults - but if it does, say so once instead of failing silently.
             if (missingEventsLogged.add(eventKey)) {
