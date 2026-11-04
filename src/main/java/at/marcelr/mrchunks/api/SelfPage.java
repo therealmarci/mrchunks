@@ -445,9 +445,16 @@ final class SelfPage {
                                                                      List<at.marcelr.mradmin.api.SelfMapLayer.Action> actions) {
         int minX = loader.minChunkX() << 4;
         int minZ = loader.minChunkZ() << 4;
-        return new at.marcelr.mradmin.api.SelfMapLayer.Marker(String.valueOf(loader.id()),
-                loader.world().getKey().asString(), minX, minZ, ((loader.maxChunkX() + 1) << 4) - minX,
-                ((loader.maxChunkZ() + 1) << 4) - minZ, label, color, details, actions);
+        String world = loader.world().getKey().asString();
+        int width = ((loader.maxChunkX() + 1) << 4) - minX;
+        int length = ((loader.maxChunkZ() + 1) << 4) - minZ;
+        // With API 10 the height of the block: in the Nether MRadmin then shows it on the ceiling map or below.
+        MRadminService service = MRadminService.get();
+        return service != null && service.apiVersion() >= 10
+                ? new at.marcelr.mradmin.api.SelfMapLayer.Marker(String.valueOf(loader.id()), world, minX, minZ, width,
+                length, label, color, details, actions, loader.y())
+                : new at.marcelr.mradmin.api.SelfMapLayer.Marker(String.valueOf(loader.id()), world, minX, minZ, width,
+                length, label, color, details, actions);
     }
 
     /** The map's colours of the states, like the web map and the team pages. */
