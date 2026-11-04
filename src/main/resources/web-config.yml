@@ -479,6 +479,11 @@ sections:
         max-length: 300
         name: {de: Webhook-URL, en: Webhook URL}
         help: {de: "Beginnt mit https://discord.com/api/webhooks/", en: "Starts with https://discord.com/api/webhooks/"}
+      - key: discord.use-mradmin-webhook
+        type: bool
+        when: discord.enabled
+        name: {de: MRadmins Webhook nutzen, en: Use MRadmin's webhook}
+        help: {de: "Ohne eigene Webhook-URL gehen die Ereignisse in MRadmins Discord-Log.", en: "Without a webhook URL of its own, the events go to MRadmin's Discord log."}
       - key: discord.username
         type: string
         when: discord.enabled

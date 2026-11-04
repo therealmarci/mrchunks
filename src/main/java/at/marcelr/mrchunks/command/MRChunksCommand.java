@@ -275,12 +275,14 @@ public final class MRChunksCommand implements TabExecutor {
         DiscordWebhook discord = plugin.discord();
         if (discord.enabled()) {
             int[] counts = discord.eventCounts();
-            messages().send(sender, "discord-status-active", tag("events", counts[0]), tag("total", counts[1]));
+            messages().send(sender, discord.viaMradmin() ? "discord-status-mradmin" : "discord-status-active", tag("events", counts[0]), tag("total", counts[1]));
         } else {
             messages().send(sender, "discord-status-inactive", tag("reason", discord.disabledReason()));
         }
-        String last = discord.lastResult();
-        messages().send(sender, "discord-status-last", tag("result", last == null ? messages().plain("discord-status-never") : last));
+        if (!discord.viaMradmin()) {
+            String last = discord.lastResult();
+            messages().send(sender, "discord-status-last", tag("result", last == null ? messages().plain("discord-status-never") : last));
+        }
         if (args.length < 2 || !args[1].equalsIgnoreCase("test")) {
             if (discord.enabled()) {
                 messages().send(sender, "discord-test-hint");

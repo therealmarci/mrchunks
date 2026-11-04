@@ -367,6 +367,11 @@ Am einfachsten im Browser: Mit **MRadmin** (ab der Version mit „Konfiguration 
 ### Discord
 Webhook anlegen (*Kanal bearbeiten → Integrationen → Webhooks*), `discord.enabled: true` setzen, die `webhook-url` eintragen, `/mrchunks reload` und mit `/mrchunks discord test` prüfen. Welche Ereignisse gesendet werden (Loader gesetzt, gelöscht, gesperrt, Einladungen, Admin-Aktionen …), stellst du unter `discord.events` ein.
 
+> [!TIP]
+> **Kein eigener Webhook?** Mit MRadmin geht es auch über dessen Discord-Log: `discord.enabled: true`, `webhook-url` leer lassen und `discord.use-mradmin-webhook: true` setzen.
+>
+> Mit MRadmin steht jedes Ereignis außerdem im **Protokoll** der Weboberfläche (bis zu 14 Tage) - auch wenn Discord aus ist.
+
 ---
 
 ## Karte (über MRadmin)
@@ -388,6 +393,7 @@ MRchunks läuft **allein**. Zusammen mit anderen MRtechnology-Plugins kann es me
 | In der Arena-Welt von MRpvp lassen sich keine Loader setzen | MRadmin + MRpvp |
 | Chunkloader auf der Karte der Spielerseite | MRadmin |
 | Dummy-Spieler zählen bei MRsleep, MRadmin und MRpvp nicht als Spieler | nichts |
+| Ereignisse im **Protokoll** der MRadmin-Weboberfläche, Discord-Log über MRadmins Webhook (`discord.use-mradmin-webhook`) | MRadmin |
 
 ### Mehrere Welten (Multiverse)
 Chunkloader funktionieren in jeder Welt, auch in zusätzlichen Welten von Multiverse. Wird eine Welt entladen, ruhen ihre Loader und laufen beim nächsten Laden von selbst weiter. Ein Dummy-Spieler blockiert das Entladen nicht: Mit `/mv unload <welt> --remove-players` verlässt er die Welt und setzt sich beim Laden wieder auf seinen Loader.

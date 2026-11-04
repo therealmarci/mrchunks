@@ -110,7 +110,6 @@ public final class MRadminLink implements Listener {
         }
     }
 
-    /** MRadmin enabled later (e.g. with a plugin manager): connect now. */
     /** An event of the Discord log also into MRadmin's log (web interface, API 13). */
     public void log(String event, String text, int color) {
         if (connected) {
@@ -122,6 +121,20 @@ public final class MRadminLink implements Listener {
         }
     }
 
+    /** Into MRadmin's Discord admin log. @return false without MRadmin */
+    public boolean adminLog(String text) {
+        if (connected) {
+            try {
+                MRadminModule.adminLog(text);
+                return true;
+            } catch (LinkageError | RuntimeException e) {
+                plugin.getLogger().warning("Could not write into MRadmin's Discord log: " + e);
+            }
+        }
+        return false;
+    }
+
+    /** MRadmin enabled later (e.g. with a plugin manager): connect now. */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onEnable(PluginEnableEvent event) {
         if (event.getPlugin().getName().equals(MRADMIN)) {

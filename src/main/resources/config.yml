@@ -16,7 +16,7 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 30
+config-version: 31
 
 
 # ------------------------------------------------------------------------------
@@ -347,6 +347,9 @@ discord:
   enabled: false
   # Full URL in quotes, e.g. "https://discord.com/api/webhooks/123456/abcdef"
   webhook-url: ""
+  # Without a webhook of its own (webhook-url empty): true = send the events to MRadmin's Discord log instead
+  # (needs MRadmin with its Discord log set up).
+  use-mradmin-webhook: false
   username: "MRchunks"
   avatar-url: ""
   use-embeds: true
