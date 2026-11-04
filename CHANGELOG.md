@@ -9,6 +9,8 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+## [1.2.0] - 2026-11-04
+
 ### Neu
 - **Discord-Log über MRadmins Webhook:** Kein eigener Webhook nötig - mit `discord.enabled: true`, leerer `discord.webhook-url` und dem neuen Schalter **`discord.use-mradmin-webhook: true`** gehen die Ereignisse in das Discord-Log von MRadmin (Standard aus, `config-version` 31). `/mrchunks discord` zeigt dann „Discord über MRadmins Webhook“, `/mrchunks discord test` schickt die Testnachricht dorthin. Braucht MRadmin mit eingerichtetem Discord-Log.
 - **Ereignisse im MRadmin-Protokoll:** Jedes Ereignis des Discord-Logs landet zusätzlich im Protokoll der MRadmin-Weboberfläche (bis zu 14 Tage) - auch wenn das Discord-Log aus ist. Braucht MRadmin mit Modul-API 13.
