@@ -168,10 +168,11 @@ final class SelfPage {
             details.add(new SelfBlock.Text(m.plain("self-suspended-detail", "until", Texts.date(m, suspension.until())), ""));
         }
         details.add(limits(plugin, loader));
-        addArea(details, plugin, loader, status);
         if (actions && plugin.settings().invites().enabled() && viewer.has(INVITE)) {
             details.add(invites(plugin, loader.owner(), loader));
         }
+        // The small map at the very bottom of the opened card.
+        addArea(details, plugin, loader, status);
         return new SelfBlock.Card(id, Texts.name(plugin, loader), place(plugin, loader), state(plugin, loader, status),
                 tone(status), cardStats(plugin, loader), load(plugin, loader), primary, buttons, details);
     }
