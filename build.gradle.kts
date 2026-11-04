@@ -42,6 +42,8 @@ dependencies {
     // installiert ist (siehe api/MRadminLink).
     compileOnly("com.github.therealmarci:mradmin:$mradminApi")
 
+    // Für den Test des Web-Formulars der config.yml (YamlConfiguration).
+    testImplementation("io.papermc.paper:paper-api:$paperApi")
     testImplementation(platform("org.junit:junit-bom:6.1.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

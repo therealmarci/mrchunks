@@ -341,27 +341,28 @@ Laggt der **ganze Server** - egal warum -, pausiert MRchunks **alle** Loader:
 ---
 
 ## Konfiguration
-Alles steht in `plugins/MRchunks/config.yml`. Jede Option ist in der Datei kommentiert. Änderungen übernimmst du mit `/mrchunks reload`.
+Am einfachsten im Browser: Mit **MRadmin** (ab der Version mit „Konfiguration im Browser“) unter **Plugins → MRchunks → Konfiguration** - jede Einstellung mit Erklärung, Speichern lädt MRchunks sofort neu (Permission `mradmin.config`). Alles steht außerdem kommentiert in `plugins/MRchunks/config.yml`; Änderungen von Hand übernimmst du mit `/mrchunks reload`.
 
 | Abschnitt | Die wichtigsten Einstellungen |
 |---|---|
+| `general` | `language` (Standard `auto`), `fallback-language`, `server-language` |
 | `loaders` | `default-budget` (147 Chunks), `default-reach` (3 = neue Loader 7×7), `max-reach` (7 = höchstens 15×15), `max-loaders` (30), `overlap`, `load-method` |
 | `invites` | an/aus, Dauer-Auswahl, höchstens so viele Mitglieder |
 | `linked-accounts` | an/aus, wie viele Zweit-Accounts |
 | `dummies` | an/aus (Standard aus), Limit, Skin, sitzend |
 | `lag-protection` · `staged-shutdown` · `server-pause` | Mess- und Sperrgrenzen, MSPT-Stufen der gestaffelten Abschaltung, TPS-Schwellen |
 | `item` · `border` | Aussehen des Loaders und der Grenze, `item.block-choices`: Blöcke, die Spieler für ihre Loader wählen dürfen (leere Liste `[]` = keine Auswahl) |
-| `discord` · `update-checker` · `gui` | Logs, Update-Hinweise, Menüs |
+| `discord` · `updates` · `gui` | Logs, Update-Hinweise, Menüs |
 | `player-map` | Ebenen auf der Karte der Spielerseite (MRadmin): `own` (eigene und geteilte Loader), `others` (Loader der anderen Spieler), `loader-preview` (kleine Karte „Umgebung“ in der geöffneten Loader-Karte) |
 
 **Überschneidende Loader** (`loaders.overlap`): `allow` erlaubt einfach, `warn` (Standard) erlaubt mit Hinweis und zeigt die Grenze, `deny-own` verbietet Überschneidungen mit eigenen Loadern, `deny-all` mit allen - beim Setzen und beim Vergrößern. Jeder Chunk wird ohnehin nur **einmal** geladen gehalten, im Budget zählt er aber für jeden Loader.
 
 ### Sprache & Texte
-- **Jeder Spieler bekommt seine Sprache:** Mit `language: auto` (Standard) richtet sich MRchunks nach der Sprache, die der Spieler in Minecraft eingestellt hat - Deutsch (auch Österreich und Schweiz) bekommt Deutsch, Englisch bekommt Englisch. Für Sprachen ohne eigene Datei gilt `fallback-language` (Standard Englisch). Mit `language: de` oder `en` bekommen alle dieselbe Sprache.
-- **Server-Sprache:** Discord-Logs und Tickets in MRadmin haben keinen einzelnen Empfänger - sie kommen in `server-language` (Standard `en`). Auf einem deutschen Server also `server-language: de` setzen.
+- **Jeder Spieler bekommt seine Sprache:** Mit `general.language: auto` (Standard) richtet sich MRchunks nach der Sprache, die der Spieler in Minecraft eingestellt hat - Deutsch (auch Österreich und Schweiz) bekommt Deutsch, Englisch bekommt Englisch. Für Sprachen ohne eigene Datei gilt `fallback-language` (Standard Englisch). Mit `language: de` oder `en` bekommen alle dieselbe Sprache.
+- **Server-Sprache:** Discord-Logs und Tickets in MRadmin haben keinen einzelnen Empfänger - sie kommen in `general.server-language` (Standard `en`). Auf einem deutschen Server also `general.server-language: de` setzen.
 - Die Konsole ist immer Englisch.
 - Alle Texte - Chat, Menüs, Item, Spielerseite, Discord - stehen in `plugins/MRchunks/lang/<sprache>.yml`. Ein leerer Text (`""`) schaltet die Nachricht ab.
-- **Eigene Sprache:** `lang/en.yml` kopieren (z.B. als `lang/fr.yml`) und übersetzen - mit `language: auto` bekommen französische Spieler sie automatisch. Neue Texte aus Updates werden automatisch ergänzt.
+- **Eigene Sprache:** `lang/en.yml` kopieren (z.B. als `lang/fr.yml`) und übersetzen - mit `general.language: auto` bekommen französische Spieler sie automatisch. Neue Texte aus Updates werden automatisch ergänzt.
 
 ### Discord
 Webhook anlegen (*Kanal bearbeiten → Integrationen → Webhooks*), `discord.enabled: true` setzen, die `webhook-url` eintragen, `/mrchunks reload` und mit `/mrchunks discord test` prüfen. Welche Ereignisse gesendet werden (Loader gesetzt, gelöscht, gesperrt, Einladungen, Admin-Aktionen …), stellst du unter `discord.events` ein.

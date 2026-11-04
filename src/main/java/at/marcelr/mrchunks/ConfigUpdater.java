@@ -22,16 +22,25 @@ import java.util.logging.Level;
  */
 public final class ConfigUpdater {
 
-    public static final int CURRENT_VERSION = 29;
+    public static final int CURRENT_VERSION = 30;
     public static final String BOM = "\uFEFF";
     /** Texts whose content changed with new features; the new default replaces the old value. */
     private static final Set<String> REPLACED_KEYS = Set.of();
     /**
      * Keys that were renamed: old path -> new path (the value is carried over). v27: the web map belongs to MRadmin
      * (squaremap only renders, MRadmin shows the map on the player page) - squaremap.* and map-layer.* are gone,
-     * MRadmin takes over what it still needs from the backup of the old file.
+     * MRadmin takes over what it still needs from the backup of the old file. v30: same layout as all MRtechnology plugins
+     * (general, features, discord, updates, gui).
      */
-    private static final Map<String, String> RENAMED_KEYS = Map.of();
+    private static final Map<String, String> RENAMED_KEYS = Map.ofEntries(
+            Map.entry("language", "general.language"),
+            Map.entry("fallback-language", "general.fallback-language"),
+            Map.entry("server-language", "general.server-language"),
+            Map.entry("update-checker.enabled", "updates.enabled"),
+            Map.entry("update-checker.source", "updates.source"),
+            Map.entry("update-checker.include-prereleases", "updates.include-prereleases"),
+            Map.entry("update-checker.interval-hours", "updates.interval-hours"),
+            Map.entry("update-checker.notify-on-join", "updates.notify-on-join"));
 
     private ConfigUpdater() {
     }
@@ -77,9 +86,9 @@ public final class ConfigUpdater {
             if (version < 10) {
                 String old = existing.getString("language", "auto").trim();
                 if (!old.isEmpty() && !old.equalsIgnoreCase("auto")) {
-                    template.set("server-language", old);
+                    template.set("general.server-language", old);
                 }
-                template.set("language", "auto");
+                template.set("general.language", "auto");
             }
             // v12: chunk budget instead of fixed limits. Existing loaders keep their size (old radius = default-reach),
             // nobody gets less: the budget is the old active limit in loaders of the old size, and the lag limits keep

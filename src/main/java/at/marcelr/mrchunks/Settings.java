@@ -207,17 +207,17 @@ public record Settings(
                 Math.clamp(c.getInt("border.above", 5), 0, 64),
                 Math.clamp(c.getInt("border.line-spacing", 3), 1, 16));
 
-        String source = c.getString("update-checker.source", "github").toLowerCase(Locale.ROOT);
+        String source = c.getString("updates.source", "github").toLowerCase(Locale.ROOT);
         if (!source.equals("modrinth") && !source.equals("github")) {
-            log.warning("Invalid update-checker.source '" + source + "', using github.");
+            log.warning("Invalid updates.source '" + source + "', using github.");
             source = "github";
         }
         UpdateSettings update = new UpdateSettings(
-                c.getBoolean("update-checker.enabled", true),
+                c.getBoolean("updates.enabled", true),
                 source,
-                c.getBoolean("update-checker.include-prereleases", false),
-                Math.max(1, c.getInt("update-checker.interval-hours", 6)),
-                c.getBoolean("update-checker.notify-on-join", true));
+                c.getBoolean("updates.include-prereleases", false),
+                Math.max(1, c.getInt("updates.interval-hours", 6)),
+                c.getBoolean("updates.notify-on-join", true));
 
         GuiSettings gui = new GuiSettings(
                 Math.max(5, c.getInt("gui.refresh-ticks", 20)),

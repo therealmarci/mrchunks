@@ -1,0 +1,615 @@
+# Form of config.yml for MRadmin's web interface (Plugins -> MRchunks -> Configuration).
+# Every field names a key of config.yml, its type and limits, and a name and help text in German and English.
+# Format: MRadmin docs/MODULE-API.md, section "Konfiguration im Browser". Texts with a comma need quotes.
+sections:
+  - id: general
+    name: {de: Allgemein, en: General}
+    help: {de: Sprache der Texte im Spiel und in Discord., en: Language of the texts in game and on Discord.}
+    fields:
+      - key: general.language
+        type: choice
+        name: {de: Sprache der Spieler, en: Language of the players}
+        help: {de: "Automatisch = jeder Spieler bekommt die Sprache seines Minecraft-Clients.", en: "Automatic = every player gets the language of their Minecraft client."}
+        options:
+          - {value: auto, de: Automatisch, en: Automatic}
+          - {value: de, de: Deutsch, en: German}
+          - {value: en, de: Englisch, en: English}
+      - key: general.fallback-language
+        type: choice
+        name: {de: Ersatzsprache, en: Fallback language}
+        help: {de: Für Spieler mit einer Sprache ohne eigene Datei., en: For players whose language has no file of its own.}
+        when: general.language=auto
+        options:
+          - {value: de, de: Deutsch, en: German}
+          - {value: en, de: Englisch, en: English}
+      - key: general.server-language
+        type: choice
+        name: {de: Sprache für Discord und Tickets, en: Language for Discord and tickets}
+        help: {de: "Texte ohne einzelnen Spieler: Discord-Logs, Tickets in MRadmin.", en: "Texts not meant for a single player: Discord logs, tickets in MRadmin."}
+        options:
+          - {value: de, de: Deutsch, en: German}
+          - {value: en, de: Englisch, en: English}
+
+  - id: loaders
+    name: {de: Chunkloader, en: Chunk loaders}
+    help: {de: "Spieler legen die Größe ihrer Loader selbst fest und haben dafür ein Budget in Chunks. Nur eingeschaltete Loader kosten Budget.", en: "Players set the size of their loaders themselves and have a budget in chunks for that. Only active loaders cost budget."}
+    fields:
+      - key: loaders.default-budget
+        type: int
+        min: 0
+        max: 100000
+        unit: {de: Chunks, en: chunks}
+        name: {de: Budget pro Spieler, en: Budget per player}
+        help: {de: "147 = drei 7×7-Loader. Mehr per mrchunks.budget.<Zahl>, mrchunks.budget.unlimited oder /mrchunks limit.", en: "147 = three 7×7 loaders. More with mrchunks.budget.<number>, mrchunks.budget.unlimited or /mrchunks limit."}
+      - key: loaders.default-reach
+        type: int
+        min: 0
+        max: 15
+        unit: {de: Chunks je Richtung, en: chunks per side}
+        name: {de: Größe neuer Loader, en: Size of new loaders}
+        help: {de: "3 = 7×7, 2 = 5×5, 1 = 3×3, 0 = nur der eigene Chunk. Reicht das Budget nicht, wird er kleiner bzw. ausgeschaltet gesetzt.", en: "3 = 7×7, 2 = 5×5, 1 = 3×3, 0 = only its own chunk. If the budget is too small it gets smaller or is placed switched off."}
+      - key: loaders.max-reach
+        type: int
+        min: 0
+        max: 15
+        unit: {de: Chunks je Richtung, en: chunks per side}
+        name: {de: Größte Reichweite, en: Largest reach}
+        help: {de: "7 = bis 15 Chunks breit und lang.", en: "7 = up to 15 chunks wide and long."}
+      - key: loaders.max-loaders
+        type: int
+        min: 1
+        max: 1000
+        name: {de: Höchstens platziert pro Spieler, en: At most placed per player}
+        help: {de: Ausgeschaltete zählen mit. Gilt für alle gleich., en: Switched-off ones count too. The same for everyone.}
+      - key: loaders.disabled-worlds
+        type: worlds
+        name: {de: Welten ohne Chunkloader, en: Worlds without chunk loaders}
+        help: {de: Die Arena-Welt von MRpvp ist immer gesperrt (mit MRadmin)., en: MRpvp's arena world is always blocked (with MRadmin).}
+      - key: loaders.load-method
+        type: choice
+        name: {de: Lademethode, en: Load method}
+        help: {de: "Ticket = empfohlen. Forceload nur, wenn in Paper disable-world-ticking-when-empty aktiv ist.", en: "Ticket = recommended. Forceload only if disable-world-ticking-when-empty is active in Paper."}
+        options:
+          - {value: ticket, de: Ticket, en: Ticket}
+          - {value: forceload, de: Forceload, en: Forceload}
+      - key: loaders.overlap
+        type: choice
+        name: {de: Überlappende Loader, en: Overlapping loaders}
+        options:
+          - {value: allow, de: Einfach erlauben, en: Simply allow}
+          - {value: warn, de: Erlauben mit Hinweis, en: Allow with a notice}
+          - {value: deny-own, de: Mit eigenen verbieten, en: Forbid with own ones}
+          - {value: deny-all, de: Immer verbieten, en: Always forbid}
+      - key: loaders.restore-missing-blocks
+        type: bool
+        name: {de: Fehlende Blöcke wiederherstellen, en: Restore missing blocks}
+        help: {de: "Z.B. nach WorldEdit. Aus = der Chunkloader wird gelöscht.", en: "E.g. after WorldEdit. Off = the chunk loader is deleted."}
+      - key: loaders.check-interval-seconds
+        type: int
+        min: 5
+        max: 3600
+        unit: {de: Sekunden, en: seconds}
+        name: {de: Blöcke prüfen alle, en: Check blocks every}
+
+  - id: invites
+    name: {de: Einladungen & verknüpfte Accounts, en: Invites & linked accounts}
+    help: {de: "Eingeladene dürfen nur an- und ausschalten. Verknüpfte Accounts (z.B. ein AFK-Zweitaccount) teilen Loader und Budget.", en: "Invited players may only switch on and off. Linked accounts (e.g. an AFK second account) share loaders and budget."}
+    fields:
+      - key: invites.enabled
+        type: bool
+        name: {de: Einladungen, en: Invites}
+      - key: invites.durations
+        type: strings
+        when: invites.enabled
+        item: duration
+        permanent: true
+        name: {de: Dauern zur Auswahl, en: Durations to choose from}
+        help: {de: "„permanent“ = für immer.", en: "\"permanent\" = forever."}
+      - key: invites.max-members
+        type: int
+        when: invites.enabled
+        min: 1
+        max: 100
+        name: {de: Höchstens eingeladen, en: At most invited}
+        help: {de: "Pro Loader bzw. für „alle Loader“.", en: "Per loader or for \"all loaders\"."}
+      - key: linked-accounts.enabled
+        type: bool
+        name: {de: Verknüpfte Accounts, en: Linked accounts}
+      - key: linked-accounts.max-accounts
+        type: int
+        when: linked-accounts.enabled
+        min: 1
+        max: 10
+        name: {de: Zweitaccounts pro Hauptaccount, en: Second accounts per main account}
+      - key: linked-accounts.request-seconds
+        type: int
+        when: linked-accounts.enabled
+        min: 10
+        max: 3600
+        unit: {de: Sekunden, en: seconds}
+        name: {de: Zeit zum Annehmen, en: Time to accept}
+
+  - id: dummies
+    name: {de: Dummy-Spieler, en: Dummy players}
+    help: {de: "Ein künstlicher Spieler auf dem Loader - Farmen laufen wie mit einem echten Spieler daneben. Kostet deutlich mehr Leistung.", en: "An artificial player on the loader - farms run as with a real player next to them. Costs a lot more performance."}
+    fields:
+      - key: dummies.enabled
+        type: bool
+        name: {de: Dummies erlauben, en: Allow dummies}
+        help: {de: Nur auf quadratischen Loadern ab 5×5 mit dem Block in der Mitte., en: Only on square loaders from 5×5 with the block in the middle.}
+      - key: dummies.default-limit
+        type: int
+        when: dummies.enabled
+        min: 0
+        max: 100
+        name: {de: Gleichzeitig pro Spieler, en: At once per player}
+        help: {de: "Mehr per mrchunks.dummies.<Zahl>, .unlimited oder /mrchunks limit.", en: "More with mrchunks.dummies.<number>, .unlimited or /mrchunks limit."}
+      - key: dummies.sit
+        type: bool
+        when: dummies.enabled
+        name: {de: Sitzt auf dem Block, en: Sits on the block}
+        help: {de: Aus = er steht darauf., en: Off = it stands on it.}
+      - key: dummies.owner-skin
+        type: bool
+        when: dummies.enabled
+        name: {de: Skin des Besitzers, en: Owner's skin}
+
+  - id: lag-protection
+    name: {de: Lag-Schutz, en: Lag protection}
+    help: {de: "Jeder Loader wird regelmäßig gemessen. Über „Warnung“ gilt er als auffällig, mehrmals über „Sperre“ wird nur dieser Loader ausgeschaltet und gesperrt.", en: "Every loader is measured regularly. Above \"warn\" it counts as suspicious, several times above \"lock\" only this loader is switched off and locked."}
+    fields:
+      - key: lag-protection.enabled
+        type: bool
+        name: {de: Lag-Schutz an, en: Lag protection on}
+      - key: lag-protection.sample-seconds
+        type: int
+        when: lag-protection.enabled
+        min: 5
+        max: 600
+        unit: {de: Sekunden, en: seconds}
+        name: {de: Messen alle, en: Measure every}
+      - key: lag-protection.startup-delay-seconds
+        type: int
+        when: lag-protection.enabled
+        min: 0
+        max: 3600
+        unit: {de: Sekunden, en: seconds}
+        name: {de: Wartezeit nach dem Start, en: Wait after the start}
+        help: {de: Das Laden der Welten würde sonst bei jedem Start sperren. Gilt auch für Abschaltung und Pause., en: Loading the worlds would otherwise lock on every start. Also applies to the shutdown and the pause.}
+      - key: lag-protection.lock-after-samples
+        type: int
+        when: lag-protection.enabled
+        min: 1
+        max: 100
+        name: {de: Sperren nach Messungen, en: Lock after measurements}
+        help: {de: So oft in Folge über der Sperrgrenze., en: That often in a row above the lock limit.}
+      - key: lag-protection.only-when-server-lags
+        type: bool
+        when: lag-protection.enabled
+        name: {de: Nur sperren wenn der Server laggt, en: Only lock when the server lags}
+        help: {de: "Eine große Farm, mit der der Server gut klarkommt, bleibt dann an.", en: A big farm the server copes with well then stays on.}
+      - key: lag-protection.server-lag-mspt
+        type: int
+        when: lag-protection.enabled
+        min: 10
+        max: 1000
+        unit: {de: ms, en: ms}
+        name: {de: Server laggt ab, en: Server lags from}
+        help: {de: Durchschnittliche Tick-Zeit (50 ms = 20 TPS gerade noch gehalten)., en: Average tick time (50 ms = 20 TPS just about held).}
+      - key: lag-protection.force-lock-multiplier
+        type: decimal
+        when: lag-protection.enabled
+        min: 0
+        max: 100
+        unit: {de: × Sperrgrenze, en: × lock limit}
+        name: {de: Immer sperren ab, en: Always lock from}
+        help: {de: "Auch ohne Server-Lag. 0 = nie ohne Lag.", en: "Even without server lag. 0 = never without lag."}
+      - key: lag-protection.lock-suspension-durations
+        type: strings
+        when: lag-protection.enabled
+        item: duration
+        name: {de: Dauern zum Aussetzen der Sperre, en: Durations to suspend the lock}
+        help: {de: "Höchstens 7, von 1m bis 24h. Der längste ist auch das Maximum für /mrchunks suspendlock.", en: "At most 7, from 1m to 24h. The longest is also the maximum for /mrchunks suspendlock."}
+      - key: lag-protection.live-view.enabled
+        type: bool
+        when: lag-protection.enabled
+        name: {de: Live-Messung im Web, en: Live measuring on the web}
+        help: {de: Ein offener Loader in MRadmin wird öfter gemessen - nur Anzeige und sperrt nie., en: An open loader in MRadmin is measured more often - only shown and never locks.}
+      - key: lag-protection.live-view.seconds
+        type: int
+        when: lag-protection.live-view.enabled
+        min: 1
+        max: 10
+        unit: {de: Sekunden, en: seconds}
+        name: {de: Live messen alle, en: Measure live every}
+      - key: lag-protection.live-view.max-loaders
+        type: int
+        when: lag-protection.live-view.enabled
+        min: 1
+        max: 50
+        name: {de: Höchstens live gleichzeitig, en: At most live at once}
+      - key: lag-protection.limits-per-chunks
+        type: int
+        when: lag-protection.enabled
+        min: 1
+        max: 10000
+        unit: {de: Chunks, en: chunks}
+        name: {de: Grenzen gelten für, en: Limits apply to}
+        help: {de: "49 = ein 7×7-Loader. Andere Größen bekommen anteilig mehr oder weniger.", en: "49 = one 7×7 loader. Other sizes get proportionally more or less."}
+      - key: lag-protection.limits
+        type: table
+        when: lag-protection.enabled
+        name: {de: Grenzen, en: Limits}
+        help: {de: "Pro Messwert Warn- und Sperrgrenze. 0 schaltet die Messung ab.", en: "Warn and lock limit per measurement. 0 switches the measurement off."}
+        columns: &limitColumns
+          - {key: warn, type: int, min: 0, name: {de: Warnung, en: Warn}}
+          - {key: lock, type: int, min: 0, name: {de: Sperre, en: Lock}}
+        rows: &limitRows
+          entities: {de: Entities (ohne Spieler), en: Entities (without players)}
+          items: {de: Items am Boden, en: Items on the ground}
+          redstone: {de: Redstone-Änderungen pro Sekunde, en: Redstone changes per second}
+          hoppers: {de: Trichter-Übergaben pro Sekunde, en: Hopper transfers per second}
+          pistons: {de: Kolben-Bewegungen pro Sekunde, en: Piston moves per second}
+          spawns: {de: Neue Mobs und Items pro Sekunde, en: New mobs and items per second}
+      - key: lag-protection.small-loaders.max-chunks
+        type: int
+        when: lag-protection.enabled
+        min: 1
+        max: 225
+        unit: {de: Chunks, en: chunks}
+        name: {de: Kleine Loader bis, en: Small loaders up to}
+        help: {de: "9 = 3×3. Sie bekommen feste Grenzen, größere nie weniger.", en: "9 = 3×3. They get fixed limits, bigger ones never less."}
+      - key: lag-protection.small-loaders.limits
+        type: table
+        when: lag-protection.enabled
+        name: {de: Grenzen kleiner Loader, en: Limits of small loaders}
+        columns: *limitColumns
+        rows: *limitRows
+
+  - id: server-pause
+    name: {de: Server-Pause, en: Server pause}
+    help: {de: "Laggt der ganze Server, geben alle Loader ihre Chunks frei, bis er sich erholt hat - danach laden sie von selbst wieder.", en: "If the whole server lags, all loaders release their chunks until it has recovered - then they load again by themselves."}
+    fields:
+      - key: server-pause.enabled
+        type: bool
+        name: {de: Server-Pause an, en: Server pause on}
+      - key: server-pause.below-tps
+        type: decimal
+        when: server-pause.enabled
+        min: 1
+        max: 19.9
+        unit: {de: TPS, en: TPS}
+        name: {de: Pausieren unter, en: Pause below}
+      - key: server-pause.pause-after-seconds
+        type: int
+        when: server-pause.enabled
+        min: 1
+        max: 3600
+        unit: {de: Sekunden, en: seconds}
+        name: {de: So lange darunter, en: That long below}
+      - key: server-pause.resume-tps
+        type: decimal
+        when: server-pause.enabled
+        min: 1
+        max: 20
+        unit: {de: TPS, en: TPS}
+        name: {de: Weiter ab, en: Resume from}
+        help: {de: Etwas höher als die Pausengrenze - sonst schalten die Loader ständig um., en: A bit higher than the pause limit - otherwise the loaders keep switching.}
+      - key: server-pause.resume-after-seconds
+        type: int
+        when: server-pause.enabled
+        min: 1
+        max: 3600
+        unit: {de: Sekunden, en: seconds}
+        name: {de: So lange darüber, en: That long above}
+      - key: server-pause.notify-owners
+        type: bool
+        when: server-pause.enabled
+        name: {de: Besitzer und Team informieren, en: Tell owners and the team}
+
+  - id: staged-shutdown
+    name: {de: Gestaffelte Abschaltung, en: Staged shutdown}
+    help: {de: "Schützt den Server vor der Last vieler Loader zusammen: über der Grenze wird der am stärksten ausgelastete Loader „durch Lags deaktiviert“, dann der nächste.", en: "Protects the server against the load of many loaders together: above the limit the loader with the highest load is \"disabled by lag\", then the next."}
+    fields:
+      - key: staged-shutdown.enabled
+        type: bool
+        name: {de: Gestaffelte Abschaltung an, en: Staged shutdown on}
+      - key: staged-shutdown.average-seconds
+        type: int
+        when: staged-shutdown.enabled
+        min: 5
+        max: 600
+        unit: {de: Sekunden, en: seconds}
+        name: {de: Mittel über, en: Average over}
+      - key: staged-shutdown.warn-mspt
+        type: int
+        when: staged-shutdown.enabled
+        min: 10
+        max: 1000
+        unit: {de: ms, en: ms}
+        name: {de: Warnung ab, en: Warn from}
+      - key: staged-shutdown.shutdown-mspt
+        type: int
+        when: staged-shutdown.enabled
+        min: 10
+        max: 1000
+        unit: {de: ms, en: ms}
+        name: {de: Abschalten ab, en: Shut down from}
+      - key: staged-shutdown.step-seconds
+        type: int
+        when: staged-shutdown.enabled
+        min: 5
+        max: 3600
+        unit: {de: Sekunden, en: seconds}
+        name: {de: Nächster Loader nach, en: Next loader after}
+      - key: staged-shutdown.min-minutes
+        type: int
+        when: staged-shutdown.enabled
+        min: 1
+        max: 1440
+        unit: {de: Minuten, en: minutes}
+        name: {de: Mindestens aus, en: Off at least}
+      - key: staged-shutdown.max-shutdowns
+        type: int
+        when: staged-shutdown.enabled
+        min: 1
+        max: 100
+        name: {de: Sperren nach Abschaltungen, en: Lock after shutdowns}
+        help: {de: "Wer öfter in der Zeit unten abgeschaltet wird, wird gesperrt. Die harte Grenze zählt nicht.", en: Whoever is shut down more often within the time below is locked. The hard cap does not count.}
+      - key: staged-shutdown.window-minutes
+        type: int
+        when: staged-shutdown.enabled
+        min: 1
+        max: 1440
+        unit: {de: Minuten, en: minutes}
+        name: {de: Innerhalb von, en: Within}
+      - key: staged-shutdown.hard-cap-mspt
+        type: int
+        when: staged-shutdown.enabled
+        min: 0
+        max: 5000
+        unit: {de: ms, en: ms}
+        name: {de: Harte Grenze, en: Hard cap}
+        help: {de: "Darüber werden alle Loader auf einmal deaktiviert. 0 = keine.", en: "Above it all loaders are disabled at once. 0 = none."}
+      - key: staged-shutdown.hard-cap-seconds
+        type: int
+        when: staged-shutdown.enabled
+        min: 1
+        max: 600
+        unit: {de: Sekunden, en: seconds}
+        name: {de: Harte Grenze - Mittel über, en: Hard cap - average over}
+
+  - id: item
+    name: {de: Item & Block, en: Item & block}
+    help: {de: Aussehen des Chunkloaders. Name und Beschreibung des Items stehen in der Sprachdatei., en: Look of the chunk loader. Name and description of the item are in the language file.}
+    fields:
+      - key: item.material
+        type: string
+        max-length: 64
+        name: {de: Material, en: Material}
+        help: {de: "Z.B. EMERALD_BLOCK. Normale Blöcke dieser Art sind keine Chunkloader.", en: "E.g. EMERALD_BLOCK. Normal blocks of this type are not chunk loaders."}
+      - key: item.glint
+        type: bool
+        name: {de: Verzauberungs-Glanz, en: Enchantment glint}
+      - key: item.block-choices
+        type: strings
+        name: {de: Blöcke zur Auswahl, en: Blocks to choose from}
+        help: {de: "Für „Block ändern“ im Loader-Menü (mrchunks.block). Nur feste Blöcke ohne Schwerkraft und Funktion. Leer = keine Wahl.", en: "For \"Change block\" in the loader menu (mrchunks.block). Only solid blocks without gravity or function. Empty = no choice."}
+
+  - id: border
+    name: {de: Rand-Anzeige, en: Border display}
+    help: {de: "Leuchtende Linien an der Außenkante, durch Blöcke sichtbar - nur für den Spieler selbst.", en: "Glowing lines at the outer edge, visible through blocks - only for the player themselves."}
+    fields:
+      - key: border.show-on-open
+        type: bool
+        name: {de: Beim Öffnen des Menüs zeigen, en: Show when opening the menu}
+        help: {de: Sonst nur über den Knopf im Menü., en: Otherwise only via the button in the menu.}
+      - key: border.duration-seconds
+        type: int
+        min: 5
+        max: 3600
+        unit: {de: Sekunden, en: seconds}
+        name: {de: Sichtbar für, en: Visible for}
+      - key: border.color
+        type: color
+        name: {de: Farbe aktiv, en: Colour active}
+      - key: border.block
+        type: string
+        max-length: 64
+        name: {de: Block aktiv, en: Block active}
+      - key: border.inactive-color
+        type: color
+        name: {de: Farbe ausgeschaltet, en: Colour switched off}
+      - key: border.inactive-block
+        type: string
+        max-length: 64
+        name: {de: Block ausgeschaltet, en: Block switched off}
+      - key: border.thickness
+        type: decimal
+        min: 0.01
+        max: 1
+        unit: {de: Blöcke, en: blocks}
+        name: {de: Liniendicke, en: Line thickness}
+      - key: border.below
+        type: int
+        min: 0
+        max: 64
+        unit: {de: Blöcke, en: blocks}
+        name: {de: Linien nach unten, en: Lines down}
+      - key: border.above
+        type: int
+        min: 0
+        max: 64
+        unit: {de: Blöcke, en: blocks}
+        name: {de: Linien nach oben, en: Lines up}
+      - key: border.line-spacing
+        type: int
+        min: 1
+        max: 32
+        unit: {de: Blöcke, en: blocks}
+        name: {de: Abstand der Linien, en: Spacing of the lines}
+
+  - id: player-map
+    name: {de: Karte der Spielerseite, en: Map of the player page}
+    help: {de: Ebenen auf der Karte von MRadmins Spielerseite (braucht MRadmin)., en: Layers on the map of MRadmin's player page (needs MRadmin).}
+    fields:
+      - key: player-map.own
+        type: bool
+        name: {de: Meine Chunkloader, en: My chunk loaders}
+        help: {de: "Eigene und geteilte, Rechtsklick schaltet sie an und aus.", en: "Own and shared ones, a right-click switches them on and off."}
+      - key: player-map.others
+        type: bool
+        name: {de: Andere Chunkloader, en: Other chunk loaders}
+        help: {de: "Die Loader aller anderen Spieler (Name, Besitzer, Größe - ohne Aktionen).", en: "The loaders of all other players (name, owner, size - no actions)."}
+      - key: player-map.loader-preview
+        type: bool
+        name: {de: Kleine Karte am Loader, en: Small map at the loader}
+        help: {de: Der Loader und seine Umgebung in seiner geöffneten Karte auf der Spielerseite., en: The loader and its surroundings in its opened card on the player page.}
+
+  - id: discord
+    name: {de: Discord-Logs, en: Discord logs}
+    help: {de: "Ereignisse in einen Discord-Kanal schicken. Webhook: Kanal bearbeiten → Integrationen → Webhooks → Neuer Webhook → URL kopieren.", en: "Send events to a Discord channel. Webhook: Edit channel → Integrations → Webhooks → New webhook → copy URL."}
+    fields:
+      - key: discord.enabled
+        type: bool
+        name: {de: Discord-Logs senden, en: Send Discord logs}
+      - key: discord.webhook-url
+        type: secret
+        when: discord.enabled
+        max-length: 300
+        name: {de: Webhook-URL, en: Webhook URL}
+        help: {de: "Beginnt mit https://discord.com/api/webhooks/", en: "Starts with https://discord.com/api/webhooks/"}
+      - key: discord.username
+        type: string
+        when: discord.enabled
+        max-length: 80
+        name: {de: Name im Kanal, en: Name in the channel}
+        help: {de: Leer = Einstellung aus Discord., en: Empty = setting from Discord.}
+      - key: discord.avatar-url
+        type: string
+        when: discord.enabled
+        max-length: 300
+        name: {de: Bild-URL, en: Avatar URL}
+        help: {de: Leer = Einstellung aus Discord., en: Empty = setting from Discord.}
+      - key: discord.use-embeds
+        type: bool
+        when: discord.enabled
+        name: {de: Farbige Karten, en: Coloured embeds}
+        help: {de: Aus = einfache Textnachrichten., en: Off = plain text messages.}
+      - key: discord.footer
+        type: string
+        when: discord.enabled
+        max-length: 120
+        name: {de: Fußzeile, en: Footer}
+        help: {de: "Z.B. der Servername (leer = keine).", en: "E.g. the server name (empty = none)."}
+      - key: discord.events
+        type: table
+        when: discord.enabled
+        name: {de: Ereignisse, en: Events}
+        help: {de: Welche Ereignisse gesendet werden und in welcher Farbe. Die Texte stehen in den Sprachdateien., en: Which events are sent and in which colour. The texts are in the language files.}
+        columns:
+          - {key: enabled, type: bool, name: {de: Senden, en: Send}}
+          - {key: color, type: color, name: {de: Farbe, en: Colour}}
+        rows:
+          loader-placed: {de: Loader gesetzt, en: Loader placed}
+          loader-deleted: {de: Loader gelöscht, en: Loader deleted}
+          loader-toggled: {de: Loader an/aus, en: Loader on/off}
+          loader-renamed: {de: Loader umbenannt, en: Loader renamed}
+          loader-resized: {de: Größe geändert, en: Size changed}
+          loader-restored: {de: Block wiederhergestellt, en: Block restored}
+          loader-removed-missing: {de: Gelöscht (Block fehlte), en: Deleted (block missing)}
+          admin-delete: {de: "Team: Loader gelöscht", en: "Team: loader deleted"}
+          admin-ban: {de: "Team: Spieler gesperrt", en: "Team: player banned"}
+          admin-unban: {de: "Team: Sperre aufgehoben", en: "Team: ban lifted"}
+          admin-limit: {de: "Team: Limit geändert", en: "Team: limit changed"}
+          admin-reload: {de: "Team: neu geladen", en: "Team: reloaded"}
+          loader-invite: {de: Eingeladen, en: Invited}
+          loader-uninvite: {de: Einladung zurückgenommen, en: Invite withdrawn}
+          exempt-cleared: {de: Ausgeschlossen (mrchunks.exempt), en: Excluded (mrchunks.exempt)}
+          loader-lag-warning: {de: "Loader auffällig", en: "Loader suspicious"}
+          loader-lag-locked: {de: Wegen Lag gesperrt, en: Locked for lag}
+          loader-lag-unlocked: {de: Lag-Sperre aufgehoben, en: Lag lock lifted}
+          loader-lock-suspended: {de: Sperre ausgesetzt, en: Lock suspended}
+          loader-lock-suspension-ended: {de: Sperre gilt wieder, en: Lock applies again}
+          server-paused: {de: Server-Pause, en: Server pause}
+          server-resumed: {de: Pause beendet, en: Pause ended}
+          server-lag-warning: {de: Server ausgelastet, en: Server under load}
+          server-lag-normal: {de: Server wieder entspannt, en: Server relaxed again}
+          loader-lag-shutdown: {de: Durch Lags deaktiviert, en: Disabled by lag}
+          loader-lag-back: {de: Lädt wieder, en: Loading again}
+          server-lag-hard-cap: {de: Harte Grenze erreicht, en: Hard cap reached}
+          admin-pause-all: {de: "Team: alle pausiert", en: "Team: all paused"}
+          admin-resume-all: {de: "Team: Pause aufgehoben", en: "Team: pause lifted"}
+          admin-monitoring: {de: "Team: Abschaltung umgestellt", en: "Team: shutdown switched"}
+          loader-lag-repeat-locked: {de: Gesperrt nach Abschaltungen, en: Locked after shutdowns}
+          dummy-toggled: {de: Dummy an/aus, en: Dummy on/off}
+          accounts-linked: {de: Accounts verknüpft, en: Accounts linked}
+          accounts-unlinked: {de: Verknüpfung gelöst, en: Link removed}
+
+  - id: updates
+    name: {de: Updates, en: Updates}
+    help: {de: Nach neuen Versionen von MRchunks suchen., en: Look for new versions of MRchunks.}
+    fields:
+      - key: updates.enabled
+        type: bool
+        name: {de: Nach Updates suchen, en: Look for updates}
+        help: {de: Beim Start und danach regelmäßig. Ein Hinweis erscheint in der Konsole., en: On start and regularly afterwards. A notice appears in the console.}
+      - key: updates.source
+        type: choice
+        when: updates.enabled
+        name: {de: Quelle, en: Source}
+        options:
+          - {value: github, de: GitHub, en: GitHub}
+          - {value: modrinth, de: Modrinth, en: Modrinth}
+      - key: updates.include-prereleases
+        type: bool
+        when: updates.enabled
+        name: {de: Auch Vorabversionen, en: Pre-releases too}
+        help: {de: "Läuft eine Vorabversion (0.x), werden sie immer gemeldet.", en: "When a pre-release (0.x) runs they are always reported."}
+      - key: updates.interval-hours
+        type: int
+        when: updates.enabled
+        min: 1
+        max: 168
+        unit: {de: Stunden, en: hours}
+        name: {de: Prüfen alle, en: Check every}
+      - key: updates.notify-on-join
+        type: bool
+        when: updates.enabled
+        name: {de: Team beim Betreten informieren, en: Tell the team on join}
+        help: {de: Spieler mit mrchunks.admin.update bekommen einen Hinweis., en: Players with mrchunks.admin.update get a notice.}
+
+  - id: gui
+    name: {de: Menüs, en: Menus}
+    help: {de: Die Menüs von /chunkloader und /mrchunks., en: The menus of /chunkloader and /mrchunks.}
+    fields:
+      - key: gui.refresh-ticks
+        type: int
+        min: 5
+        max: 200
+        unit: {de: Ticks, en: ticks}
+        name: {de: Aktualisieren alle, en: Refresh every}
+        help: {de: 20 Ticks = 1 Sekunde., en: 20 ticks = 1 second.}
+      - key: gui.confirm-seconds
+        type: int
+        min: 1
+        max: 60
+        unit: {de: Sekunden, en: seconds}
+        name: {de: Zeit für den Bestätigungs-Klick, en: Time for the confirm click}
+        help: {de: Löschen braucht einen zweiten Klick (Schutz vor Fehlklicks)., en: Deleting needs a second click (protection against misclicks).}
+      - key: gui.ban-durations
+        type: strings
+        count: 3
+        item: duration
+        permanent: true
+        name: {de: Schnellwahl Sperre, en: Quick choices ban}
+        help: {de: "Genau drei Dauern im Admin-Menü, „permanent“ = für immer.", en: "Exactly three durations in the admin menu, \"permanent\" = forever."}
+      - key: gui.sounds
+        type: bool
+        name: {de: Klickgeräusche, en: Click sounds}
+      - key: gui.max-name-length
+        type: int
+        min: 3
+        max: 64
+        unit: {de: Zeichen, en: characters}
+        name: {de: Längster Loader-Name, en: Longest loader name}

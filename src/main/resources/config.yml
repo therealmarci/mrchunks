@@ -16,26 +16,28 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 29
-
-# Language of the texts (chat, menus, items). The texts are in plugins/MRchunks/lang/<language>.yml.
-#   auto = every player gets the language set in their Minecraft client:
-#          German (also Austria/Switzerland) -> de.yml, English -> en.yml, a language without a file -> fallback-language.
-#   de / en / ... = fixed language for all players.
-# The console is always English. Own language: copy a file (e.g. as fr.yml) and translate it - with "auto"
-# French players then get it automatically.
-language: auto
-
-# Language for players whose Minecraft language has no file of its own.
-fallback-language: en
-
-# Language of texts that are not meant for a single player: Discord logs,
-# tickets in MRadmin.
-server-language: en
+config-version: 30
 
 
 # ------------------------------------------------------------------------------
-#   1) CHUNK LOADERS
+#   1) GENERAL
+# ------------------------------------------------------------------------------
+general:
+  # Language of the texts (chat, menus, items). The texts are in plugins/MRchunks/lang/<language>.yml.
+  #   auto = every player gets the language set in their Minecraft client:
+  #          German (also Austria/Switzerland) -> de.yml, English -> en.yml, a language without a file -> fallback-language.
+  #   de / en / ... = fixed language for all players.
+  # The console is always English. Own language: copy a file (e.g. as fr.yml) and translate it - with "auto"
+  # French players then get it automatically.
+  language: auto
+  # Language for players whose Minecraft language has no file of its own.
+  fallback-language: en
+  # Language of texts that are not meant for a single player: Discord logs, tickets in MRadmin.
+  server-language: en
+
+
+# ------------------------------------------------------------------------------
+#   2) CHUNK LOADERS
 # ------------------------------------------------------------------------------
 loaders:
   # Chunk budget: how many chunks each player may keep loaded with all their ACTIVE chunk loaders together.
@@ -115,7 +117,7 @@ linked-accounts:
 
 
 # ------------------------------------------------------------------------------
-#   2) DUMMY PLAYERS
+#   3) DUMMY PLAYERS
 # ------------------------------------------------------------------------------
 # A dummy is an artificial player sitting on a chunk loader. A chunk loader alone only keeps chunks
 # loaded - but for the server there is still no player nearby. That is why mobs there are almost inactive (e.g.
@@ -146,7 +148,7 @@ dummies:
 
 
 # ------------------------------------------------------------------------------
-#   3) LAG PROTECTION
+#   4) LAG PROTECTION
 # ------------------------------------------------------------------------------
 # MRchunks regularly measures what happens in the area of every active chunk loader (all chunks together).
 # Every loader is judged on its own against the limits of its own area: up to 3x3 fixed limits (small-loaders),
@@ -266,7 +268,7 @@ staged-shutdown:
 
 
 # ------------------------------------------------------------------------------
-#   4) ITEM & BLOCK
+#   5) ITEM & BLOCK
 # ------------------------------------------------------------------------------
 item:
   # Look of the chunk loader as a block and as an item.
@@ -296,7 +298,7 @@ item:
 
 
 # ------------------------------------------------------------------------------
-#   5) BORDER DISPLAY
+#   6) BORDER DISPLAY
 # ------------------------------------------------------------------------------
 border:
   # The border consists of glowing lines (a "fence" at every chunk of the outer edge) that are visible
@@ -320,7 +322,21 @@ border:
 
 
 # ------------------------------------------------------------------------------
-#   6) DISCORD LOGS
+#   7) MAP OF THE PLAYER PAGE (needs MRadmin)
+# ------------------------------------------------------------------------------
+# Layers on the map of MRadmin's player page (tab "Map"), group "Chunk loaders", and the small map of a loader.
+player-map:
+  # "My chunk loaders": the player's own ones and those they are invited to, a right-click switches them on/off.
+  own: true
+  # "Other chunk loaders": the loaders of all other players (name, owner, size - no actions).
+  others: true
+  # A small map of just the loader and its surroundings in its opened card (section "Chunk loaders" of the player
+  # page), with a link to the big map.
+  loader-preview: true
+
+
+# ------------------------------------------------------------------------------
+#   8) DISCORD LOGS
 # ------------------------------------------------------------------------------
 # Create a webhook: Discord channel -> Edit Channel -> Integrations -> Webhooks
 #                   -> New Webhook -> Copy Webhook URL.
@@ -441,9 +457,9 @@ discord:
 
 
 # ------------------------------------------------------------------------------
-#   7) UPDATE CHECK
+#   9) UPDATES
 # ------------------------------------------------------------------------------
-update-checker:
+updates:
   enabled: true
   # Source: "github" (GitHub Releases, default) or "modrinth"
   source: github
@@ -455,7 +471,7 @@ update-checker:
 
 
 # ------------------------------------------------------------------------------
-#   8) MENUS
+#   10) MENUS
 # ------------------------------------------------------------------------------
 gui:
   # How often open menus are refreshed (in ticks, 20 = 1 second).
@@ -467,17 +483,3 @@ gui:
   sounds: true
   # Maximum length of a chunk loader's name (renaming in the menu).
   max-name-length: 24
-
-
-# ------------------------------------------------------------------------------
-#   9) MAP OF THE PLAYER PAGE (needs MRadmin)
-# ------------------------------------------------------------------------------
-# Layers on the map of MRadmin's player page (tab "Map"), group "Chunk loaders", and the small map of a loader.
-player-map:
-  # "My chunk loaders": the player's own ones and those they are invited to, a right-click switches them on/off.
-  own: true
-  # "Other chunk loaders": the loaders of all other players (name, owner, size - no actions).
-  others: true
-  # A small map of just the loader and its surroundings in its opened card (section "Chunk loaders" of the player
-  # page), with a link to the big map.
-  loader-preview: true
