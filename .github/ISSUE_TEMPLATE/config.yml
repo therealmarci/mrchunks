@@ -1,1 +1,8 @@
 blank_issues_enabled: false
+contact_links:
+  - name: 📖 Anleitung zu MRchunks
+    url: https://mrtechnology.marcelr.at/docs/mrchunks/
+    about: Installation, Befehle, Permissions, Konfiguration und häufige Fragen.
+  - name: 🐞 Fehler bequem über die Website melden
+    url: https://mrtechnology.marcelr.at/report/mrchunks/
+    about: Formular mit Versionsauswahl, die hochgeladene Config wird vorher im Browser geschwärzt.

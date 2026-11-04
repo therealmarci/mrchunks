@@ -16,26 +16,28 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 25
-
-# Language of the texts (chat, menus, items). The texts are in plugins/MRchunks/lang/<language>.yml.
-#   auto = every player gets the language set in their Minecraft client:
-#          German (also Austria/Switzerland) -> de.yml, English -> en.yml, a language without a file -> fallback-language.
-#   de / en / ... = fixed language for all players.
-# The console is always English. Own language: copy a file (e.g. as fr.yml) and translate it - with "auto"
-# French players then get it automatically.
-language: auto
-
-# Language for players whose Minecraft language has no file of its own.
-fallback-language: en
-
-# Language of texts that are not meant for a single player: Discord logs, the web map (squaremap),
-# tickets in MRadmin.
-server-language: en
+config-version: 31
 
 
 # ------------------------------------------------------------------------------
-#   1) CHUNK LOADERS
+#   1) GENERAL
+# ------------------------------------------------------------------------------
+general:
+  # Language of the texts (chat, menus, items). The texts are in plugins/MRchunks/lang/<language>.yml.
+  #   auto = every player gets the language set in their Minecraft client:
+  #          German (also Austria/Switzerland) -> de.yml, English -> en.yml, a language without a file -> fallback-language.
+  #   de / en / ... = fixed language for all players.
+  # The console is always English. Own language: copy a file (e.g. as fr.yml) and translate it - with "auto"
+  # French players then get it automatically.
+  language: auto
+  # Language for players whose Minecraft language has no file of its own.
+  fallback-language: en
+  # Language of texts that are not meant for a single player: Discord logs, tickets in MRadmin.
+  server-language: en
+
+
+# ------------------------------------------------------------------------------
+#   2) CHUNK LOADERS
 # ------------------------------------------------------------------------------
 loaders:
   # Chunk budget: how many chunks each player may keep loaded with all their ACTIVE chunk loaders together.
@@ -115,7 +117,7 @@ linked-accounts:
 
 
 # ------------------------------------------------------------------------------
-#   2) DUMMY PLAYERS
+#   3) DUMMY PLAYERS
 # ------------------------------------------------------------------------------
 # A dummy is an artificial player sitting on a chunk loader. A chunk loader alone only keeps chunks
 # loaded - but for the server there is still no player nearby. That is why mobs there are almost inactive (e.g.
@@ -146,7 +148,7 @@ dummies:
 
 
 # ------------------------------------------------------------------------------
-#   3) LAG PROTECTION
+#   4) LAG PROTECTION
 # ------------------------------------------------------------------------------
 # MRchunks regularly measures what happens in the area of every active chunk loader (all chunks together).
 # Every loader is judged on its own against the limits of its own area: up to 3x3 fixed limits (small-loaders),
@@ -266,7 +268,7 @@ staged-shutdown:
 
 
 # ------------------------------------------------------------------------------
-#   4) ITEM & BLOCK
+#   5) ITEM & BLOCK
 # ------------------------------------------------------------------------------
 item:
   # Look of the chunk loader as a block and as an item.
@@ -296,7 +298,7 @@ item:
 
 
 # ------------------------------------------------------------------------------
-#   5) BORDER DISPLAY
+#   6) BORDER DISPLAY
 # ------------------------------------------------------------------------------
 border:
   # The border consists of glowing lines (a "fence" at every chunk of the outer edge) that are visible
@@ -320,83 +322,21 @@ border:
 
 
 # ------------------------------------------------------------------------------
-#   6) WEB MAP (squaremap)
+#   7) MAP OF THE PLAYER PAGE (needs MRadmin)
 # ------------------------------------------------------------------------------
-# If the plugin squaremap is installed (https://modrinth.com/plugin/squaremap), MRchunks draws
-# the loaded areas as their own layer "Chunk loaders" onto the real Minecraft map.
-# Without squaremap there is no web map - apart from that MRchunks works completely normally.
-squaremap:
-  enabled: true
-  # MRchunks keeps squaremap's config fitting, checked on every start: map updates every 5 seconds, no player
-  # locations, world selection always visible, the Nether from the inside instead of the bedrock ceiling and the names
-  # of the main dimensions from the language file (map-dimension-*). Missing values and values MRchunks wrote itself
-  # are brought up to date (squaremap is reloaded then); values you changed in plugins/squaremap/config.yml stay.
-  # Overwrite your own changes too: /mrchunks map setup. false = MRchunks never touches squaremap's config.
-  auto-configure: true
-  # Show players neither on the map nor in the sidebar.
-  hide-players: true
-  # true = the layer is hidden when the map opens (can be switched on in the layer selection).
-  default-hidden: false
-  # Also show switched-off chunk loaders (grey).
-  show-inactive: true
-  # Colour of the areas, so the map shows the state of every chunk loader at a glance:
-  # "status" = active-color for active chunk loaders (switched off grey, locked red, conspicuous and paused yellow),
-  # "owner" = an own, constant colour per player, or a fixed value like "#2ECC71".
-  color: status
-  active-color: "#2ECC71"
-  inactive-color: "#8A958E"
-  # Colour of active chunk loaders during a server pause (see server-pause).
-  paused-color: "#F1C40F"
-  # Colour by status: locked chunk loaders (lag protection) and conspicuous ones (above a warn limit) get their own
-  # colour, so problems stand out on the map. false = they look like the others.
-  status-colors: true
-  locked-color: "#E74C3C"
-  warn-color: "#F1C40F"
-  # true = three layers that visitors switch on and off separately in the layer menu (top left): active,
-  #        switched-off and locked chunk loaders (names in the language file, map-layer-*). Locked ones are always
-  #        shown, also with show-inactive: false.
-  # false = one layer for all.
-  split-layers: true
-  # A small figure instead of the loader icon where a dummy player sits (see dummies).
-  show-dummy-icon: true
-  # Opacity of the area (0.0 - 1.0).
-  fill-opacity: 0.25
-  # Small chunk loader icon in the middle of the area.
-  show-icon: true
-  # The markers are synchronised at least this often (otherwise changes appear immediately).
-  update-seconds: 60
-  # Address of the web map for players (button "Web map" in /chunkloader, link in the chat):
-  #   ""                               = automatic: "web-address" from the squaremap config (if changed),
-  #                                      otherwise server-ip from server.properties, otherwise the public IP
-  #   "map.yourserver.com"             = own domain (FQDN) or IP - the squaremap port is appended
-  #   "https://yourserver.com/map/"    = full URL, used exactly like that (e.g. reverse proxy with a path)
-  address: ""
-  # true = the map runs behind a reverse proxy (nginx, Caddy, Traefik, Cloudflare ...):
-  #        the link becomes https://<address>/ without a port. Let the proxy forward to squaremap's port.
-  reverse-proxy: false
-  # Determine the public IP once on startup via checkip.amazonaws.com if address is empty and there is
-  # no server-ip in server.properties (it only asks, nothing is sent).
-  detect-public-ip: true
-
-  # Chunk grid on the map (MRchunks adds its own grid overlay to squaremap).
-  chunk-grid:
-    enabled: true
-    # Shown when the map opens. Visitors can switch it on/off in the layer menu (top left).
-    default-visible: true
-    color: "#FFFFFF"
-    opacity: 0.35
-    # Only draw chunk lines when a chunk is at least this many pixels wide
-    # (zoomed out further the lines would just be a grey area).
-    min-chunk-pixels: 8
-    # Highlight region borders (32x32 chunks = one .mca file).
-    region-lines: true
-    region-color: "#FFD54F"
-    # Write the chunk coordinates into every chunk when zoomed in a lot.
-    labels: true
+# Layers on the map of MRadmin's player page (tab "Map"), group "Chunk loaders", and the small map of a loader.
+player-map:
+  # "My chunk loaders": the player's own ones and those they are invited to, a right-click switches them on/off.
+  own: true
+  # "Other chunk loaders": the loaders of all other players (name, owner, size - no actions).
+  others: true
+  # A small map of just the loader and its surroundings in its opened card (section "Chunk loaders" of the player
+  # page), with a link to the big map.
+  loader-preview: true
 
 
 # ------------------------------------------------------------------------------
-#   7) DISCORD LOGS
+#   8) DISCORD LOGS
 # ------------------------------------------------------------------------------
 # Create a webhook: Discord channel -> Edit Channel -> Integrations -> Webhooks
 #                   -> New Webhook -> Copy Webhook URL.
@@ -407,6 +347,9 @@ discord:
   enabled: false
   # Full URL in quotes, e.g. "https://discord.com/api/webhooks/123456/abcdef"
   webhook-url: ""
+  # Without a webhook of its own (webhook-url empty): true = send the events to MRadmin's Discord log instead
+  # (needs MRadmin with its Discord log set up).
+  use-mradmin-webhook: false
   username: "MRchunks"
   avatar-url: ""
   use-embeds: true
@@ -517,9 +460,9 @@ discord:
 
 
 # ------------------------------------------------------------------------------
-#   8) UPDATE CHECK
+#   9) UPDATES
 # ------------------------------------------------------------------------------
-update-checker:
+updates:
   enabled: true
   # Source: "github" (GitHub Releases, default) or "modrinth"
   source: github
@@ -531,7 +474,7 @@ update-checker:
 
 
 # ------------------------------------------------------------------------------
-#   9) MENUS
+#   10) MENUS
 # ------------------------------------------------------------------------------
 gui:
   # How often open menus are refreshed (in ticks, 20 = 1 second).

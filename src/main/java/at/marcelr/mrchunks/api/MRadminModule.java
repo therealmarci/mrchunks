@@ -5,6 +5,7 @@ import at.marcelr.mradmin.api.HealthEntry;
 import at.marcelr.mradmin.api.MRadminService;
 import at.marcelr.mradmin.api.Report;
 import at.marcelr.mradmin.api.WebAlert;
+import at.marcelr.mradmin.api.WebConfig;
 import at.marcelr.mradmin.api.WebModule;
 import at.marcelr.mradmin.api.WebPushKind;
 import at.marcelr.mradmin.api.WebTile;
@@ -30,6 +31,10 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 import org.jspecify.annotations.Nullable;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -60,6 +65,8 @@ final class MRadminModule implements AdminModule, WebModule {
     private static final String PUSH_LOCKED = "chunks-locked";
     /** MRadmin keeps the measurements for the charts since API 6. */
     private static final int HISTORY_API = 6;
+    /** MRadmin draws the web map since API 7. */
+    private static final int MAP_API = 7;
 
     private final MRChunks plugin;
 
@@ -118,6 +125,18 @@ final class MRadminModule implements AdminModule, WebModule {
         if (service != null && service.apiVersion() >= HISTORY_API) {
             service.moduleHistoryAdd(ID, time, data, ActivityHistory.MAX_AGE);
         }
+    }
+
+    static String mapUrl() {
+        MRadminService service = MRadminService.get();
+        String url = service != null && service.apiVersion() >= MAP_API ? service.mapUrl() : null;
+        return url == null ? "" : url;
+    }
+
+    static String mapUrl(org.bukkit.World world, int x, int z) {
+        MRadminService service = MRadminService.get();
+        String url = service != null && service.apiVersion() >= MAP_API ? service.mapUrl(world, x, z) : null;
+        return url == null ? "" : url;
     }
 
     /** The world belongs to another module (e.g. MRpvp's arena world). */
@@ -424,6 +443,17 @@ final class MRadminModule implements AdminModule, WebModule {
     }
 
     @Override
+    public List<at.marcelr.mradmin.api.SelfMapLayer> selfMap(at.marcelr.mradmin.api.SelfViewer viewer) {
+        return SelfPage.mapLayers(plugin, viewer);
+    }
+
+    @Override
+    public @Nullable String selfMapAction(at.marcelr.mradmin.api.SelfViewer viewer, String layer, String action,
+                                          Map<String, String> args) {
+        return "loaders".equals(layer) ? SelfPage.mapAction(plugin, viewer, action, args) : "?";
+    }
+
+    @Override
     public @Nullable String selfAction(at.marcelr.mradmin.api.SelfViewer viewer, String area, String action,
                                        Map<String, String> args) {
         return SelfPage.AREA.equals(area) ? SelfPage.action(plugin, viewer, action, args) : "?";
@@ -478,5 +508,43 @@ final class MRadminModule implements AdminModule, WebModule {
             });
         }
         return flags;
+    }
+
+    /** config.yml in MRadmin's web interface (API 12): form from web-config.yml, saved and reloaded like the reload command. */
+    @Override
+    public @Nullable WebConfig webConfig() {
+        String form = resource("web-config.yml");
+        String defaults = resource("config.yml");
+        if (form == null || defaults == null) {
+            return null;
+        }
+        return new WebConfig(new File(plugin.getDataFolder(), "config.yml"), form, defaults, by -> {
+            plugin.reload();
+            plugin.discord().log("admin-reload", "admin", by);
+        });
+    }
+
+    private @Nullable String resource(String name) {
+        try (InputStream in = plugin.getResource(name)) {
+            return in == null ? null : new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    /** Into MRadmin's log (only with API 13 or newer). */
+    static void log(String event, String text, int color) {
+        MRadminService service = MRadminService.get();
+        if (service != null && service.apiVersion() >= 13) {
+            service.log(ID, event, text, color);
+        }
+    }
+
+    /** A line in MRadmin's Discord admin log (fallback when the plugin has no webhook of its own). */
+    static void adminLog(String text) {
+        MRadminService service = MRadminService.get();
+        if (service != null) {
+            service.adminLog(ID, text);
+        }
     }
 }

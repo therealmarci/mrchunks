@@ -22,14 +22,25 @@ import java.util.logging.Level;
  */
 public final class ConfigUpdater {
 
-    public static final int CURRENT_VERSION = 25;
+    public static final int CURRENT_VERSION = 31;
     public static final String BOM = "\uFEFF";
     /** Texts whose content changed with new features; the new default replaces the old value. */
     private static final Set<String> REPLACED_KEYS = Set.of();
-    /** Keys that were renamed: old path -> new path (the value is carried over). */
-    private static final Map<String, String> RENAMED_KEYS = Map.of(
-            // v3
-            "squaremap.public-url", "squaremap.address");
+    /**
+     * Keys that were renamed: old path -> new path (the value is carried over). v27: the web map belongs to MRadmin
+     * (squaremap only renders, MRadmin shows the map on the player page) - squaremap.* and map-layer.* are gone,
+     * MRadmin takes over what it still needs from the backup of the old file. v30: same layout as all MRtechnology plugins
+     * (general, features, discord, updates, gui).
+     */
+    private static final Map<String, String> RENAMED_KEYS = Map.ofEntries(
+            Map.entry("language", "general.language"),
+            Map.entry("fallback-language", "general.fallback-language"),
+            Map.entry("server-language", "general.server-language"),
+            Map.entry("update-checker.enabled", "updates.enabled"),
+            Map.entry("update-checker.source", "updates.source"),
+            Map.entry("update-checker.include-prereleases", "updates.include-prereleases"),
+            Map.entry("update-checker.interval-hours", "updates.interval-hours"),
+            Map.entry("update-checker.notify-on-join", "updates.notify-on-join"));
 
     private ConfigUpdater() {
     }
@@ -75,9 +86,9 @@ public final class ConfigUpdater {
             if (version < 10) {
                 String old = existing.getString("language", "auto").trim();
                 if (!old.isEmpty() && !old.equalsIgnoreCase("auto")) {
-                    template.set("server-language", old);
+                    template.set("general.server-language", old);
                 }
-                template.set("language", "auto");
+                template.set("general.language", "auto");
             }
             // v12: chunk budget instead of fixed limits. Existing loaders keep their size (old radius = default-reach),
             // nobody gets less: the budget is the old active limit in loaders of the old size, and the lag limits keep
@@ -89,13 +100,6 @@ public final class ConfigUpdater {
                 template.set("loaders.max-reach", Math.max(radius, template.getInt("loaders.max-reach", 7)));
                 template.set("loaders.default-budget", Math.max(0, existing.getInt("loaders.default-active-limit", 3)) * area);
                 template.set("lag-protection.limits-per-chunks", area);
-            }
-            // v16: the map colours show the state (active green, conspicuous and paused yellow) - only the old defaults
-            // are replaced, own colours stay.
-            if (version < 16) {
-                replaceDefault(existing, template, "squaremap.color", "owner", "status");
-                replaceDefault(existing, template, "squaremap.paused-color", "#F39C12", "#F1C40F");
-                replaceDefault(existing, template, "squaremap.warn-color", "#E67E22", "#F1C40F");
             }
             // v18: halved entity limits (staged shutdown protects the performance) - only the old defaults are replaced.
             if (version < 18) {
@@ -163,15 +167,7 @@ public final class ConfigUpdater {
         }
     }
 
-    /** Sets {@code value} if the old file still had the old default {@code old} (any other value was carried over). */
-    private static void replaceDefault(YamlConfiguration existing, YamlConfiguration template, String key, String old,
-                                       String value) {
-        if (old.equalsIgnoreCase(existing.getString(key, old).trim())) {
-            template.set(key, value);
-        }
-    }
-
-    /** Like {@link #replaceDefault(YamlConfiguration, YamlConfiguration, String, String, String)} for numbers. */
+    /** Sets {@code value} if the old file did not have the key or still had the old default {@code old}. */
     private static void replaceDefault(YamlConfiguration existing, YamlConfiguration template, String key, int old,
                                        int value) {
         if (!existing.contains(key) || existing.getDouble(key) == old) {

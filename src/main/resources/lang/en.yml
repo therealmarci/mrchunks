@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Do not change - tells the plugin which texts need to be renewed on updates.
-lang-version: 21
+lang-version: 22
 
 # Discord log texts (Discord markdown). Placeholders: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. On/off and colour are set in config.yml.
@@ -59,27 +59,6 @@ item-lore:
   - ""
   - "<dark_gray>Right-click: menu · sneak: build"
 
-# --- Web map (squaremap) ---------------------------------------------------------
-# Names of the dimensions in the world selection (set when squaremap is configured).
-map-dimension-overworld: "Overworld"
-map-dimension-nether: "Nether"
-map-dimension-end: "End"
-# Name of the layer in the map's layer selection.
-map-layer-name: "Chunk Loaders"
-# More layers with squaremap.split-layers: true (the active loaders are in map-layer-name)
-map-layer-inactive: "Chunk Loaders (off)"
-map-layer-locked: "Chunk Loaders (locked)"
-# Texts on the map (HTML allowed). Placeholders: {name} {number} {player} {world} {x} {y} {z} {width} {length} {chunks}
-# {state} (active/off/paused), {status} (like {state}, with the reason for locked and conspicuous loaders), {dummy}
-map-hover-tooltip: "{name} - {player}"
-map-click-tooltip: "<b>{name}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br>Size: {width}x{length} chunks ({chunks} of the budget)<br>Status: {status}{dummy}"
-# Status with reason (placeholders {metric} {value} {limit}) and the addition for a sitting dummy
-map-tooltip-locked: "<span style=\"color:#E74C3C\">locked</span> ({metric} {value}, limit {limit})"
-map-tooltip-warn: "<span style=\"color:#E67E22\">conspicuous</span> ({metric} {value}, warn limit {limit})"
-map-tooltip-dummy: "<br>A dummy sits on the loader"
-# Name of the chunk grid in the map's layer menu.
-map-grid-label: "Chunk Grid"
-
 # Reason entered when banning via the admin menu.
 gui-ban-reason: "via the admin menu"
 
@@ -97,9 +76,6 @@ invalid-duration: "<prefix><red>Invalid duration <white><input></white>. Example
 invalid-number: "<prefix><red><white><input></white> is not a valid number."
 state-active: "active"
 state-inactive: "disabled"
-state-paused: "paused (server is lagging)"
-state-shed: "disabled by lag"
-state-admin-paused: "paused (by the team)"
 ban-duration-permanent: "permanent"
 ban-duration-temporary: "<time> left"
 ban-no-reason: "no reason given"
@@ -110,7 +86,6 @@ date-format: "yyyy-MM-dd HH:mm"
 # Command help (/chunkloader): every line only appears if the player may use the command.
 give-ok: "<prefix><green>You received <white><count></white> chunk loader(s). <gray>(<used>/<limit> used)"
 give-none-left: "<prefix><hover:show_text:'<gray><placed> placed, <held> in inventory, limit <limit>'><red>No chunk loader left.</hover>"
-give-partial: "<prefix><yellow>There was only room for <white><count></white> chunk loader(s)."
 give-inventory-full: "<prefix><red>Your inventory is full."
 remove-ok: "<prefix><green>Removed <white><count></white> chunk loader item(s) from your inventory."
 remove-none: "<prefix><gray>You have no chunk loader items in your inventory."
@@ -298,7 +273,6 @@ admin-usage: |-
   <green>/mrchunks bans</green> <dark_gray>- <gray>All bans
   <green>/mrchunks link <main-account> <second-account></green> <dark_gray>- <gray>Link accounts
   <green>/mrchunks unlink <player></green> <dark_gray>- <gray>Remove a link
-  <green>/mrchunks map [setup]</green> <dark_gray>- <gray>Web map status / set up squaremap again
   <green>/mrchunks discord [test]</green> <dark_gray>- <gray>Discord status / test message
   <green>/mrchunks reload</green> <dark_gray>- <gray>Reload the configuration
   <green>/mrchunks version</green> <dark_gray>- <gray>Version & update status
@@ -318,26 +292,10 @@ unban-notify: "<prefix><green>You may place chunk loaders again."
 bans-header: "<prefix><gray>Banned players:"
 bans-entry: "<dark_gray> - <white><player></white> <gray>(<duration>, reason: <reason>, by <by>)"
 bans-empty: "<prefix><gray>Nobody is banned."
-map-status-on: "<prefix><green>Web map active <gray>(squaremap, layer \"Chunk Loaders\"): <link>"
-map-status-off: "<prefix><hover:show_text:'<gray>https://modrinth.com/plugin/squaremap'><gray>No web map: squaremap is <white><status></white></hover>"
-map-url-unknown: "<gray>address unknown - set squaremap.address"
-map-squaremap-missing: "<prefix><red>squaremap is not installed."
-map-setup-done: "<prefix><hover:show_text:'<gray><changes>'><green>squaremap set up, reloading</hover>"
-map-setup-nothing: "<prefix><gray>squaremap is already set up correctly."
-map-setup-failed: "<prefix><red>squaremap could not be set up: <white><reason>"
-map-setup-change-interval: "map updates every 5 seconds"
-map-setup-change-tracker: "no player locations on the map"
-map-setup-change-sidebar: "world selection always visible"
-map-setup-change-name: "<world> is called \"<name>\""
-map-setup-change-nether: "<world> is shown from inside"
-map-setup-change-removed: "old setting <setting> removed"
-map-state-active: "active"
-map-state-missing: "not installed"
-map-state-disabled: "disabled in the config"
-map-state-error: "error: <error>"
 
 # --- Discord -----------------------------------------------------------------
 discord-status-active: "<prefix><green>Discord active <gray>(<events>/<total> events)"
+discord-status-mradmin: "<prefix><green>Discord via MRadmin's webhook <gray>(<events>/<total> events)"
 discord-status-inactive: "<prefix><red>Discord webhook inactive: <white><reason>"
 discord-status-last: "<prefix><gray>Last delivery: <white><result>"
 discord-status-never: "nothing sent since startup"
@@ -347,6 +305,7 @@ discord-test-ok: "<prefix><green>✔ The test message arrived in Discord."
 discord-test-failed: "<prefix><red>✘ Test message failed: <white><reason>"
 discord-reason-disabled: "discord.enabled is false"
 discord-reason-no-url: "discord.webhook-url is empty"
+discord-reason-no-mradmin: "MRadmin is not running (discord.use-mradmin-webhook)"
 discord-reason-bad-url: "discord.webhook-url is not a Discord webhook URL (must start with https://discord.com/api/webhooks/)"
 discord-reason-invalid-url: "discord.webhook-url contains invalid characters (spaces? quotes?)"
 discord-result-ok: "OK (HTTP <status>) at <time>"
@@ -749,7 +708,6 @@ self-budget: "Budget"
 self-budget-value: "<used> / <budget> chunks"
 self-dummies: "Dummies"
 self-banned: "You are banned from chunk loaders (<duration>, reason: <reason>)."
-self-banned-short: "⛔ Banned from chunk loaders"
 self-notice-locked: "<count> chunk loader(s) locked for lag - an admin has to unlock them."
 self-notice-near: "<count> chunk loader(s) close to the lag limit - slow your farms down a bit, or they get locked."
 self-notice-budget: "Budget exceeded: <used> / <budget> chunks - turn a loader off or make it smaller."
@@ -780,10 +738,15 @@ self-card-place: "<world> · <x>, <z>"
 self-card-size: "Size"
 self-card-chunks: "Chunks"
 self-card-dummy: "Dummy"
-self-card-map: "Map around the loader"
 self-dummy-present: "present"
 self-dummy-waiting: "waiting"
 self-shared-sub: "by <owner> · <place>"
+self-map-layer: "My chunk loaders"
+self-map-others: "Other chunk loaders"
+self-map-group: "Chunk loaders"
+self-map-owner: "by <owner>"
+self-card-map: "Surroundings"
+self-card-map-open: "Open on the map"
 self-load: "Load"
 self-load-value: "<percent> %"
 self-limits: "Limits"
@@ -806,8 +769,6 @@ self-members-loader-text: "These players may only switch this loader on and off.
 self-members-loader-empty: "Nobody is invited to just this loader."
 self-members-list: "Invited (<count>)"
 self-shared: "Shared with you"
-self-map: "Map of your chunk loaders"
-self-map-open: "Open the big map"
 self-err-not-found: "This chunk loader does not exist anymore."
 self-err-locked: "The loader is locked because of lag - only an admin can lift the lock."
 self-err-budget: "Your budget is not enough: <chunks> chunks needed, <free> free."

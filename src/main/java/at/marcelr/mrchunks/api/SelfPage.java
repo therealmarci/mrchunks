@@ -9,6 +9,7 @@ import at.marcelr.mrchunks.LoaderManager;
 import at.marcelr.mrchunks.LoaderStatus;
 import at.marcelr.mrchunks.MRChunks;
 import at.marcelr.mrchunks.Messages;
+import at.marcelr.mrchunks.Settings;
 import at.marcelr.mrchunks.Texts;
 import at.marcelr.mrchunks.dummy.Dummies;
 import at.marcelr.mrchunks.lag.Activity;
@@ -21,6 +22,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,8 +32,9 @@ import java.util.UUID;
 
 /**
  * MRchunks on the player's own page in MRadmin's web interface (/web): every loader as a card (status, size, how busy
- * it is) that opens with its limits, a live map around it and its buttons - switching on and off, renaming, dummies,
- * deleting; the invited players and a form to invite more; loaders shared with the player; the live map (squaremap).
+ * it is) that opens with its limits, its buttons - switching on and off, renaming, dummies,
+ * deleting; the invited players and a form to invite more; loaders shared with the player. The loaders also
+ * appear on the map tab of the page (layer "loaders", right-click to switch them).
  * Everything they may do in game except changing the size. Every action checks ownership, permissions and the same
  * rules as in game again. Needs MRadmin with API 5 (cards, bars, forms); with an older MRadmin the area is left out.
  * Only loaded while MRadmin runs (like {@link MRadminModule}).
@@ -41,9 +44,8 @@ final class SelfPage {
     static final String AREA = "loaders";
     private static final String USE = "mrchunks.use";
     private static final String INVITE = "mrchunks.invite";
-    private static final String MAP = "mrchunks.map";
     private static final String EXEMPT = "mrchunks.exempt";
-    static final Set<String> PERMISSIONS = Set.of(USE, INVITE, MAP, EXEMPT);
+    static final Set<String> PERMISSIONS = Set.of(USE, INVITE, EXEMPT);
     /** Cards, Meters, People, Form and Embed came with MRadmin's API 5. */
     private static final int NEEDED_API = 5;
 
@@ -74,7 +76,6 @@ final class SelfPage {
         LoaderManager.Limit budget = loaders.budget(player);
         long free = loaders.freeBudget(player);
         LoaderManager.Ban ban = loaders.groupBan(viewer.player());
-        String mapUrl = viewer.has(MAP) ? plugin.maps().mapUrl() : "";
 
         // Head of the page and tile on the start page: active loaders big, budget and placed loaders as bars
         // ("a / b"); a ban, lag locks, loaders near the lag limit and an exceeded budget as warning lines (MRadmin also
@@ -110,31 +111,28 @@ final class SelfPage {
         List<SelfBlock> blocks = new ArrayList<>();
         List<SelfBlock.Card> cards = new ArrayList<>();
         for (Loader loader : own) {
-            cards.add(card(plugin, viewer, loader, ban == null, mapUrl));
+            cards.add(card(plugin, viewer, loader, ban == null));
         }
         blocks.add(new SelfBlock.Cards(m.plain("self-table"), cards, m.plain("self-empty")));
 
         // Order (user wish, mradmin#14): own loaders, loaders shared with the player, invite settings for all
-        // loaders (invite on top, list below), map. Invites for one loader are in its opened card.
+        // loaders (invite on top, list below). Invites for one loader are in its opened card.
         List<Loader> shared = loaders.sharedWith(viewer.player());
         if (!shared.isEmpty()) {
             List<SelfBlock.Card> sharedCards = new ArrayList<>();
             for (Loader loader : shared) {
-                sharedCards.add(sharedCard(plugin, loader, ban == null, mapUrl));
+                sharedCards.add(sharedCard(plugin, loader, ban == null));
             }
             blocks.add(new SelfBlock.Cards(m.plain("self-shared"), sharedCards, ""));
         }
         if (plugin.settings().invites().enabled() && viewer.has(INVITE) && ban == null) {
             blocks.add(invites(plugin, owner, null));
         }
-        if (!mapUrl.isEmpty()) {
-            blocks.add(new SelfBlock.Embed(m.plain("self-map"), mapUrl, 520, m.plain("self-map-open")));
-        }
         return new SelfArea(AREA, m.plain("self-title"), "🧱", summary, blocks);
     }
 
-    /** One own loader: status, size, how busy; opened: limits, live map around it, all buttons. */
-    private static SelfBlock.Card card(MRChunks plugin, SelfViewer viewer, Loader loader, boolean actions, String mapUrl) {
+    /** One own loader: status, size, how busy; opened: limits, all buttons. */
+    private static SelfBlock.Card card(MRChunks plugin, SelfViewer viewer, Loader loader, boolean actions) {
         Messages m = plugin.messages();
         LoaderStatus status = LoaderStatus.of(plugin, loader);
         String id = String.valueOf(loader.id());
@@ -174,15 +172,32 @@ final class SelfPage {
         if (actions && plugin.settings().invites().enabled() && viewer.has(INVITE)) {
             details.add(invites(plugin, loader.owner(), loader));
         }
-        if (!mapUrl.isEmpty()) {
-            details.add(new SelfBlock.Embed(m.plain("self-card-map"), mapAt(mapUrl, loader), 320, m.plain("self-map-open")));
-        }
+        // The small map at the very bottom of the opened card.
+        addArea(details, plugin, loader, status);
         return new SelfBlock.Card(id, Texts.name(plugin, loader), place(plugin, loader), state(plugin, loader, status),
                 tone(status), cardStats(plugin, loader), load(plugin, loader), primary, buttons, details);
     }
 
+    /**
+     * A small map of just this loader and what is around it (MRadmin draws squaremap's pictures under it, if there
+     * are any) with a link to the big map of the player page. Nothing if the world is not loaded or it is switched off.
+     */
+    private static void addArea(List<SelfBlock> details, MRChunks plugin, Loader loader, LoaderStatus status) {
+        World world = loader.world();
+        if (world == null || !plugin.settings().playerMap().loaderPreview()) {
+            return;
+        }
+        Messages m = plugin.messages();
+        String url = plugin.mradmin().mapUrl(loader);
+        SelfBlock.Rect rect = new SelfBlock.Rect(world.getKey().asString(), loader.minChunkX() << 4,
+                loader.minChunkZ() << 4, (loader.maxChunkX() + 1) << 4, (loader.maxChunkZ() + 1) << 4,
+                Texts.name(plugin, loader), color(status), url.isEmpty() ? null : url);
+        details.add(new SelfBlock.AreaMap(m.plain("self-card-map"), List.of(rect), url.isEmpty() ? null : url,
+                m.plain("self-card-map-open")));
+    }
+
     /** A loader of someone else the player was invited to: only on/off. */
-    private static SelfBlock.Card sharedCard(MRChunks plugin, Loader loader, boolean actions, String mapUrl) {
+    private static SelfBlock.Card sharedCard(MRChunks plugin, Loader loader, boolean actions) {
         Messages m = plugin.messages();
         LoaderStatus status = LoaderStatus.of(plugin, loader);
         SelfBlock.Button primary = !actions || status == LoaderStatus.LOCKED ? null
@@ -190,9 +205,7 @@ final class SelfPage {
                 Map.of("id", String.valueOf(loader.id())), loader.active() ? "" : "good", null, null);
         List<SelfBlock> details = new ArrayList<>();
         details.add(limits(plugin, loader));
-        if (!mapUrl.isEmpty()) {
-            details.add(new SelfBlock.Embed(m.plain("self-card-map"), mapAt(mapUrl, loader), 320, m.plain("self-map-open")));
-        }
+        addArea(details, plugin, loader, status);
         return new SelfBlock.Card("shared-" + loader.id(), Texts.name(plugin, loader),
                 m.plain("self-shared-sub", "owner", LoaderManager.name(loader.owner()), "place", place(plugin, loader)),
                 state(plugin, loader, status), tone(status), cardStats(plugin, loader), load(plugin, loader), primary,
@@ -283,14 +296,6 @@ final class SelfPage {
         return lock > 0 && value >= lock ? "bad" : warn > 0 && value >= warn ? "warn" : "good";
     }
 
-    /** squaremap centred on the loader (?world=...&zoom=...&x=...&z=...). */
-    private static String mapAt(String mapUrl, Loader loader) {
-        World world = loader.world();
-        String id = world == null ? loader.worldName() : world.getKey().asString().replace(':', '_');
-        String base = mapUrl.contains("?") ? mapUrl + "&" : mapUrl.endsWith("/") ? mapUrl + "?" : mapUrl + "/?";
-        return base + "world=" + id + "&zoom=4&x=" + loader.x() + "&z=" + loader.z();
-    }
-
     /**
      * Invites as one tile: "invite a player" on top, the invited players with "remove" below. {@code loader} null =
      * for all loaders (under "Your chunk loaders"), otherwise for this one loader (in its opened card).
@@ -350,6 +355,142 @@ final class SelfPage {
             case INACTIVE -> "";
             case OK -> "good";
         };
+    }
+
+    // ------------------------------------------------------ map (MRadmin API 8)
+
+    /** Groups, selections and symbols on the map came with MRadmin's API 9. */
+    private static final int MAP_GROUP_API = 9;
+
+    /**
+     * The chunk loaders on the map of the player's page, under the heading "Chunk loaders" (player-map in config.yml):
+     * "My chunk loaders" - their own and those they are invited to, as areas in the colour of their state, a
+     * right-click switches them on or off (the same checks as the buttons of the page); "Other chunk loaders" - the
+     * loaders of everyone else, only name, owner and size.
+     */
+    static List<at.marcelr.mradmin.api.SelfMapLayer> mapLayers(MRChunks plugin, SelfViewer viewer) {
+        if (!allowed(viewer)) {
+            return List.of();
+        }
+        MRadminService service = MRadminService.get();
+        boolean grouped = service != null && service.apiVersion() >= MAP_GROUP_API;
+        Settings.PlayerMapSettings settings = plugin.settings().playerMap();
+        return plugin.messages().in(viewer.lang(), () -> {
+            Messages m = plugin.messages();
+            LoaderManager loaders = plugin.loaders();
+            UUID owner = loaders.main(viewer.player());
+            boolean banned = loaders.groupBan(viewer.player()) != null;
+            List<at.marcelr.mradmin.api.SelfMapLayer.Marker> mine = new ArrayList<>();
+            List<at.marcelr.mradmin.api.SelfMapLayer.Marker> others = new ArrayList<>();
+            for (Loader loader : loaders.all()) {
+                if (loader.world() == null) {
+                    continue;
+                }
+                boolean own = loader.owner().equals(owner);
+                boolean mineOrShared = own || loaders.isMember(viewer.player(), loader);
+                if (mineOrShared && settings.own()) {
+                    mine.add(ownMarker(plugin, viewer, loader, own, banned, grouped));
+                } else if (!mineOrShared && settings.others()) {
+                    others.add(marker(loader, Texts.name(plugin, loader), "", List.of(
+                            m.plain("self-map-owner", "owner", LoaderManager.name(loader.owner())),
+                            loader.width() + "×" + loader.length() + " · " + loader.area() + " " + m.plain("self-card-chunks")),
+                            List.of()));
+                }
+            }
+            String group = m.plain("self-map-group");
+            List<at.marcelr.mradmin.api.SelfMapLayer> layers = new ArrayList<>();
+            if (settings.own()) {
+                layers.add(layer("loaders", m.plain("self-map-layer"), "#2ECC71", mine, group, grouped));
+            }
+            if (settings.others()) {
+                layers.add(layer("others", m.plain("self-map-others"), "#5DADE2", others, group, grouped));
+            }
+            return layers;
+        });
+    }
+
+    private static at.marcelr.mradmin.api.SelfMapLayer layer(String id, String name, String color,
+                                                             List<at.marcelr.mradmin.api.SelfMapLayer.Marker> markers,
+                                                             String group, boolean grouped) {
+        return grouped
+                ? new at.marcelr.mradmin.api.SelfMapLayer(id, name, color, markers, List.of(), null, group)
+                : new at.marcelr.mradmin.api.SelfMapLayer(id, name, color, markers, List.of(), null);
+    }
+
+    /** One of the player's own (or shared) loaders: state, size and the switch. */
+    private static at.marcelr.mradmin.api.SelfMapLayer.Marker ownMarker(MRChunks plugin, SelfViewer viewer, Loader loader,
+                                                                        boolean own,
+                                                                        boolean banned, boolean grouped) {
+        Messages m = plugin.messages();
+        LoaderStatus status = LoaderStatus.of(plugin, loader);
+        List<at.marcelr.mradmin.api.SelfMapLayer.Action> actions = new ArrayList<>();
+        if (!banned && status != LoaderStatus.LOCKED) {
+            String id = own ? "toggle" : "shared";
+            String label = m.plain(loader.active() ? "self-off" : "self-on");
+            String tone = loader.active() ? "" : "good";
+            actions.add(grouped
+                    ? new at.marcelr.mradmin.api.SelfMapLayer.Action(id, label, tone, null, null, null, "power")
+                    : new at.marcelr.mradmin.api.SelfMapLayer.Action(id, label, tone, null, null));
+        }
+        List<String> details = new ArrayList<>();
+        details.add(state(plugin, loader, status));
+        details.add(loader.width() + "×" + loader.length() + " · " + loader.area() + " " + m.plain("self-card-chunks"));
+        if (!own) {
+            details.add(m.plain("self-shared-sub", "owner", LoaderManager.name(loader.owner()), "place",
+                    place(plugin, loader)));
+        }
+        // With API 11 the card of the page instead: state, figures, load, on/off and dummy, link to the card there.
+        SelfBlock.Card page = own ? card(plugin, viewer, loader, !banned) : sharedCard(plugin, loader, !banned);
+        SelfBlock.Card card = new SelfBlock.Card(page.id(), page.title(), page.subtitle(), page.badge(), page.tone(),
+                page.stats(), page.meters(), page.primary(),
+                page.buttons().stream().filter(b -> b.action().equals("dummy")).toList(), List.of());
+        return marker(loader, Texts.name(plugin, loader), color(status), details, actions, card);
+    }
+
+    private static at.marcelr.mradmin.api.SelfMapLayer.Marker marker(Loader loader, String label, String color,
+                                                                     List<String> details,
+                                                                     List<at.marcelr.mradmin.api.SelfMapLayer.Action> actions) {
+        return marker(loader, label, color, details, actions, null);
+    }
+
+    private static at.marcelr.mradmin.api.SelfMapLayer.Marker marker(Loader loader, String label, String color,
+                                                                     List<String> details,
+                                                                     List<at.marcelr.mradmin.api.SelfMapLayer.Action> actions,
+                                                                     SelfBlock.@Nullable Card card) {
+        int minX = loader.minChunkX() << 4;
+        int minZ = loader.minChunkZ() << 4;
+        String world = loader.world().getKey().asString();
+        int width = ((loader.maxChunkX() + 1) << 4) - minX;
+        int length = ((loader.maxChunkZ() + 1) << 4) - minZ;
+        // With API 10 the height of the block: in the Nether MRadmin then shows it on the ceiling map or below.
+        MRadminService service = MRadminService.get();
+        if (card != null && service != null && service.apiVersion() >= 11) {
+            return new at.marcelr.mradmin.api.SelfMapLayer.Marker(String.valueOf(loader.id()), world, minX, minZ, width,
+                    length, label, color, details, actions, loader.y(), card, AREA);
+        }
+        return service != null && service.apiVersion() >= 10
+                ? new at.marcelr.mradmin.api.SelfMapLayer.Marker(String.valueOf(loader.id()), world, minX, minZ, width,
+                length, label, color, details, actions, loader.y())
+                : new at.marcelr.mradmin.api.SelfMapLayer.Marker(String.valueOf(loader.id()), world, minX, minZ, width,
+                length, label, color, details, actions);
+    }
+
+    /** The map's colours of the states, like the web map and the team pages. */
+    private static String color(LoaderStatus status) {
+        return switch (status) {
+            case LOCKED -> "#E74C3C";
+            case WARN, PAUSED, SHED -> "#F1C40F";
+            case INACTIVE -> "#8A958E";
+            case OK -> "#2ECC71";
+        };
+    }
+
+    /** A right-click on the map: the marker is the loader id, otherwise like a button of the page. */
+    static String mapAction(MRChunks plugin, SelfViewer viewer, String action, Map<String, String> args) {
+        if (!action.equals("toggle") && !action.equals("shared")) {
+            return "?";
+        }
+        return action(plugin, viewer, action, Map.of("id", args.getOrDefault("marker", "")));
     }
 
     // -------------------------------------------------------------- actions

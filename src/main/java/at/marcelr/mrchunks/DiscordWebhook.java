@@ -56,21 +56,33 @@ public final class DiscordWebhook {
     private record Event(boolean enabled, int color) {
     }
 
-    private record Config(boolean enabled, URI url, String username, String avatarUrl,
-                          boolean embeds, String footer, Map<String, Event> events) {
-        static final Config DISABLED = new Config(false, null, "", "", false, "", Map.of());
+    /** {@code url} null and {@code viaMradmin} true: the texts go to MRadmin's Discord log instead. */
+    private record Config(boolean enabled, URI url, boolean viaMradmin, String username, String avatarUrl,
+                          boolean embeds, String footer) {
+        static final Config DISABLED = new Config(false, null, false, "", "", false, "");
     }
+
+    /** On/off and colour of every event - also loaded while Discord is off (colours in MRadmin's log). */
+    private volatile Map<String, Event> events = Map.of();
 
     public DiscordWebhook(MRChunks plugin) {
         this.plugin = plugin;
     }
 
     public void load(ConfigurationSection section) {
+        events = section == null ? Map.of() : readEvents(section);
         if (section == null || !section.getBoolean("enabled", false)) {
             disable("discord-reason-disabled", false);
             return;
         }
         String rawUrl = section.getString("webhook-url", "").trim();
+        if (rawUrl.isEmpty() && section.getBoolean("use-mradmin-webhook", false)) {
+            config = new Config(true, null, true, "", "", false, "");
+            disabledReason = null;
+            int[] counts = eventCounts();
+            plugin.getLogger().info("Discord log goes through MRadmin's webhook (" + counts[0] + "/" + counts[1] + " events enabled).");
+            return;
+        }
         if (rawUrl.isEmpty()) {
             disable("discord-reason-no-url", true);
             return;
@@ -89,8 +101,18 @@ public final class DiscordWebhook {
             disable("discord-reason-invalid-url", true);
             return;
         }
+        config = new Config(true, url, false,
+                section.getString("username", "MRchunks"),
+                section.getString("avatar-url", ""),
+                section.getBoolean("use-embeds", true),
+                section.getString("footer", ""));
+        disabledReason = null;
+        int[] counts = eventCounts();
+        plugin.getLogger().info("Discord webhook active (" + counts[0] + "/" + counts[1] + " events enabled).");
+    }
 
-        // Events from the file, with the bundled defaults filling in entries that are missing there.
+    /** Events from the file, with the bundled defaults filling in entries that are missing there. */
+    private static Map<String, Event> readEvents(ConfigurationSection section) {
         Map<String, Event> events = new HashMap<>();
         ConfigurationSection fileEvents = section.contains("events", true) ? section.getConfigurationSection("events") : null;
         Configuration defaults = section.getRoot() == null ? null : section.getRoot().getDefaults();
@@ -110,15 +132,7 @@ public final class DiscordWebhook {
                 events.put(key, new Event(e.getBoolean("enabled", true), parseColor(e.getString("color", "#5865F2"))));
             }
         }
-        config = new Config(true, url,
-                section.getString("username", "MRchunks"),
-                section.getString("avatar-url", ""),
-                section.getBoolean("use-embeds", true),
-                section.getString("footer", ""),
-                Map.copyOf(events));
-        disabledReason = null;
-        int[] counts = eventCounts();
-        plugin.getLogger().info("Discord webhook active (" + counts[0] + "/" + counts[1] + " events enabled).");
+        return Map.copyOf(events);
     }
 
     private void disable(String reasonKey, boolean warn) {
@@ -135,6 +149,11 @@ public final class DiscordWebhook {
         return config.enabled();
     }
 
+    /** The texts go to MRadmin's Discord log ({@code use-mradmin-webhook}, no own webhook). */
+    public boolean viaMradmin() {
+        return config.viaMradmin();
+    }
+
     /** Why the webhook is off (in the configured language), or null if it is on. */
     public String disabledReason() {
         String key = disabledReason;
@@ -143,7 +162,7 @@ public final class DiscordWebhook {
 
     /** @return [enabled events, all events] */
     public int[] eventCounts() {
-        Map<String, Event> events = config.events();
+        Map<String, Event> events = this.events;
         int active = (int) events.entrySet().stream().filter(e -> active(e.getKey(), e.getValue())).count();
         return new int[]{active, events.size()};
     }
@@ -169,6 +188,11 @@ public final class DiscordWebhook {
             return CompletableFuture.completedFuture(plugin.messages().as(sender, this::disabledReason));
         }
         String text = plugin.messages().server(() -> plugin.messages().optional("discord.test-message"));
+        if (current.viaMradmin()) {
+            boolean sent = plugin.mradmin().adminLog(text.isEmpty() ? "MRchunks" : text);
+            return CompletableFuture.completedFuture(sent ? null
+                    : plugin.messages().as(sender, () -> plugin.messages().plain("discord-reason-no-mradmin")));
+        }
         String payload = buildPayload(current, 0x2ECC71, text.isEmpty() ? "MRchunks" : text);
         URI waitUrl = URI.create(current.url() + (current.url().getQuery() == null ? "?" : "&") + "wait=true");
         // The error text goes back to the sender, so build it in their language (English for the console).
@@ -181,10 +205,18 @@ public final class DiscordWebhook {
      */
     public void log(String eventKey, Object... placeholders) {
         Config current = config;
+        Event event = events.get(eventKey);
+        String logged = plugin.messages().server(() -> plugin.messages().optional("discord." + eventKey));
+        if (!logged.isEmpty()) {
+            // Every event also goes into MRadmin's log (web interface, page "Log"), whether Discord is on or not.
+            for (int i = 0; i + 1 < placeholders.length; i += 2) {
+                logged = logged.replace("{" + placeholders[i] + "}", String.valueOf(placeholders[i + 1]));
+            }
+            plugin.mradmin().log(eventKey, logged, event == null ? 0x5865F2 : event.color());
+        }
         if (!current.enabled()) {
             return;
         }
-        Event event = current.events().get(eventKey);
         if (event == null) {
             // Should not happen thanks to the defaults - but if it does, say so once instead of failing silently.
             if (missingEventsLogged.add(eventKey)) {
@@ -194,6 +226,11 @@ public final class DiscordWebhook {
         }
         String text = plugin.messages().server(() -> plugin.messages().optional("discord." + eventKey));
         if (!event.enabled() || text.isEmpty()) {
+            return;
+        }
+        if (current.viaMradmin()) {
+            // MRadmin escapes and frames the text itself (event "plugin-alert" of its Discord log).
+            plugin.mradmin().adminLog(logged);
             return;
         }
         for (int i = 0; i + 1 < placeholders.length; i += 2) {

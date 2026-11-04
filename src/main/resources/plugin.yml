@@ -2,10 +2,10 @@ name: MRchunks
 version: '${version}'
 main: at.marcelr.mrchunks.MRChunks
 api-version: '${mcVersion}'
-softdepend: [squaremap, MRadmin]
+softdepend: [MRadmin]
 author: _therealmarci
 website: ${website}/docs/${websiteSlug}/
-description: Chunk loader blocks with a chunk budget and free sizes, menus, admin GUI, squaremap integration and Discord logs.
+description: Chunk loader blocks with a chunk budget and free sizes, menus, admin GUI, Discord logs and a layer on the web map (via MRadmin).
 
 commands:
   chunkloader:
@@ -14,7 +14,7 @@ commands:
     aliases: [cl, chunkloaders]
   mrchunks:
     description: Management of MRchunks.
-    usage: /mrchunks <gui|tp|toggle|delete|unlock|suspendlock|lag|limit|ban|unban|bans|link|unlink|map|discord|reload|version>
+    usage: /mrchunks <gui|tp|toggle|delete|unlock|suspendlock|lag|limit|ban|unban|bans|link|unlink|discord|reload|version>
 
 permissions:
   # ------------------------------------------------------------------ Groups
@@ -51,7 +51,7 @@ permissions:
       mrchunks.admin.invites: true
       mrchunks.admin.link: true
   mrchunks.groups.admin:
-    description: "Group admin: everything of MRchunks - delete, rename, resize, dummies, lift lag locks, suspend limit locks, budget and limits, bans, pause all loaders, staged shutdown on/off, web map, Discord, reload, update notice."
+    description: "Group admin: everything of MRchunks - delete, rename, resize, dummies, lift lag locks, suspend limit locks, budget and limits, bans, pause all loaders, staged shutdown on/off, Discord, reload, update notice."
     default: op
     children:
       mrchunks.groups.staff: true
@@ -59,7 +59,6 @@ permissions:
       mrchunks.admin.resize: true
       mrchunks.admin.limit: true
       mrchunks.admin.ban: true
-      mrchunks.admin.map: true
       mrchunks.admin.discord: true
       mrchunks.admin.reload: true
       mrchunks.admin.update: true
@@ -75,7 +74,7 @@ permissions:
     description: Get chunk loaders (/chunkloader), place them and manage your own.
     default: op
   mrchunks.map:
-    description: Button "Web map" in /chunkloader - link to the web map.
+    description: Button "Web map" in /chunkloader - link to the map of the player page (needs MRadmin with squaremap).
     default: op
   mrchunks.view:
     description: Open the menu of other players' chunk loaders (view only and show the border).
@@ -149,9 +148,6 @@ permissions:
     default: op
   mrchunks.admin.suspendlock:
     description: "Suspend the lock for exceeding the limits for a single chunk loader, at most 24 hours (loader menu, MRadmin web interface, /mrchunks suspendlock)."
-    default: op
-  mrchunks.admin.map:
-    description: /mrchunks map [setup] - status of the web map, set up squaremap.
     default: op
   mrchunks.admin.discord:
     description: /mrchunks discord [test]

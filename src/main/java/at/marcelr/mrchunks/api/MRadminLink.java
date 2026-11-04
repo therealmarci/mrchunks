@@ -80,6 +80,25 @@ public final class MRadminLink implements Listener {
         }
     }
 
+    /** Link to the map of the player page in MRadmin, or "" if there is none (no MRadmin, squaremap or address). */
+    public String mapUrl() {
+        try {
+            return connected ? MRadminModule.mapUrl() : "";
+        } catch (LinkageError | RuntimeException e) {
+            return "";
+        }
+    }
+
+    /** Link to the map of the player page centred on the loader, or "" if there is none. */
+    public String mapUrl(Loader loader) {
+        World world = loader.world();
+        try {
+            return connected && world != null ? MRadminModule.mapUrl(world, loader.x(), loader.z()) : "";
+        } catch (LinkageError | RuntimeException e) {
+            return "";
+        }
+    }
+
     /** The world belongs to another plugin, e.g. MRpvp's arena world (false without MRadmin). */
     public boolean reservedWorld(World world) {
         try {
@@ -89,6 +108,30 @@ public final class MRadminLink implements Listener {
             connected = false;
             return false;
         }
+    }
+
+    /** An event of the Discord log also into MRadmin's log (web interface, API 13). */
+    public void log(String event, String text, int color) {
+        if (connected) {
+            try {
+                MRadminModule.log(event, text, color);
+            } catch (LinkageError | RuntimeException e) {
+                plugin.getLogger().warning("Could not write into MRadmin's log: " + e);
+            }
+        }
+    }
+
+    /** Into MRadmin's Discord admin log. @return false without MRadmin */
+    public boolean adminLog(String text) {
+        if (connected) {
+            try {
+                MRadminModule.adminLog(text);
+                return true;
+            } catch (LinkageError | RuntimeException e) {
+                plugin.getLogger().warning("Could not write into MRadmin's Discord log: " + e);
+            }
+        }
+        return false;
     }
 
     /** MRadmin enabled later (e.g. with a plugin manager): connect now. */

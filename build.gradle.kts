@@ -38,12 +38,12 @@ repositories {
 dependencies {
     // Paper-API plus Server-Klassen (für die Dummy-Spieler).
     paperweight.paperDevBundle(paperApi)
-    // Optional: echte Webkarte. Wird nur genutzt, wenn squaremap auf dem Server installiert ist.
-    compileOnly("xyz.jpenilla:squaremap-api:1.4.3")
     // Optional: MRadmin (Modul-API). Nur zum Kompilieren - zur Laufzeit kommen die Klassen aus MRadmin, und nur wenn es
     // installiert ist (siehe api/MRadminLink).
     compileOnly("com.github.therealmarci:mradmin:$mradminApi")
 
+    // Für den Test des Web-Formulars der config.yml (YamlConfiguration).
+    testImplementation("io.papermc.paper:paper-api:$paperApi")
     testImplementation(platform("org.junit:junit-bom:6.1.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

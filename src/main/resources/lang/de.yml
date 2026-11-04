@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # Nicht ändern - damit erkennt das Plugin bei Updates, welche Texte erneuert werden müssen.
-lang-version: 21
+lang-version: 22
 
 # Texte der Discord-Logs (Markdown wie in Discord). Platzhalter: {name} {number} {player} {admin} {world} {x} {y} {z}
 # {state} {old} {owner} {scope} {time} {reason} {count} {type} {limit} {metric} {value}. An/aus und Farbe stehen in der config.yml.
@@ -59,27 +59,6 @@ item-lore:
   - ""
   - "<dark_gray>Rechtsklick: Menü · Sneak: bauen"
 
-# --- Webkarte (squaremap) --------------------------------------------------------
-# Namen der Dimensionen in der Welt-Auswahl (werden bei der Einrichtung von squaremap gesetzt).
-map-dimension-overworld: "Overworld"
-map-dimension-nether: "Nether"
-map-dimension-end: "End"
-# Name der Ebene in der Ebenen-Auswahl der Karte.
-map-layer-name: "Chunkloader"
-# Weitere Ebenen mit squaremap.split-layers: true (die aktiven Loader stehen in map-layer-name)
-map-layer-inactive: "Chunkloader (aus)"
-map-layer-locked: "Chunkloader (gesperrt)"
-# Texte auf der Karte (HTML erlaubt). Platzhalter: {name} {number} {player} {world} {x} {y} {z} {width} {length} {chunks}
-# {state} (aktiv/aus/pausiert), {status} (wie {state}, bei gesperrten und auffälligen Loadern mit Grund), {dummy}
-map-hover-tooltip: "{name} - {player}"
-map-click-tooltip: "<b>{name}</b><br>Owner: {player}<br>Position: {x} {y} {z}<br>Größe: {width}x{length} Chunks ({chunks} im Budget)<br>Status: {status}{dummy}"
-# Status mit Grund (Platzhalter {metric} {value} {limit}) und der Zusatz für einen sitzenden Dummy
-map-tooltip-locked: "<span style=\"color:#E74C3C\">gesperrt</span> ({metric} {value}, Grenze {limit})"
-map-tooltip-warn: "<span style=\"color:#E67E22\">auffällig</span> ({metric} {value}, Warngrenze {limit})"
-map-tooltip-dummy: "<br>Dummy sitzt auf dem Loader"
-# Name des Chunkrasters im Ebenen-Menü der Karte.
-map-grid-label: "Chunkraster"
-
 # Grund, der bei Sperren über das Admin-Menü eingetragen wird.
 gui-ban-reason: "über das Admin-Menü"
 
@@ -97,9 +76,6 @@ invalid-duration: "<prefix><red>Ungültige Dauer <white><input></white>. Beispie
 invalid-number: "<prefix><red><white><input></white> ist keine gültige Zahl."
 state-active: "aktiv"
 state-inactive: "deaktiviert"
-state-paused: "pausiert (Server laggt)"
-state-shed: "durch Lags deaktiviert"
-state-admin-paused: "pausiert (vom Team)"
 ban-duration-permanent: "dauerhaft"
 ban-duration-temporary: "noch <time>"
 ban-no-reason: "kein Grund angegeben"
@@ -110,7 +86,6 @@ date-format: "dd.MM.yyyy HH:mm"
 # Befehlshilfe (/chunkloader): jede Zeile erscheint nur, wenn der Spieler den Befehl nutzen darf.
 give-ok: "<prefix><green>Du hast <white><count></white> Chunkloader bekommen. <gray>(<used>/<limit> belegt)"
 give-none-left: "<prefix><hover:show_text:'<gray><placed> gesetzt, <held> im Inventar, Limit <limit>'><red>Kein Chunkloader mehr frei.</hover>"
-give-partial: "<prefix><yellow>Es war nur noch Platz für <white><count></white> Chunkloader."
 give-inventory-full: "<prefix><red>Dein Inventar ist voll."
 remove-ok: "<prefix><green><white><count></white> Chunkloader-Item(s) aus deinem Inventar entfernt."
 remove-none: "<prefix><gray>Du hast keine Chunkloader-Items im Inventar."
@@ -298,7 +273,6 @@ admin-usage: |-
   <green>/mrchunks bans</green> <dark_gray>- <gray>Alle Sperren
   <green>/mrchunks link <haupt-account> <zweit-account></green> <dark_gray>- <gray>Accounts verknüpfen
   <green>/mrchunks unlink <spieler></green> <dark_gray>- <gray>Verknüpfung lösen
-  <green>/mrchunks map [setup]</green> <dark_gray>- <gray>Status der Webkarte / squaremap neu einrichten
   <green>/mrchunks discord [test]</green> <dark_gray>- <gray>Discord-Status / Testnachricht
   <green>/mrchunks reload</green> <dark_gray>- <gray>Konfiguration neu laden
   <green>/mrchunks version</green> <dark_gray>- <gray>Version & Update-Status
@@ -318,26 +292,10 @@ unban-notify: "<prefix><green>Du darfst wieder Chunkloader setzen."
 bans-header: "<prefix><gray>Gesperrte Spieler:"
 bans-entry: "<dark_gray> - <white><player></white> <gray>(<duration>, Grund: <reason>, von <by>)"
 bans-empty: "<prefix><gray>Niemand ist gesperrt."
-map-status-on: "<prefix><green>Webkarte aktiv <gray>(squaremap, Ebene \"Chunkloader\"): <link>"
-map-status-off: "<prefix><hover:show_text:'<gray>https://modrinth.com/plugin/squaremap'><gray>Keine Webkarte: squaremap ist <white><status></white></hover>"
-map-url-unknown: "<gray>Adresse unbekannt - trage squaremap.address ein"
-map-squaremap-missing: "<prefix><red>squaremap ist nicht installiert."
-map-setup-done: "<prefix><hover:show_text:'<gray><changes>'><green>squaremap eingerichtet, wird neu geladen</hover>"
-map-setup-nothing: "<prefix><gray>squaremap ist bereits passend eingerichtet."
-map-setup-failed: "<prefix><red>squaremap konnte nicht eingerichtet werden: <white><reason>"
-map-setup-change-interval: "Karte aktualisiert alle 5 Sekunden"
-map-setup-change-tracker: "keine Spieler-Standorte auf der Karte"
-map-setup-change-sidebar: "Welt-Auswahl immer sichtbar"
-map-setup-change-name: "<world> heißt \"<name>\""
-map-setup-change-nether: "<world> wird von innen gezeigt"
-map-setup-change-removed: "alte Einstellung <setting> entfernt"
-map-state-active: "aktiv"
-map-state-missing: "nicht installiert"
-map-state-disabled: "in der Config ausgeschaltet"
-map-state-error: "Fehler: <error>"
 
 # --- Discord -----------------------------------------------------------------
 discord-status-active: "<prefix><green>Discord aktiv <gray>(<events>/<total> Events)"
+discord-status-mradmin: "<prefix><green>Discord über MRadmins Webhook <gray>(<events>/<total> Events)"
 discord-status-inactive: "<prefix><red>Discord-Webhook inaktiv: <white><reason>"
 discord-status-last: "<prefix><gray>Letzter Versand: <white><result>"
 discord-status-never: "seit dem Start noch nichts gesendet"
@@ -347,6 +305,7 @@ discord-test-ok: "<prefix><green>✔ Testnachricht ist in Discord angekommen."
 discord-test-failed: "<prefix><red>✘ Testnachricht fehlgeschlagen: <white><reason>"
 discord-reason-disabled: "discord.enabled ist false"
 discord-reason-no-url: "discord.webhook-url ist leer"
+discord-reason-no-mradmin: "MRadmin läuft nicht (discord.use-mradmin-webhook)"
 discord-reason-bad-url: "discord.webhook-url ist keine Discord-Webhook-URL (muss mit https://discord.com/api/webhooks/ beginnen)"
 discord-reason-invalid-url: "discord.webhook-url enthält ungültige Zeichen (Leerzeichen? Anführungszeichen?)"
 discord-result-ok: "OK (HTTP <status>) um <time>"
@@ -749,7 +708,6 @@ self-budget: "Budget"
 self-budget-value: "<used> / <budget> Chunks"
 self-dummies: "Dummies"
 self-banned: "Du bist von Chunkloadern gesperrt (<duration>, Grund: <reason>)."
-self-banned-short: "⛔ Von Chunkloadern gesperrt"
 self-notice-locked: "<count> Chunkloader wegen Lag gesperrt - ein Admin muss sie entsperren."
 self-notice-near: "<count> Chunkloader nahe an der Lag-Grenze - Farmen etwas drosseln, sonst wird gesperrt."
 self-notice-budget: "Budget überschritten: <used> / <budget> Chunks - schalte einen Loader aus oder verkleinere ihn."
@@ -780,10 +738,15 @@ self-card-place: "<world> · <x>, <z>"
 self-card-size: "Größe"
 self-card-chunks: "Chunks"
 self-card-dummy: "Dummy"
-self-card-map: "Karte rund um den Loader"
 self-dummy-present: "sitzt"
 self-dummy-waiting: "wartet"
 self-shared-sub: "von <owner> · <place>"
+self-map-layer: "Meine Chunkloader"
+self-map-others: "Andere Chunkloader"
+self-map-group: "Chunkloader"
+self-map-owner: "von <owner>"
+self-card-map: "Umgebung"
+self-card-map-open: "Auf der Karte öffnen"
 self-load: "Auslastung"
 self-load-value: "<percent> %"
 self-limits: "Grenzwerte"
@@ -806,8 +769,6 @@ self-members-loader-text: "Diese Spieler dürfen nur diesen Loader an- und aussc
 self-members-loader-empty: "Niemand nur für diesen Loader eingeladen."
 self-members-list: "Eingeladen (<count>)"
 self-shared: "Mit dir geteilt"
-self-map: "Karte deiner Chunkloader"
-self-map-open: "Große Karte öffnen"
 self-err-not-found: "Diesen Chunkloader gibt es nicht mehr."
 self-err-locked: "Der Loader ist wegen Lag gesperrt - nur ein Admin kann die Sperre aufheben."
 self-err-budget: "Dafür reicht dein Budget nicht: <chunks> Chunks nötig, <free> frei."

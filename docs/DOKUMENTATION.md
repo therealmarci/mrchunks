@@ -11,7 +11,7 @@ Build, Config-Migration, Discord, Update-Checker, Menü-Grundgerüst und Release
 | Plattform | Paper 26.3 (`paper-api:26.3.build.200-stable`), Java 25 |
 | Build | Gradle 9.8.1 (Wrapper), JUnit 6, Minotaur für Modrinth |
 | Paket | `at.marcelr.mrchunks` |
-| Abhängigkeiten | keine Pflicht. Optional squaremap (`compileOnly squaremap-api`, `softdepend`) |
+| Abhängigkeiten | keine Pflicht. Optional MRadmin (Modul-API, `compileOnly`, `softdepend`) - auch für die Karte der Spielerseite |
 
 ## 2. Projektstruktur
 ```text
@@ -35,13 +35,10 @@ src/main/java/at/marcelr/mrchunks/
 ├─ link/                  LinkRequests (Anfrage + Zustimmungs-Dialog für verknüpfte Accounts)
 ├─ gui/                   Menu, MenuListener, Items, Heads, Pages, LoaderIcons, PlayerIcons,
 │                         LoaderMenu, LoaderSettingsMenu, BlockMenu, MyLoadersMenu, AdminMenu, PlayerLoadersMenu, LinkMenu, LinkPickerMenu
-├─ map/                   MapHooks (ohne squaremap-Typen), SquaremapHook (Ebene, Marker, Icon,
-│                         Raster, Spieler ausblenden), SquaremapSetup (squaremap-Config einrichten)
 └─ util/                  DurationUtil, Versions (mit Tests)
 src/main/resources/
 ├─ config.yml             UTF-8 mit BOM!
-├─ plugin.yml, build-info.properties
-└─ web/squaremap-grid.js  Raster + ausgeblendete Spielerliste für squaremap
+└─ plugin.yml, build-info.properties
 ```
 
 ## 3. Chunks laden (`LoaderManager`)
@@ -138,28 +135,11 @@ bans:
 - **Verlauf:** `lag/ActivityHistory` (ohne Bukkit, getestet) hält pro Loader die Messungen der letzten 12 Stunden im Speicher (`LagMonitor#sample` trägt ein, gelöschte Loader fallen über `retain` weg). Jeder Eintrag trägt seine `Phase` (`ON`, `OFF`, `SHED`, `LOCKED` aus `LoaderManager#phase`); ohne Messung bleibt `values` null. `LoaderManager` meldet jeden Wechsel sofort an `LagMonitor#phaseChanged`, damit Phasen zwischen zwei Messungen und während der Startverzögerung die genaue Uhrzeit haben. `phases` rechnet die Phasen aus allen Einträgen aus, nicht aus den zusammengefassten Punkten. `last` liefert die letzte echte Messung für die Kacheln. Jede Messrunde geht als eine Textzeile (`encode`) über `MRadminLink#saveHistory` an `moduleHistoryAdd` (Modul-API 6), beim Start liest `restoreHistory` sie zurück. Web-Abfrage `loaderHistory {id, range}` fasst je nach Zeitraum zusammen (`HISTORY_STEPS`, `ActivityHistory#combined`, an der Uhrzeit ausgerichtet), mit dem Höchstwert je Messwert, damit Spitzen gegen die Grenzen sichtbar bleiben.
 - **Live-Ansicht:** Web-Abfrage `loaderLive {id}` (über `requests()` an `mrchunks.admin.live` gebunden) ruft `LagMonitor#live`: Die Abfrage selbst hält den Loader in `LiveWatch` (ohne Bukkit, getestet; fällt nach 5 s ohne Abfrage heraus, höchstens `max-loaders`). Der Takt läuft nur, solange etwas beobachtet wird. Ereignisse zählt `count` zusätzlich in `liveCounts`, Messung über dasselbe `measure`. Nichts davon geht an `judge` oder in den gespeicherten Verlauf; `liveHistory` hält die Punkte 15 Minuten im Speicher, `ActivityHistory#merged` fügt sie in `loaderHistory` ein (bis 1h, normale Punkte fallen nur innerhalb einer Live-Strecke weg). Beim Öffnen misst `firstLive` sofort, damit die Linie ohne Spalt weiterläuft.
 
-## 8. squaremap (`map/MapHooks.java`, `map/SquaremapHook.java`)
-- `compileOnly("xyz.jpenilla:squaremap-api:1.4.3")` und `softdepend: [squaremap]`. Dadurch startet squaremap vorher, ist aber nicht Pflicht.
-- **`MapHooks`** enthält keinen einzigen squaremap-Typ. Erst wenn `isPluginEnabled("squaremap")` gilt, wird `SquaremapHook` erzeugt (`LinkageError` wird abgefangen). So entsteht ohne squaremap kein `NoClassDefFoundError`.
-- **`SquaremapHook`** registriert pro Welt eine `SimpleLayerProvider`-Ebene `mrchunks_loaders` (Name aus `map-layer-name` der Sprachdatei) und ein selbst gezeichnetes 16×16-Icon `mrchunks_loader`. Jeder Loader bekommt ein `Marker.rectangle` in Blockkoordinaten der vollen Chunks und optional `Marker.icon`. Tooltips sind HTML, die Werte werden escaped.
-- **Aktualisierung:** `LoaderManager` ruft nach jeder Änderung (setzen, löschen, an/aus) `maps().refreshSoon()` auf. Mehrere Änderungen in einem Tick führen zu einem einzigen Update. Zusätzlich gleicht ein Task alle `squaremap.update-seconds` ab. Fehlt die Ebene, etwa nach `/squaremap reload`, wird sie neu registriert. Bei jedem Update werden alle Marker der Welt neu aufgebaut, das ist einfach und driftet nie.
-- **Ohne squaremap gibt es keine Karte.** Die frühere eigene Webseite (Port 8130) ist entfallen.
-- **Adresse (`util/MapAddress`, ohne Bukkit-Bezug, mit Tests):** `squaremap.address` mit Schema wird unverändert genutzt, ohne Schema ist es ein Host (`https://host/` mit `reverse-proxy`, sonst `http://host:<internal-webserver.port>/`). Leer: squaremaps `web-address`, falls nicht `http://localhost:8080`, sonst `Bukkit.getIp()`, sonst die öffentliche IP, die `MapHooks#detectPublicIp` einmal asynchron von `checkip.amazonaws.com` holt (`detect-public-ip`). Das Grid-Skript wird relativ eingebunden und funktioniert hinter Proxys und unter Unterpfaden.
-- **Automatische Einrichtung (`SquaremapSetup`):** Beim Start schreibt MRchunks, wenn squaremap aktiv ist und `squaremap.auto-configure` an ist, **einmal pro `SquaremapSetup.VERSION`** die empfohlenen Werte in `plugins/squaremap/config.yml`:
-  - `background.interval-seconds: 5`, `player-tracker.enabled: false`, `ui.sidebar.pinned: pinned`
-  - pro Welt `world-settings.<welt-key>.map.display-name` (Overworld/Nether/End aus `map-dimension-*` der Sprachdatei)
-  - im Nether `iterate-up: true` und `max-height: 127`
-
-  Danach folgt `squaremap reload` per Konsole und nach 2 s ein Abgleich, der Ebene, Icon und Raster wieder herstellt, denn squaremap verwirft sie beim Reload. Erledigt ist erledigt: `plugins/MRchunks/squaremap-setup.yml` merkt sich die Version, spätere Änderungen des Admins bleiben also erhalten. `/mrchunks map setup` erzwingt einen neuen Lauf. **Ändern sich die empfohlenen Werte, `VERSION` erhöhen.**
-- **Spieler ausblenden (`squaremap.hide-players`):** `PlayerManager#hidden(uuid, true, false)` für alle Online-Spieler, bei jedem Join und bei jedem Abgleich. Damit landen keine Namen in `players.json`. Zusätzlich blendet das Skript die Spielerliste der Seitenleiste per CSS aus (`fieldset#players`). Beim Deaktivieren werden die Spieler wieder eingeblendet.
-- **Chunkraster:** squaremap legt seine Leaflet-Karte nicht global ab, nur `window.L`. `SquaremapHook#installGrid` schreibt `web/squaremap-grid.js` (mit den Einstellungen als JSON von Gson, damit nichts aus der Config Skript einschleusen kann) als `mrchunks-grid.js` in `api.webDir()`. In `index.html` kommt eine Zeile mit `<!-- mrchunks-grid -->` **vor** dem Modul-Skript von squaremap.
-  - Das Skript fängt per `Object.defineProperty(window, "L")` die Zuweisung von Leaflet ab und registriert `L.Map.addInitHook`, noch bevor squaremap die Karte erzeugt.
-  - Zusätzlich fängt `L.Control.Layers.addInitHook` das Ebenen-Menü von squaremap ab. Das Raster wird dort per `addOverlay` eingetragen (`id = "mrchunks_grid"`, `order = 1000`), und squaremap merkt sich die Sichtbarkeit selbst als `localStorage hide_mrchunks_grid`. Findet das Skript nach etwa 10 s kein Menü, zeigt es als Notlösung einen eigenen Schalter.
-  - Das Raster ist ein `L.GridLayer` mit Canvas-Kacheln in einem eigenen Pane (z-index 350). Blöcke pro Pixel = `2^(maxNativeZoom − zoom)`, wobei `maxNativeZoom` aus squaremaps Kachel-Ebene kommt. Neu gezeichnet wird nur, wenn sich die Zoomstufe der Welt ändert.
-  - Die Einbindung ist idempotent und läuft bei jedem Abgleich, weil squaremap seine Web-Dateien beim (Re)Load neu schreibt. `remove()` entfernt Zeile und Datei wieder.
-  - Ein `?v=<hash>` am Skript-Link sorgt dafür, dass Browser nach Config-Änderungen die neue Version laden.
-- **Live:** Die Aktualität bestimmt squaremap selbst. `background.interval-seconds` setzt sowohl den Render-Takt als auch `tiles_update_interval` der Webseite. Empfohlen sind 5 s, siehe README.
-- Getestet mit squaremap 1.4.3 für Paper 26.3: Die Ebene erscheint in `tiles/minecraft_overworld/markers.json` mit `"id":"mrchunks_loaders"`.
+## 8. Karte über MRadmin (`api/SelfPage.java`)
+- Die Karte gehört ganz zu **MRadmin** (Installation, Einrichtung und Kacheln von squaremap, Viewer auf der Spielerseite, `/mradmin map`; siehe MRadmins `docs/DOKUMENTATION.md`). MRchunks hat keine squaremap-Abhängigkeit und keine Karten-Einstellungen.
+- MRchunks liefert nur die Ebene der Spielerseite (Modul-API 8): `MRadminModule#selfMap` → `SelfPage.mapLayers` baut eine `SelfMapLayer` `loaders` mit den eigenen und geteilten Loadern des Betrachters (Fläche in Blockkoordinaten, Farbe nach Zustand). Rechtsklick → `selfMapAction` → `SelfPage.mapAction`, gleiche Prüfungen wie die Knöpfe der Seite. Die Ebenen der alten API 7 (`mapLayers`/`mapIcons`) liefert MRchunks nicht mehr.
+- **Links:** Knopf **Webkarte** und `sendMapLink` holen die Adresse über `MRadminLink#mapUrl()` (Tab „Karte“ der Spielerseite). Ohne MRadmin ist sie leer, der Knopf erscheint dann nicht.
+- **Migration (config-version 27):** der Abschnitt `map-layer` (bzw. `squaremap` aus 1.1) fällt weg. Adresse und Einrichtung übernimmt MRadmin aus `config.v25.backup.yml` bzw. der noch alten config.yml (MRadmin startet vorher).
 
 ## 9. Entwicklung
 ```text
@@ -179,7 +159,7 @@ Der Release-Ablauf entspricht MRsleep, siehe **[RELEASES.md](RELEASES.md)**: Ver
 | 7 | Loader im Nether | Bereich geladen (`execute in minecraft:the_nether if loaded …`) |
 | 8 | `/mrchunks ban <spieler>` | alle seine Loader weg, Items aus dem Inventar entfernt, `give` verweigert |
 | 9 | `/mrchunks limit <spieler> budget 200` | Kopf im Admin-Menü zeigt Budget 200 „(individuell)“, überzählige Loader gehen aus |
-| 10 | Erster Start mit squaremap | Log „squaremap eingerichtet: …“, Dimensionsnamen in `tiles/settings.json`, `players.json` leer |
+| 10 | Start mit MRadmin, Spielerseite `/me/map` öffnen | Ebene „Meine Chunkloader“ zeigt eigene + geteilte Loader, Rechtsklick schaltet an/aus |
 | 11 | Loader-Menü → Größe, Osten +1 bei aktivem Loader | neue Chunk-Spalte geladen, Grenze und Karte folgen, Budget steigt um die Länge |
 | 12 | Vergrößern mit vollem Budget | abgelehnt mit Hinweis, Größe unverändert |
 | 13 | Dummy auf 3×3 oder Rechteck einschalten | abgelehnt („nur quadratisch ab 5×5“) |
@@ -207,3 +187,6 @@ Der Release-Ablauf entspricht MRsleep, siehe **[RELEASES.md](RELEASES.md)**: Ver
 - **Was MRchunks liefert:** Dashboard-Knopf und Menüs (`summary`, `openMenu`, `playerSummary`, `openPlayerMenu`), auffällige Loader im Serverzustand (`health`, `openHealth`), Web-Daten und -Aktionen (`WebData`), Hinweise und Markierungen (`alerts`, `flags`), seit API 3 auch die Startseiten-Kachel (`tile`), die Push-Art `chunks-locked` (`pushKinds`), den Namen der Ticket-Kategorie `chunkloader-lock` (`reportCategories`), die geladenen Chunks (`loadedChunks`) und die Dummies als NPCs (`isNpc`). Die Texte dafür kommen aus den Sprachdateien in `server-language`.
 - **Tickets:** `reportLock` / `resolveLock` bei Lag-Sperre und Entsperren.
 - Ein älteres MRadmin (API < 3) ruft die neuen Methoden nie auf; die Web-Anfrage `chunks` bleibt für solche Versionen.
+- **Konfiguration im Browser (API 12):** `webConfig()` gibt `config.yml`, `src/main/resources/web-config.yml` (Formular, Namen DE/EN) und den Reload (`plugin.reload()` + Discord `admin-reload`) an MRadmin. Neue oder umbenannte Config-Schlüssel immer auch dort eintragen - `WebConfigFormTest` prüft das. Die Grenzen des Lag-Schutzes sind Tabellen (Zeilen = Messwerte, Spalten `warn`/`lock`). Umbenennungen in `ConfigUpdater.RENAMED_KEYS` (v30: `general.*`, `updates.*`).
+- **Protokoll von MRadmin:** `log()` schreibt jedes Ereignis mit Text aus der Sprachdatei **vor** dem Discord-Teil über `MRadminLink#log` ins Protokoll der Weboberfläche (nur ab MRadmin-API 13, Platzhalter unescaped) - auch wenn Discord aus ist. Deshalb werden `discord.events` (an/aus, Farbe) immer geladen, nicht nur bei eingeschaltetem Discord.
+- **Rückfall auf MRadmins Webhook:** `enabled: true`, leere `webhook-url` und `use-mradmin-webhook: true` → `Config.viaMradmin`. Dann geht der Text statt an Discord an `MRadminLink#adminLog` (MRadmin-Ereignis „plugin-alert“, das MRadmin nicht noch einmal ins Protokoll schreibt). `test()` meldet einen Fehler, wenn MRadmin nicht läuft.

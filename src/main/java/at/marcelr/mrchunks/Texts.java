@@ -80,7 +80,6 @@ public final class Texts {
         return plugin.messages().plain(active ? "state-active" : "state-inactive");
     }
 
-    /** "dauerhaft" or "noch 2h 5m". */
     /** "dauerhaft" for {@code Long.MAX_VALUE}, otherwise "noch 6d 23h" (same texts as for bans). */
     public static String until(MRChunks plugin, long until) {
         Messages messages = plugin.messages();

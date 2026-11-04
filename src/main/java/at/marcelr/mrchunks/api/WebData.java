@@ -469,6 +469,8 @@ final class WebData {
         m.put("to", to);
         m.put("points", points);
         m.put("phases", phases);
+        // Up to this far apart the line runs on: combined points lie up to two steps apart, one may be missing.
+        m.put("gap", Math.max(maxGap, 3 * HISTORY_STEPS.get(range)));
         m.put("oldest", plugin.lag().history().oldest(loader.id()));
         return m;
     }

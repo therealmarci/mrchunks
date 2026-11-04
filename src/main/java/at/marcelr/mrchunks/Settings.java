@@ -20,7 +20,6 @@ public record Settings(
         LoaderSettings loaders,
         ItemSettings item,
         BorderSettings border,
-        SquaremapSettings squaremap,
         UpdateSettings update,
         GuiSettings gui,
         InviteSettings invites,
@@ -28,7 +27,8 @@ public record Settings(
         PauseSettings pause,
         ShedSettings shed,
         DummySettings dummies,
-        LinkSettings links
+        LinkSettings links,
+        PlayerMapSettings playerMap
 ) {
 
     /**
@@ -36,6 +36,13 @@ public record Settings(
      * {@code defaultLimit} = dummies per player, {@code seat} = sitting on the block instead of standing,
      * {@code ownerSkin} = the owner's skin instead of the default one.
      */
+    /**
+     * Layers on the map of MRadmin's player page: own (and shared) loaders, the loaders of the others; the small map of
+     * a loader in its card on the player page.
+     */
+    public record PlayerMapSettings(boolean own, boolean others, boolean loaderPreview) {
+    }
+
     public record DummySettings(boolean enabled, int defaultLimit, boolean seat, boolean ownerSkin) {
     }
 
@@ -138,30 +145,6 @@ public record Settings(
                                  int below, int above, int lineSpacing) {
     }
 
-    /** {@code color == null} means one colour per owner. */
-    public record SquaremapSettings(boolean enabled, boolean autoConfigure, String overworldName, String netherName,
-                                    String endName, boolean hidePlayers, String layerName, boolean defaultHidden, boolean showInactive,
-                                    java.awt.Color color, java.awt.Color inactiveColor, java.awt.Color pausedColor, double fillOpacity,
-                                    boolean showIcon, String hoverTooltip, String clickTooltip, int updateSeconds,
-                                    String address, boolean reverseProxy, boolean detectPublicIp, GridSettings grid,
-                                    StatusSettings status) {
-    }
-
-    /**
-     * Extras of the chunk loader layer: own colours for locked and conspicuous loaders ({@code colors}), one layer
-     * each for active, switched-off and locked loaders ({@code splitLayers}, names from the language file), a dummy
-     * icon on loaders with a dummy, and the texts of the click tooltip for these states.
-     */
-    public record StatusSettings(boolean colors, java.awt.Color lockedColor, java.awt.Color warnColor,
-                                 boolean splitLayers, String inactiveLayerName, String lockedLayerName,
-                                 boolean dummyIcon, String tooltipLocked, String tooltipWarn, String tooltipDummy) {
-    }
-
-    public record GridSettings(boolean enabled, boolean defaultVisible, String color, double opacity,
-                               int minChunkPixels, boolean regionLines, String regionColor, boolean labels,
-                               String label) {
-    }
-
     public record UpdateSettings(boolean enabled, String source, boolean includePrereleases,
                                  int intervalHours, boolean notifyOnJoin) {
     }
@@ -224,63 +207,17 @@ public record Settings(
                 Math.clamp(c.getInt("border.above", 5), 0, 64),
                 Math.clamp(c.getInt("border.line-spacing", 3), 1, 16));
 
-        String rawColor = c.getString("squaremap.color", "status");
-        SquaremapSettings squaremap = new SquaremapSettings(
-                c.getBoolean("squaremap.enabled", true),
-                c.getBoolean("squaremap.auto-configure", true),
-                texts.optional("map-dimension-overworld"),
-                texts.optional("map-dimension-nether"),
-                texts.optional("map-dimension-end"),
-                c.getBoolean("squaremap.hide-players", true),
-                texts.optional("map-layer-name"),
-                c.getBoolean("squaremap.default-hidden", false),
-                c.getBoolean("squaremap.show-inactive", true),
-                rawColor.equalsIgnoreCase("owner") ? null : rawColor.equalsIgnoreCase("status")
-                        ? parseColor(c.getString("squaremap.active-color", "#2ECC71"), "squaremap.active-color", log)
-                        : parseColor(rawColor, "squaremap.color", log),
-                parseColor(c.getString("squaremap.inactive-color", "#8A958E"), "squaremap.inactive-color", log),
-                parseColor(c.getString("squaremap.paused-color", "#F1C40F"), "squaremap.paused-color", log),
-                Math.clamp(c.getDouble("squaremap.fill-opacity", 0.25), 0.0, 1.0),
-                c.getBoolean("squaremap.show-icon", true),
-                texts.optional("map-hover-tooltip"),
-                texts.optional("map-click-tooltip"),
-                Math.clamp(c.getInt("squaremap.update-seconds", 60), 5, 3600),
-                c.getString("squaremap.address", "").trim(),
-                c.getBoolean("squaremap.reverse-proxy", false),
-                c.getBoolean("squaremap.detect-public-ip", true),
-                new GridSettings(
-                        c.getBoolean("squaremap.chunk-grid.enabled", true),
-                        c.getBoolean("squaremap.chunk-grid.default-visible", true),
-                        hexColor(c.getString("squaremap.chunk-grid.color", "#FFFFFF"), "#FFFFFF"),
-                        Math.clamp(c.getDouble("squaremap.chunk-grid.opacity", 0.35), 0.0, 1.0),
-                        Math.clamp(c.getInt("squaremap.chunk-grid.min-chunk-pixels", 8), 2, 64),
-                        c.getBoolean("squaremap.chunk-grid.region-lines", true),
-                        hexColor(c.getString("squaremap.chunk-grid.region-color", "#FFD54F"), "#FFD54F"),
-                        c.getBoolean("squaremap.chunk-grid.labels", true),
-                        texts.optional("map-grid-label")),
-                new StatusSettings(
-                        c.getBoolean("squaremap.status-colors", true),
-                        parseColor(c.getString("squaremap.locked-color", "#E74C3C"), "squaremap.locked-color", log),
-                        parseColor(c.getString("squaremap.warn-color", "#F1C40F"), "squaremap.warn-color", log),
-                        c.getBoolean("squaremap.split-layers", true),
-                        texts.optional("map-layer-inactive"),
-                        texts.optional("map-layer-locked"),
-                        c.getBoolean("squaremap.show-dummy-icon", true),
-                        texts.optional("map-tooltip-locked"),
-                        texts.optional("map-tooltip-warn"),
-                        texts.optional("map-tooltip-dummy")));
-
-        String source = c.getString("update-checker.source", "github").toLowerCase(Locale.ROOT);
+        String source = c.getString("updates.source", "github").toLowerCase(Locale.ROOT);
         if (!source.equals("modrinth") && !source.equals("github")) {
-            log.warning("Invalid update-checker.source '" + source + "', using github.");
+            log.warning("Invalid updates.source '" + source + "', using github.");
             source = "github";
         }
         UpdateSettings update = new UpdateSettings(
-                c.getBoolean("update-checker.enabled", true),
+                c.getBoolean("updates.enabled", true),
                 source,
-                c.getBoolean("update-checker.include-prereleases", false),
-                Math.max(1, c.getInt("update-checker.interval-hours", 6)),
-                c.getBoolean("update-checker.notify-on-join", true));
+                c.getBoolean("updates.include-prereleases", false),
+                Math.max(1, c.getInt("updates.interval-hours", 6)),
+                c.getBoolean("updates.notify-on-join", true));
 
         GuiSettings gui = new GuiSettings(
                 Math.max(5, c.getInt("gui.refresh-ticks", 20)),
@@ -363,22 +300,12 @@ public record Settings(
                 Math.clamp(c.getInt("linked-accounts.max-accounts", 1), 1, 10),
                 Math.clamp(c.getInt("linked-accounts.request-seconds", 120), 10, 3600));
 
-        return new Settings(loaders, item, border, squaremap, update, gui, invites, lag, pause, shed, dummies, links);
-    }
+        PlayerMapSettings playerMap = new PlayerMapSettings(
+                c.getBoolean("player-map.own", true),
+                c.getBoolean("player-map.others", true),
+                c.getBoolean("player-map.loader-preview", true));
 
-    /** "#RRGGBB" as written to the web page; anything else becomes the fallback (no script injection). */
-    private static String hexColor(String raw, String fallback) {
-        String value = raw == null ? "" : raw.trim();
-        return value.matches("#[0-9a-fA-F]{6}") ? value : fallback;
-    }
-
-    private static java.awt.Color parseColor(String raw, String path, Logger log) {
-        try {
-            return new java.awt.Color(Integer.parseInt(raw.replace("#", "").trim(), 16));
-        } catch (RuntimeException e) {
-            log.warning("Invalid colour '" + raw + "' for " + path + ", using #8A958E.");
-            return new java.awt.Color(0x8A958E);
-        }
+        return new Settings(loaders, item, border, update, gui, invites, lag, pause, shed, dummies, links, playerMap);
     }
 
     /** Top and bottom are whole faces (no slab, stairs, fence ...) - unlike isOccluding() also true for glowstone. */

@@ -9,6 +9,24 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+## [1.2.0] - 2026-11-04
+
+### Neu
+- **Discord-Log über MRadmins Webhook:** Kein eigener Webhook nötig - mit `discord.enabled: true`, leerer `discord.webhook-url` und dem neuen Schalter **`discord.use-mradmin-webhook: true`** gehen die Ereignisse in das Discord-Log von MRadmin (Standard aus, `config-version` 31). `/mrchunks discord` zeigt dann „Discord über MRadmins Webhook“, `/mrchunks discord test` schickt die Testnachricht dorthin. Braucht MRadmin mit eingerichtetem Discord-Log.
+- **Ereignisse im MRadmin-Protokoll:** Jedes Ereignis des Discord-Logs landet zusätzlich im Protokoll der MRadmin-Weboberfläche (bis zu 14 Tage) - auch wenn das Discord-Log aus ist. Braucht MRadmin mit Modul-API 13.
+- **Einstellen im Browser:** Mit MRadmin (ab der Version mit „Konfiguration im Browser“) lässt sich die ganze `config.yml` unter **Plugins → MRchunks → Konfiguration** als Formular einstellen - jede Einstellung mit Erklärung auf Deutsch und Englisch, Grenzen des Lag-Schutzes und Discord-Ereignisse als Tabellen; Speichern lädt MRchunks sofort neu (wie `/mrchunks reload`, inkl. Discord-Ereignis `admin-reload`). Die Datei bleibt von Hand bearbeitbar.
+- **Chunkloader auf der Karte der Spielerseite** (MRadmin mit API 8, Tab „Karte“): eigene und geteilte Loader als Flächen in der Farbe ihres Zustands, Rechtsklick schaltet sie an oder aus - dieselben Prüfungen wie die Knöpfe der Seite. Mit MRadmin ab API 9 stehen sie unter der Überschrift **Chunkloader** als „Meine Chunkloader“ und **„Andere Chunkloader“** (die Loader aller anderen Spieler mit Name, Besitzer und Größe, ohne Aktionen). Beide Ebenen einzeln abschaltbar im neuen Config-Abschnitt `player-map` (`own`, `others`; config-version 28).
+- **Kleine Karte am Chunkloader (Spielerseite):** Ganz unten in einem geöffneten Loader im Bereich **Chunkloader** der MRadmin-Spielerseite steht wieder eine Karte - abgespeckt auf genau diesen Loader und seine Umgebung, mit echtem Gelände (squaremap über MRadmin) und dem Knopf „Auf der Karte öffnen“ (große Karte an dieser Stelle). Gilt für eigene und geteilte Loader, abschaltbar mit `player-map.loader-preview` (config-version 29).
+- **Nether: Decke oder darunter (mit MRadmin ab API 10):** Chunkloader im Nether erscheinen auf der Karte der Spielerseite nur auf der Karte, auf der ihr Block steht - „Nether · Decke“ (ab Y 128) oder darunter.
+- **Chunkloader-Kachel auf der Karte (mit MRadmin ab API 11):** Ein Klick auf einen eigenen oder geteilten Loader auf der Karte der Spielerseite zeigt dieselbe Kachel wie unter „Chunkloader“: Zustand, Größe, Auslastung als Balken, Ein/Aus und Dummy - und „Einstellungen öffnen“ springt direkt zu diesem Loader auf der Chunkloader-Seite (Umbenennen, Einladungen, Löschen usw. dort).
+
+### Entfernt
+- **Webkarte zieht zu MRadmin:** MRchunks bindet squaremap nicht mehr selbst an, die öffentliche squaremap-Webseite mit allen Chunkloadern gibt es nicht mehr. Stattdessen zeigt MRadmin die Karte auf der Spielerseite (Tab „Karte“) - jeder Spieler sieht dort seine eigenen und geteilten Loader. MRadmin installiert und richtet squaremap selbst ein. **MRadmin und MRchunks gemeinsam aktualisieren** - MRadmin übernimmt Adresse und Einrichtung aus der alten MRchunks-Config. Weggefallen: `/mrchunks map [setup]`, die Permission `mrchunks.admin.map` (stattdessen `/mradmin map` mit `mradmin.map.admin`) und der ganze Config-Abschnitt `squaremap` samt Kartentexten in den Sprachdateien (config-version 27). Der Knopf **Webkarte** in `/chunkloader` (`mrchunks.map`) bleibt und verlinkt die Karte der Spielerseite.
+
+### Behoben & geändert
+- **Config neu gegliedert** (gleicher Aufbau wie alle MRtechnology-Plugins: allgemein, Funktionen, Discord, Updates, Menüs; `config-version` 30): `language`, `fallback-language`, `server-language` → `general.*`, `update-checker` → `updates`, der Abschnitt `player-map` steht jetzt vor `discord`. Bestehende Einstellungen werden beim Update automatisch übernommen (Sicherung `config.v29.backup.yml`).
+- **Diagramme ab 1 Stunde durchgehend:** Ab dem Zeitraum 1h war die Linie in der MRadmin-Weboberfläche gestrichelt, weil die zusammengefassten Punkte weiter auseinanderliegen als der Abstand, ab dem das Diagramm eine Lücke annahm. MRchunks schickt jetzt den passenden Abstand je Zeitraum mit.
+
 ## [1.1.0] - 2026-11-02
 
 ### Neu

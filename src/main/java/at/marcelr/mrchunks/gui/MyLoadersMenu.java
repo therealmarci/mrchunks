@@ -84,7 +84,7 @@ public final class MyLoadersMenu extends Menu {
                 new SharedLoadersMenu(plugin, viewer, this).open();
             });
         }
-        if (viewer.hasPermission(AdminActions.PERM_MAP) && plugin.maps().squaremapActive()) {
+        if (viewer.hasPermission(AdminActions.PERM_MAP) && !plugin.mradmin().mapUrl().isEmpty()) {
             set(MAP, Items.of(Material.FILLED_MAP).name(messages.item("gui-map-name"))
                     .lore(messages.lore("gui-map-lore")).build(), click -> {
                 clickSound();
