@@ -22,6 +22,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -388,7 +389,7 @@ final class SelfPage {
                 boolean own = loader.owner().equals(owner);
                 boolean mineOrShared = own || loaders.isMember(viewer.player(), loader);
                 if (mineOrShared && settings.own()) {
-                    mine.add(ownMarker(plugin, loader, own, banned, grouped));
+                    mine.add(ownMarker(plugin, viewer, loader, own, banned, grouped));
                 } else if (!mineOrShared && settings.others()) {
                     others.add(marker(loader, Texts.name(plugin, loader), "", List.of(
                             m.plain("self-map-owner", "owner", LoaderManager.name(loader.owner())),
@@ -417,7 +418,8 @@ final class SelfPage {
     }
 
     /** One of the player's own (or shared) loaders: state, size and the switch. */
-    private static at.marcelr.mradmin.api.SelfMapLayer.Marker ownMarker(MRChunks plugin, Loader loader, boolean own,
+    private static at.marcelr.mradmin.api.SelfMapLayer.Marker ownMarker(MRChunks plugin, SelfViewer viewer, Loader loader,
+                                                                        boolean own,
                                                                         boolean banned, boolean grouped) {
         Messages m = plugin.messages();
         LoaderStatus status = LoaderStatus.of(plugin, loader);
@@ -437,12 +439,24 @@ final class SelfPage {
             details.add(m.plain("self-shared-sub", "owner", LoaderManager.name(loader.owner()), "place",
                     place(plugin, loader)));
         }
-        return marker(loader, Texts.name(plugin, loader), color(status), details, actions);
+        // With API 11 the card of the page instead: state, figures, load, on/off and dummy, link to the card there.
+        SelfBlock.Card page = own ? card(plugin, viewer, loader, !banned) : sharedCard(plugin, loader, !banned);
+        SelfBlock.Card card = new SelfBlock.Card(page.id(), page.title(), page.subtitle(), page.badge(), page.tone(),
+                page.stats(), page.meters(), page.primary(),
+                page.buttons().stream().filter(b -> b.action().equals("dummy")).toList(), List.of());
+        return marker(loader, Texts.name(plugin, loader), color(status), details, actions, card);
     }
 
     private static at.marcelr.mradmin.api.SelfMapLayer.Marker marker(Loader loader, String label, String color,
                                                                      List<String> details,
                                                                      List<at.marcelr.mradmin.api.SelfMapLayer.Action> actions) {
+        return marker(loader, label, color, details, actions, null);
+    }
+
+    private static at.marcelr.mradmin.api.SelfMapLayer.Marker marker(Loader loader, String label, String color,
+                                                                     List<String> details,
+                                                                     List<at.marcelr.mradmin.api.SelfMapLayer.Action> actions,
+                                                                     SelfBlock.@Nullable Card card) {
         int minX = loader.minChunkX() << 4;
         int minZ = loader.minChunkZ() << 4;
         String world = loader.world().getKey().asString();
@@ -450,6 +464,10 @@ final class SelfPage {
         int length = ((loader.maxChunkZ() + 1) << 4) - minZ;
         // With API 10 the height of the block: in the Nether MRadmin then shows it on the ceiling map or below.
         MRadminService service = MRadminService.get();
+        if (card != null && service != null && service.apiVersion() >= 11) {
+            return new at.marcelr.mradmin.api.SelfMapLayer.Marker(String.valueOf(loader.id()), world, minX, minZ, width,
+                    length, label, color, details, actions, loader.y(), card, AREA);
+        }
         return service != null && service.apiVersion() >= 10
                 ? new at.marcelr.mradmin.api.SelfMapLayer.Marker(String.valueOf(loader.id()), world, minX, minZ, width,
                 length, label, color, details, actions, loader.y())
