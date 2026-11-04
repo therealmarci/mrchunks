@@ -36,8 +36,11 @@ public record Settings(
      * {@code defaultLimit} = dummies per player, {@code seat} = sitting on the block instead of standing,
      * {@code ownerSkin} = the owner's skin instead of the default one.
      */
-    /** Layers on the map of MRadmin's player page: own (and shared) loaders, the loaders of the others. */
-    public record PlayerMapSettings(boolean own, boolean others) {
+    /**
+     * Layers on the map of MRadmin's player page: own (and shared) loaders, the loaders of the others; the small map of
+     * a loader in its card on the player page.
+     */
+    public record PlayerMapSettings(boolean own, boolean others, boolean loaderPreview) {
     }
 
     public record DummySettings(boolean enabled, int defaultLimit, boolean seat, boolean ownerSkin) {
@@ -299,7 +302,8 @@ public record Settings(
 
         PlayerMapSettings playerMap = new PlayerMapSettings(
                 c.getBoolean("player-map.own", true),
-                c.getBoolean("player-map.others", true));
+                c.getBoolean("player-map.others", true),
+                c.getBoolean("player-map.loader-preview", true));
 
         return new Settings(loaders, item, border, update, gui, invites, lag, pause, shed, dummies, links, playerMap);
     }

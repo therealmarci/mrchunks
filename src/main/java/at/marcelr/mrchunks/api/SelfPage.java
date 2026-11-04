@@ -20,6 +20,7 @@ import at.marcelr.mrchunks.lag.Metric;
 import at.marcelr.mrchunks.util.DurationUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -167,11 +168,30 @@ final class SelfPage {
             details.add(new SelfBlock.Text(m.plain("self-suspended-detail", "until", Texts.date(m, suspension.until())), ""));
         }
         details.add(limits(plugin, loader));
+        addArea(details, plugin, loader, status);
         if (actions && plugin.settings().invites().enabled() && viewer.has(INVITE)) {
             details.add(invites(plugin, loader.owner(), loader));
         }
         return new SelfBlock.Card(id, Texts.name(plugin, loader), place(plugin, loader), state(plugin, loader, status),
                 tone(status), cardStats(plugin, loader), load(plugin, loader), primary, buttons, details);
+    }
+
+    /**
+     * A small map of just this loader and what is around it (MRadmin draws squaremap's pictures under it, if there
+     * are any) with a link to the big map of the player page. Nothing if the world is not loaded or it is switched off.
+     */
+    private static void addArea(List<SelfBlock> details, MRChunks plugin, Loader loader, LoaderStatus status) {
+        World world = loader.world();
+        if (world == null || !plugin.settings().playerMap().loaderPreview()) {
+            return;
+        }
+        Messages m = plugin.messages();
+        String url = plugin.mradmin().mapUrl(loader);
+        SelfBlock.Rect rect = new SelfBlock.Rect(world.getKey().asString(), loader.minChunkX() << 4,
+                loader.minChunkZ() << 4, (loader.maxChunkX() + 1) << 4, (loader.maxChunkZ() + 1) << 4,
+                Texts.name(plugin, loader), color(status), url.isEmpty() ? null : url);
+        details.add(new SelfBlock.AreaMap(m.plain("self-card-map"), List.of(rect), url.isEmpty() ? null : url,
+                m.plain("self-card-map-open")));
     }
 
     /** A loader of someone else the player was invited to: only on/off. */
@@ -183,6 +203,7 @@ final class SelfPage {
                 Map.of("id", String.valueOf(loader.id())), loader.active() ? "" : "good", null, null);
         List<SelfBlock> details = new ArrayList<>();
         details.add(limits(plugin, loader));
+        addArea(details, plugin, loader, status);
         return new SelfBlock.Card("shared-" + loader.id(), Texts.name(plugin, loader),
                 m.plain("self-shared-sub", "owner", LoaderManager.name(loader.owner()), "place", place(plugin, loader)),
                 state(plugin, loader, status), tone(status), cardStats(plugin, loader), load(plugin, loader), primary,

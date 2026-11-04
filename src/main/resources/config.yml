@@ -16,7 +16,7 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 28
+config-version: 29
 
 # Language of the texts (chat, menus, items). The texts are in plugins/MRchunks/lang/<language>.yml.
 #   auto = every player gets the language set in their Minecraft client:
@@ -472,9 +472,12 @@ gui:
 # ------------------------------------------------------------------------------
 #   9) MAP OF THE PLAYER PAGE (needs MRadmin)
 # ------------------------------------------------------------------------------
-# Layers on the map of MRadmin's player page (tab "Map"), group "Chunk loaders".
+# Layers on the map of MRadmin's player page (tab "Map"), group "Chunk loaders", and the small map of a loader.
 player-map:
   # "My chunk loaders": the player's own ones and those they are invited to, a right-click switches them on/off.
   own: true
   # "Other chunk loaders": the loaders of all other players (name, owner, size - no actions).
   others: true
+  # A small map of just the loader and its surroundings in its opened card (section "Chunk loaders" of the player
+  # page), with a link to the big map.
+  loader-preview: true
