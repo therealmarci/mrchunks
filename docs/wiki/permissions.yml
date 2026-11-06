@@ -1,0 +1,67 @@
+# Texte der Permission-Tabellen im Wiki (Platzhalter <!-- auto:permissions --> und <!-- auto:permission-groups -->).
+# Die Tabelle selbst (Permissions, Standard, Gruppe) erzeugt die Website aus plugin.yml - hier steht nur, wofür eine
+# Permission ist, auf Deutsch (de) und optional Englisch (en). Ohne Eintrag gilt die description aus plugin.yml.
+mrchunks.player:
+  de: "**Alle Spieler-Rechte** auf einmal (`use`, `resize`, `map`, `view`, `invite`, `link`, `block`, `version`) - am besten der Default-Gruppe geben"
+mrchunks.groups.support:
+  de: "Admin-Menü (alle Loader und ihren Status sehen), zu Loadern teleportieren, **auffällige** Loader (über einer Warngrenze) und ihren Dummy aus- und wieder einschalten, Live-Ansicht im Web"
+mrchunks.groups.staff:
+  de: "Support + fremde Loader an/aus schalten, ihre Einladungen verwalten, Accounts verknüpfen und lösen"
+mrchunks.groups.admin:
+  de: "Alles: Staff + löschen, umbenennen, Größe fremder Loader ändern, Dummies, Lag-Sperren aufheben, Limit-Sperre aussetzen, Budget und Dummy-Limit, Sperren, Pause und Überwachung, Discord, Reload, Update-Hinweis"
+mrchunks.version:
+  de: "`/mrchunks version`"
+mrchunks.use:
+  de: "Chunkloader holen, setzen und die eigenen verwalten"
+mrchunks.map:
+  de: "Knopf **Webkarte**"
+mrchunks.view:
+  de: "Menü **fremder** Loader ansehen (nur ansehen und Grenze anzeigen)"
+mrchunks.invite:
+  de: "Mitspieler zu eigenen Loadern einladen"
+mrchunks.link:
+  de: "Zweit-Account verknüpfen"
+mrchunks.resize:
+  de: "Größe der eigenen Loader ändern (im Rahmen des Budgets)"
+mrchunks.block:
+  de: "Block der eigenen Loader in der Welt ändern (Auswahl aus `item.block-choices`)"
+mrchunks.exempt:
+  de: "**Komplett ausgeschlossen:** keine Loader, keine Einladungen - vorhandene Loader werden beim Betreten **gelöscht**"
+mrchunks.budget.unlimited:
+  de: "Unbegrenztes Chunk-Budget. Ein festes Budget (so viele Chunks dürfen alle aktiven Loader zusammen geladen halten) gibt `mrchunks.budget.<zahl>`, z.B. `mrchunks.budget.300`"
+mrchunks.dummies.unlimited:
+  de: "Beliebig viele Dummy-Spieler. Feste Grenzen mit `mrchunks.dummies.<zahl>`, z.B. `mrchunks.dummies.2`"
+mrchunks.admin.gui:
+  de: "Admin-Menü öffnen (Aktionen darin brauchen ihre eigene Permission)"
+mrchunks.admin.toggle:
+  de: "**Fremde** Loader an/aus schalten (im Rahmen des Budgets des Owners, enthält `toggle.conspicuous`)"
+mrchunks.admin.toggle.conspicuous:
+  de: "**Fremde** Loader und ihren Dummy aus- und wieder einschalten, solange sie auffällig sind (über einer Warngrenze des Lag-Schutzes; nach dem Ausschalten bis zum nächsten Neustart). Einschalten bleibt im Budget bzw. Dummy-Limit des Owners. Im Spiel und in der MRadmin-Weboberfläche"
+mrchunks.admin.invites:
+  de: "Einladungen **fremder** Loader verwalten"
+mrchunks.admin.link:
+  de: "Accounts anderer verknüpfen und lösen"
+mrchunks.admin.manage:
+  de: "**Fremde** Loader löschen, umbenennen, Größe ändern, Block wählen, Dummies, Lag-Sperren aufheben (enthält `toggle`, `invites`, `link`, `resize`)"
+mrchunks.admin.resize:
+  de: "Größe **fremder** Loader ändern (im Spiel und in der MRadmin-Weboberfläche, im Rahmen des Budgets des Owners)"
+mrchunks.admin.teleport:
+  de: "Zu Loadern teleportieren"
+mrchunks.admin.limit:
+  de: "Chunk-Budget und Dummy-Limit eines Spielers festlegen"
+mrchunks.admin.ban:
+  de: "Spieler sperren und entsperren"
+mrchunks.admin.pause:
+  de: "Alle Chunkloader vorübergehend pausieren und die Pause aufheben (MRadmin-Weboberfläche)"
+mrchunks.admin.monitoring:
+  de: "Gestaffelte Abschaltung samt harter Grenze aus- und einschalten (MRadmin-Weboberfläche)"
+mrchunks.admin.live:
+  de: "[Live-Ansicht](lag-schutz.md#live-ansicht-mradmin) eines Loaders in der MRadmin-Weboberfläche"
+mrchunks.admin.suspendlock:
+  de: "[Limit-Sperre](lag-schutz.md#limit-sperre-aussetzen) eines einzelnen Loaders aussetzen, höchstens 24 Stunden (im Spiel und in der MRadmin-Weboberfläche)"
+mrchunks.admin.discord:
+  de: "`/mrchunks discord`"
+mrchunks.admin.reload:
+  de: "`/mrchunks reload`"
+mrchunks.admin.update:
+  de: "Update-Hinweis beim Betreten des Servers"
