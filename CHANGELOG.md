@@ -9,6 +9,8 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+## [1.2.1] - 2026-11-06
+
 ### Behoben & geändert
 - **Anleitung als Wiki:** Die Anleitung steht jetzt im Wiki auf der Website (https://mrtechnology.marcelr.at/wiki/mrchunks/) - aufgeteilt in Seiten für Spieler (Chunkloader benutzen, Größe und Budget, Mitspieler, Dummy-Spieler, im Browser) und für Admins (Chunk-Budget, Lag-Schutz, Abschaltung & Pausen, Befehle, Permissions, Konfiguration, Karte, Häufige Fragen), mit Suche über alle Plugins. Die README ist nur noch eine kurze Übersicht. Alte Links auf `/docs/mrchunks/` führen automatisch ins Wiki, auch auf die richtige Seite (z.B. `#lag-schutz`). Die Seiten **Permissions** und **Konfiguration** listen jede Permission bzw. Einstellung mit Standardwert automatisch aus dem Plugin - sie sind also immer auf dem Stand der Version.
 
