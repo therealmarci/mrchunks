@@ -1,0 +1,36 @@
+# Seitenbaum des Wikis (https://mrtechnology.marcelr.at/wiki/mrchunks/).
+# Abschnitte mit Seiten; "file" relativ zu docs/wiki/, mit "/" am Anfang relativ zum Repo.
+# id "" = Einstieg. audience: player | admin | dev (Etikett und Einordnung auf der Wiki-Startseite).
+# Seitentitel bewusst wie die alten README-Überschriften: alte Links (#chunk-budget, #lag-schutz …) landen so auf der richtigen Seite.
+sections:
+  - title: {de: Einstieg, en: Getting started}
+    pages:
+      - {id: "", file: einstieg.md, title: {de: Überblick, en: Overview}}
+      - {id: schnellstart, file: schnellstart.md, title: {de: Schnellstart, en: Quick start}}
+  - title: {de: Für Spieler, en: For players}
+    audience: player
+    pages:
+      - {id: chunkloader, file: chunkloader.md, title: {de: Chunkloader benutzen, en: Using chunk loaders}}
+      - {id: groesse, file: groesse.md, title: {de: Größe und Chunk-Budget, en: Size and chunk budget}}
+      - {id: mitspieler, file: mitspieler.md, title: {de: Mitspieler & Zweit-Accounts, en: Friends & alt accounts}}
+      - {id: dummy, file: dummy.md, title: {de: Dummy-Spieler, en: Dummy players}}
+      - {id: browser, file: browser.md, title: {de: Im Browser (mit MRadmin), en: In the browser (with MRadmin)}}
+  - title: {de: Für Admins, en: For admins}
+    audience: admin
+    pages:
+      - {id: budget, file: budget.md, title: {de: Chunk-Budget, en: Chunk budget}}
+      - {id: lag-schutz, file: lag-schutz.md, title: {de: Lag-Schutz, en: Lag protection}}
+      - {id: abschaltung, file: abschaltung.md, title: {de: Abschaltung & Pausen, en: Shutdown & pauses}}
+      - {id: befehle, file: befehle.md, title: {de: Befehle & Admin-Menü, en: Commands & admin menu}}
+      - {id: permissions, file: permissions.md, title: {de: Permissions, en: Permissions}}
+      - {id: konfiguration, file: konfiguration.md, title: {de: Konfiguration, en: Configuration}}
+      - {id: karte, file: karte.md, title: {de: Karte (über MRadmin), en: Map (via MRadmin)}}
+      - {id: zusammenarbeit, file: zusammenarbeit.md, title: {de: Zusammenarbeit mit anderen Plugins, en: Working with other plugins}}
+      - {id: faq, file: faq.md, title: {de: Häufige Fragen, en: FAQ}}
+  - title: {de: Mehr, en: More}
+    pages:
+      - {id: changelog, file: /CHANGELOG.md, title: {de: Changelog, en: Changelog}}
+  - title: {de: Für Entwickler, en: For developers}
+    audience: dev
+    pages:
+      - {id: dev, file: /docs/DOKUMENTATION.md, title: {de: Code-Aufbau, en: Code structure}}
