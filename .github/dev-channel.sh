@@ -20,10 +20,10 @@ fi
 OUT=$(mktemp -d)
 FILES=()
 ENTRIES='[]'
-for dir in "$ART"/*/; do
-    name=$(basename "$dir")
-    jar=$(find "$dir" -maxdepth 1 -name '*.jar' ! -name '*-plain.jar' | head -n 1)
-    [ -n "$jar" ] || { echo "::warning::artifact $name has no JAR"; continue; }
+# download-artifact puts a single artifact directly into the folder, several into subfolders - just take every JAR.
+# The name comes from the file name: MRtoolbar-mod-mc26.3-STA-1.1.0-bu001.jar -> MRtoolbar-mod.
+while IFS= read -r jar; do
+    name=$(basename "$jar" .jar | sed -E 's/-mc[0-9][0-9.]*-.*$//')
     part=plugin
     props=gradle.properties
     case "$name" in
@@ -40,7 +40,7 @@ for dir in "$ART"/*/; do
         --arg j "$(basename "$jar")" --arg s "$sum" --argjson z "$size" \
         '. + [{file: $n, artifact: $a, part: $p, baseVersion: $b, minecraft: $mc, jar: $j, sha256: $s, size: $z}]' <<< "$ENTRIES")
     FILES+=("$sealed")
-done
+done < <(find "$ART" -name '*.jar' ! -name '*-plain.jar' | sort)
 [ ${#FILES[@]} -gt 0 ] || { echo "::error::no JARs to seal"; exit 1; }
 
 DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
