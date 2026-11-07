@@ -1,0 +1,39 @@
+# Meldet die mitgelieferten Bibliotheken von main an GitHubs Abhängigkeitsgraph. GitHub warnt dann im Reiter
+# "Security" (Dependabot-Warnungen), sobald für eine davon eine neue Lücke bekannt wird - auch zwischen den Releases.
+# Nur Warnungen: automatische Dependabot-Pull-Requests sind bewusst aus.
+name: Dependency graph
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    name: Submit dependencies (${{ matrix.dir }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # nötig zum Melden an den Abhängigkeitsgraph
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - dir: .
+            configs: runtimeClasspath
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/dependency-submission@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+        with:
+          build-root-directory: ${{ matrix.dir }}
+        env:
+          # Only what ends up on the server, not the Paper API or build tools.
+          DEPENDENCY_GRAPH_INCLUDE_CONFIGURATIONS: ${{ matrix.configs }}

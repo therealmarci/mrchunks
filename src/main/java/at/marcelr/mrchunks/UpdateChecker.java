@@ -214,9 +214,8 @@ public final class UpdateChecker {
         if (state == State.DISABLED) {
             state = State.CHECKING;
         }
-        // Whoever runs a pre-release (0.x, -rc...) must also be told about newer pre-releases,
-        // otherwise 0.9.2 would never learn about 0.9.3.
-        boolean prereleases = settings.includePrereleases() || Versions.isPrerelease(currentVersion);
+        // Betas only when switched on or for 0.x (exists only as beta) - see Versions.wantsBeta.
+        boolean prereleases = Versions.wantsBeta(currentVersion, settings.includePrereleases());
         try {
             Release release = settings.source().equals("github")
                     ? fetchGithub(prereleases)
