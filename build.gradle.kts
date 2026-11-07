@@ -8,20 +8,24 @@ plugins {
 
 group = "at.marcelr"
 
-// Versionen kommen aus gradle.properties: "version" ist die Plugin-Version (SemVer), "mcVersion" die
-// Minecraft-Version dieses Branches. Veröffentlicht wird beides zusammen, z.B. "mc26.3-v1.2.0".
+// Versionen kommen aus gradle.properties: "version" ist die Plugin-Version (STA-1.4.0-bu001 bzw. BET-..., siehe
+// docs/RELEASES.md; ältere Versionen "1.3.1"), "mcVersion" die
+// Minecraft-Version dieses Branches. Veröffentlicht wird beides zusammen, z.B. "mc26.3-STA-1.4.0-bu001".
 val pluginVersion = project.version.toString()
 val mcVersion = providers.gradleProperty("mcVersion").get()
 val paperApi = providers.gradleProperty("paperApi").get()
 val mradminApi = providers.gradleProperty("mradminApi").get()
-version = "mc$mcVersion-v$pluginVersion"
+val newScheme = Regex("(?i)^(STA|BET)-.+").matches(pluginVersion)
+version = if (newScheme) "mc$mcVersion-$pluginVersion" else "mc$mcVersion-v$pluginVersion"
 
 val modrinthProjectId = providers.gradleProperty("modrinthProjectId").get()
 val githubRepository = providers.gradleProperty("githubRepository").get()
 val website = providers.gradleProperty("website").get()
 val websiteSlug = providers.gradleProperty("websiteSlug").get()
 val supportedGameVersions = providers.gradleProperty("supportedGameVersions").get()
-val isPrerelease = pluginVersion.let { it.startsWith("0.") || it.contains("-") }
+// BET = Beta; ältere Versionen: 0.x und Versionen mit Suffix (1.1.0-rc.1)
+val isPrerelease = if (newScheme) pluginVersion.startsWith("BET", ignoreCase = true)
+    else pluginVersion.let { it.startsWith("0.") || it.contains("-") }
 
 repositories {
     // Lokal gebaute MRadmin-API (gradlew :api:publishToMavenLocal in MRadmin) hat Vorrang vor JitPack.
