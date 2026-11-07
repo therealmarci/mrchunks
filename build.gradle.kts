@@ -78,6 +78,9 @@ tasks.processResources {
         "githubRepository" to githubRepository,
         "website" to website,
         "websiteSlug" to websiteSlug,
+        // Only set in GitHub Actions: lets MRadmin tell dev builds apart (dev channel). Empty for local builds.
+        "gitCommit" to (System.getenv("GITHUB_SHA") ?: ""),
+        "gitBranch" to (System.getenv("GITHUB_REF_NAME") ?: ""),
     )
     inputs.properties(props)
     filteringCharset = "UTF-8"
