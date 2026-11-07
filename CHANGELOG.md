@@ -9,6 +9,8 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+## [1.2.2] - 2026-11-07
+
 ### Behoben & geändert
 - **Geprüfte Releases:** Jedes Release muss jetzt vorher eine automatische Prüfrunde auf GitHub bestehen - Bauen und Tests, Code-Analyse auf Sicherheitsprobleme (CodeQL) und alle mitgelieferten Bibliotheken gegen bekannte Sicherheitslücken; ab Schweregrad hoch entsteht kein Release. Die veröffentlichte JAR ist genau die geprüfte und hat einen Herkunftsnachweis von GitHub (prüfen mit `gh attestation verify <jar> -R therealmarci/mrchunks`).
 - **Bereit für das neue Versionsschema:** Die Update-Prüfung versteht neben den bisherigen Versionen (`mc26.3-v1.3.1`) auch das künftige Format `mc26.3-STA-1.4.0-bu001` (stabil) bzw. `mc26.3-BET-…` (Beta) und vergleicht beide richtig miteinander. Betas bekommt ein Server nur noch, wenn `updates.include-prereleases` an ist oder das Plugin noch eine 0.x-Version ist - wer Betas wieder ausschaltet, bleibt auf seiner Beta, bis eine neuere stabile Version erscheint (es wird nie zurückgestuft). Dieses Update vor dem ersten Release im neuen Schema einspielen, sonst sieht der Server neue Versionen nicht.
