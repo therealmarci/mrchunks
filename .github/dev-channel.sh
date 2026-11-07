@@ -43,9 +43,18 @@ while IFS= read -r jar; do
 done < <(find "$ART" -name '*.jar' ! -name '*-plain.jar' | sort)
 [ ${#FILES[@]} -gt 0 ] || { echo "::error::no JARs to seal"; exit 1; }
 
+# Token check: a short known text sealed with the token - MRadmin opens it to tell whether its token is valid,
+# without downloading a whole JAR.
+printf '%s' "mrtechnology-dev-token-check" > "$OUT/check.txt"
+java .github/DevSeal.java seal "$OUT/check.txt" "$OUT/check.mrdev" >/dev/null
+CHECK=$(base64 -w0 "$OUT/check.mrdev")
+rm -f "$OUT/check.txt" "$OUT/check.mrdev"
+
 DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 jq -n --arg r "$REPO" --arg c "$SHA" --arg d "$DATE" --argjson run "${GITHUB_RUN_NUMBER:-0}" --argjson f "$ENTRIES" \
-    '{format: 1, repository: $r, commit: $c, shortCommit: $c[0:7], run: $run, date: $d, files: $f}' > "$OUT/dev.json"
+    --arg k "$CHECK" \
+    '{format: 1, repository: $r, commit: $c, shortCommit: $c[0:7], run: $run, date: $d, check: $k, files: $f}' \
+    > "$OUT/dev.json"
 
 NOTES="Dev-Build ${SHA:0:7} vom $DATE (Lauf ${GITHUB_RUN_NUMBER:-?}) - unfertiger Entwicklungsstand.
 Die Dateien sind verschlüsselt und lassen sich nur mit dem Freigabetoken über den Installer oder MRadmin installieren.
