@@ -17,8 +17,9 @@ permissions:
 jobs:
   checks:
     uses: ./.github/workflows/checks.yml
+    # contents: write only as upper limit for the dev-channel job of checks.yml, which never runs for a release
     permissions:
-      contents: read
+      contents: write
       security-events: write
 
   release:

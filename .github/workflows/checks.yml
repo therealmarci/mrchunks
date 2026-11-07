@@ -3,6 +3,7 @@
 #   - Bauen + Tests, Prüfung des Gradle-Wrappers
 #   - Bibliotheken, die auf dem Server landen, gegen bekannte Lücken (OSV-Scanner, .github/scan-dependencies.sh)
 #   - CodeQL (Code-Analyse auf Sicherheitsprobleme, Ergebnisse im Reiter "Security" des Repos)
+#   - nur Push auf dev: Dev-Kanal (verschlüsselte JARs im Release "mc0-dev", .github/dev-channel.sh)
 # Gestoppt wird ab Schweregrad hoch/kritisch (CVSS >= 7.0), mittel/niedrig stehen nur in der Zusammenfassung.
 # Fehlalarme von CodeQL im Reiter "Security" mit Begründung schließen. Ablauf: docs/RELEASES.md
 name: Checks
@@ -101,3 +102,32 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: bash .github/codeql-gate.sh
+
+  # Dev channel: after a green push on dev the JARs go sealed into the rolling release "mc0-dev" - installable only
+  # with the release token (secret DEV_TOKEN) via installer or MRadmin. Never runs for releases or pull requests.
+  dev-channel:
+    name: Dev channel (sealed build)
+    needs: [build, codeql-gate]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: dev-channel
+      cancel-in-progress: true
+    permissions:
+      contents: write   # rolling release "mc0-dev"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: artifacts
+      - name: Seal and publish
+        env:
+          DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/dev-channel.sh artifacts

@@ -96,6 +96,21 @@ Der Workflow `.github/workflows/release.yml`
 
 Das Release-Text kommt aus dem CHANGELOG-Abschnitt mit genau dieser Version (`## [STA-1.4.0-bu002]`).
 
+## Dev-Kanal (nur mit Freigabetoken)
+Nach jedem grünen Push auf `dev` legt die Prüfrunde (Job „Dev channel“) die JARs **verschlüsselt** ins rollende
+Release **`mc0-dev`** (Vorabversion, nie „Latest“): `<Name>-dev.jar.mrdev` + `dev.json` (Commit, Lauf, Datum,
+Basisversion, SHA-256 der JAR). Installer und MRadmin entschlüsseln sie nur mit dem **Freigabetoken** (Secret
+`DEV_TOKEN`, in allen Repos derselbe). Die Repos sind öffentlich - der Token hält den Code nicht geheim, er verhindert,
+dass jemand unfertige Builds ohne Freigabe installiert.
+
+- Verfahren: `.github/DevSeal.java` (PBKDF2-SHA256 → AES-256-CBC + HMAC-SHA256; falscher Token oder veränderte Datei
+  werden erkannt), Ablauf `.github/dev-channel.sh`. Ohne Secret wird der Schritt übersprungen.
+- Der Tag heißt absichtlich `mc0-…` (Minecraft „0“): alle Update-Checker - auch ältere Plugin-Versionen -, die Website
+  und MRadmins Plugin-Verwaltung ignorieren ihn. Nie einen Tag ohne `mc<Version>-` anlegen, alte Checker hielten ihn
+  für eine neuere Version.
+- Token tauschen: neues Secret setzen (`gh secret set DEV_TOKEN -R therealmarci/<repo>` in allen Repos), danach gilt der
+  alte nicht mehr für neue Builds. Von Hand entschlüsseln: `DEV_TOKEN=… java .github/DevSeal.java open <datei> <jar>`.
+
 ## Prüfrunde vor jedem Release (Sicherheit)
 Jeder Release-Workflow ruft zuerst `.github/workflows/checks.yml` auf. **Ist dort etwas rot, entsteht kein Release.**
 Dieselbe Prüfrunde läuft bei jedem Push, jedem Pull-Request und jeden Montag (findet neue Lücken in schon
