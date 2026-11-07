@@ -1,0 +1,62 @@
+// Lists every library that ends up on a server, for the vulnerability scan in .github/workflows/checks.yml:
+// the configurations in SCAN_CONFIGS (default runtimeClasspath = what the shadow JAR bundles) plus the
+// "libraries:" of the plugin.yml (Paper downloads them with their dependencies at runtime). compileOnly
+// dependencies (Paper API, other plugins) are not shipped and not listed.
+// Output: build/shipped/gradle.lockfile (format "group:name:version=origin", read by OSV-Scanner).
+// Usage: ./gradlew --init-script .github/shipped-dependencies.gradle shippedDependencies
+
+rootProject {
+  afterEvaluate {
+    def names = (System.getenv('SCAN_CONFIGS') ?: 'runtimeClasspath').split(',')*.trim().findAll { it }
+    // Declaration-only configurations (Fabric Loom "include") cannot be resolved - resolve a copy of their dependencies.
+    def confs = names.collect { project.configurations.findByName(it) }.findAll { it != null }.collect { c ->
+        if (c.canBeResolved) {
+            return [c, c.name]
+        }
+        def deps = c.allDependencies.collect { it.copy() } as org.gradle.api.artifacts.Dependency[]
+        return [project.configurations.detachedConfiguration(deps), c.name]
+    }
+
+    def libraries = []
+    def pluginYml = project.file('src/main/resources/plugin.yml')
+    if (pluginYml.isFile()) {
+        def inBlock = false
+        pluginYml.eachLine { line ->
+            if (line ==~ /^libraries:\s*$/) { inBlock = true; return }
+            if (inBlock && line ==~ /^\s+-\s*\S+.*/) {
+                def coord = line.replaceFirst(/^\s+-\s*/, '').trim()
+                coord = coord.replaceAll(/\$\{([^}]+)\}/) { all, key -> String.valueOf(project.findProperty(key) ?: all) }
+                libraries << coord
+            } else if (inBlock && !(line ==~ /^\s*(#.*)?$/)) {
+                inBlock = false
+            }
+        }
+    }
+    def detached = libraries ? project.configurations.detachedConfiguration(
+            libraries.collect { project.dependencies.create(it) } as org.gradle.api.artifacts.Dependency[]) : null
+    def out = project.layout.buildDirectory.file('shipped/gradle.lockfile')
+
+    tasks.register('shippedDependencies') {
+        doLast {
+            def lines = new TreeSet<String>()
+            def collect = { conf, origin ->
+                conf.incoming.resolutionResult.allComponents.each { c ->
+                    def id = c.id
+                    if (id instanceof org.gradle.api.artifacts.component.ModuleComponentIdentifier) {
+                        lines << "${id.group}:${id.module}:${id.version}=${origin}".toString()
+                    }
+                }
+            }
+            confs.each { collect(it[0], it[1]) }
+            if (detached != null) {
+                collect(detached, 'pluginLibraries')
+            }
+            def file = out.get().asFile
+            file.parentFile.mkdirs()
+            file.text = (['# Libraries shipped with ' + project.name] + lines).join('\n') + '\n'
+            println "Shipped libraries: ${lines.size()} (written to ${file})"
+            lines.each { println "  ${it}" }
+        }
+    }
+}
+}
