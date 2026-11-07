@@ -61,6 +61,22 @@ Der Update-Check meldet nur Versionen **derselben** Minecraft-Version - ein Serv
 ## Release-Ablauf (Checkliste)
 Versionsnummern legt der User fest. Beispiel Beta, dann Stable:
 
+**Mit dem Release-Skript** (`C:\REPO\mc\##OTHER\Scripts\release.sh`, in Git Bash) laufen die Schritte 2-5 von selbst:
+
+```bash
+bash "##OTHER/Scripts/release.sh" <repo> beta 1.4.0        # dev -> beta, Tag BET-1.4.0-bu<nächster>
+bash "##OTHER/Scripts/release.sh" <repo> stable            # beta -> main, Nummer der letzten Beta, nächster Build
+bash "##OTHER/Scripts/release.sh" <repo> stable 1.4.0 --from dev   # Beta überspringen
+#   MRtoolbar/MRwaypoints: <repo>/plugin bzw. <repo>/mod; --dry-run zeigt nur, was passieren würde
+```
+
+Es prüft vorher sauberes Arbeitsverzeichnis und gleichen Stand mit GitHub, sucht den nächsten Build aus den Tags,
+lehnt geschlossene Versionen und Stables für 0.x ab, fasst bei einer Stable die Beta-Abschnitte im CHANGELOG
+zusammen (`release-changelog.mjs`), zieht `beta`/`dev` nach (ging `dev` inzwischen weiter, bleiben dessen
+unveröffentlichte Einträge erhalten), startet den Workflow bei Bedarf von Hand und prüft das fertige Release.
+
+Von Hand:
+
 1. Auf `dev` ist alles fertig, gebaut, getestet und committet; im CHANGELOG steht alles unter `## [Unveröffentlicht]`.
 2. **Beta:** `dev` nach `beta` mergen. Auf `beta`: `version=BET-1.4.0-bu001` in `gradle.properties`,
    im CHANGELOG `## [Unveröffentlicht]` → `## [BET-1.4.0-bu001] - <datum>` (darüber bleibt `## [Unveröffentlicht]` leer
