@@ -3,13 +3,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
-import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import javax.crypto.AEADBadTagException;
 import javax.crypto.Cipher;
-import javax.crypto.Mac;
 import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -17,9 +16,9 @@ import javax.crypto.spec.SecretKeySpec;
  * Seals dev builds with the release token of the dev channel (and opens them again). The repositories are public -
  * the token does not keep the code secret, it keeps people from installing unfinished builds without permission.
  *
- * <p>Format: {@code "MRDEV1"} | salt (16) | iv (16) | AES-256-CBC ciphertext | HMAC-SHA256 (32) over everything
- * before it. Both keys come from PBKDF2-HMAC-SHA256(token, salt, 210 000 rounds, 64 bytes). A wrong token or a changed
- * file fails the HMAC check.
+ * <p>Format: {@code "MRDEV1"} | salt (16) | nonce (12) | AES-256-GCM ciphertext with 128-bit tag; the header is
+ * authenticated too. The key comes from PBKDF2-HMAC-SHA256(token, salt, 210 000 rounds). A wrong token or a changed
+ * file fails the tag check.
  *
  * <p>Single-file program for CI: {@code java DevSeal.java seal <in> <out>} / {@code open <in> <out>}, token in the
  * environment variable {@code DEV_TOKEN}. The same class (other package) is in MRadmin (starter + plugin updates).
@@ -28,8 +27,8 @@ public final class DevSeal {
 
     private static final byte[] MAGIC = "MRDEV1".getBytes(StandardCharsets.US_ASCII);
     private static final int SALT = 16;
-    private static final int IV = 16;
-    private static final int MAC = 32;
+    private static final int NONCE = 12;
+    private static final int TAG_BITS = 128;
     private static final int ROUNDS = 210_000;
 
     /** Wrong token or damaged file. */
@@ -45,53 +44,44 @@ public final class DevSeal {
     public static byte[] seal(byte[] plain, String token) throws GeneralSecurityException {
         SecureRandom random = new SecureRandom();
         byte[] salt = new byte[SALT];
-        byte[] iv = new byte[IV];
+        byte[] nonce = new byte[NONCE];
         random.nextBytes(salt);
-        random.nextBytes(iv);
-        byte[][] keys = keys(token, salt);
-        Cipher aes = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        aes.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(keys[0], "AES"), new IvParameterSpec(iv));
-        byte[] cipher = aes.doFinal(plain);
-        byte[] head = concat(MAGIC, salt, iv, cipher);
-        return concat(head, mac(keys[1], head));
+        random.nextBytes(nonce);
+        byte[] header = concat(MAGIC, salt, nonce);
+        Cipher gcm = Cipher.getInstance("AES/GCM/NoPadding");
+        gcm.init(Cipher.ENCRYPT_MODE, key(token, salt), new GCMParameterSpec(TAG_BITS, nonce));
+        gcm.updateAAD(header);
+        return concat(header, gcm.doFinal(plain));
     }
 
     public static byte[] open(byte[] sealed, String token) throws GeneralSecurityException {
-        int min = MAGIC.length + SALT + IV + 16 + MAC;
-        if (sealed.length < min || !Arrays.equals(Arrays.copyOf(sealed, MAGIC.length), MAGIC)) {
+        int head = MAGIC.length + SALT + NONCE;
+        if (sealed.length < head + TAG_BITS / 8 || !Arrays.equals(Arrays.copyOf(sealed, MAGIC.length), MAGIC)) {
             throw new BadTokenException("not a sealed dev build");
         }
         byte[] salt = Arrays.copyOfRange(sealed, MAGIC.length, MAGIC.length + SALT);
-        byte[] iv = Arrays.copyOfRange(sealed, MAGIC.length + SALT, MAGIC.length + SALT + IV);
-        byte[] head = Arrays.copyOf(sealed, sealed.length - MAC);
-        byte[] mac = Arrays.copyOfRange(sealed, sealed.length - MAC, sealed.length);
-        byte[][] keys = keys(token, salt);
-        if (!MessageDigest.isEqual(mac, mac(keys[1], head))) {
+        byte[] nonce = Arrays.copyOfRange(sealed, MAGIC.length + SALT, head);
+        Cipher gcm = Cipher.getInstance("AES/GCM/NoPadding");
+        gcm.init(Cipher.DECRYPT_MODE, key(token, salt), new GCMParameterSpec(TAG_BITS, nonce));
+        gcm.updateAAD(sealed, 0, head);
+        try {
+            return gcm.doFinal(sealed, head, sealed.length - head);
+        } catch (AEADBadTagException e) {
             throw new BadTokenException("wrong release token (or the file is damaged)");
         }
-        Cipher aes = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        aes.init(Cipher.DECRYPT_MODE, new SecretKeySpec(keys[0], "AES"), new IvParameterSpec(iv));
-        return aes.doFinal(head, MAGIC.length + SALT + IV, head.length - MAGIC.length - SALT - IV);
     }
 
-    private static byte[][] keys(String token, byte[] salt) throws GeneralSecurityException {
+    private static SecretKeySpec key(String token, byte[] salt) throws GeneralSecurityException {
         String t = token == null ? "" : token.trim();
         if (t.isEmpty()) {
             throw new BadTokenException("no release token");
         }
-        PBEKeySpec spec = new PBEKeySpec(t.toCharArray(), salt, ROUNDS, 512);
+        PBEKeySpec spec = new PBEKeySpec(t.toCharArray(), salt, ROUNDS, 256);
         try {
-            byte[] both = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).getEncoded();
-            return new byte[][]{Arrays.copyOf(both, 32), Arrays.copyOfRange(both, 32, 64)};
+            return new SecretKeySpec(SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).getEncoded(), "AES");
         } finally {
             spec.clearPassword();
         }
-    }
-
-    private static byte[] mac(byte[] key, byte[] data) throws GeneralSecurityException {
-        Mac hmac = Mac.getInstance("HmacSHA256");
-        hmac.init(new SecretKeySpec(key, "HmacSHA256"));
-        return hmac.doFinal(data);
     }
 
     private static byte[] concat(byte[]... parts) {

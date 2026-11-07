@@ -103,7 +103,7 @@ Basisversion, SHA-256 der JAR). Installer und MRadmin entschlüsseln sie nur mit
 `DEV_TOKEN`, in allen Repos derselbe). Die Repos sind öffentlich - der Token hält den Code nicht geheim, er verhindert,
 dass jemand unfertige Builds ohne Freigabe installiert.
 
-- Verfahren: `.github/DevSeal.java` (PBKDF2-SHA256 → AES-256-CBC + HMAC-SHA256; falscher Token oder veränderte Datei
+- Verfahren: `.github/DevSeal.java` (PBKDF2-SHA256 → AES-256-GCM; falscher Token oder veränderte Datei
   werden erkannt), Ablauf `.github/dev-channel.sh`. Ohne Secret wird der Schritt übersprungen.
 - Der Tag heißt absichtlich `mc0-…` (Minecraft „0“): alle Update-Checker - auch ältere Plugin-Versionen -, die Website
   und MRadmins Plugin-Verwaltung ignorieren ihn. Nie einen Tag ohne `mc<Version>-` anlegen, alte Checker hielten ihn
