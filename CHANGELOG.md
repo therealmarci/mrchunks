@@ -9,6 +9,8 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+## [BET-1.2.3-bu001] - 2026-11-08
+
 ### Behoben & geändert
 - **Erkennbar als Dev-Build:** Builds aus GitHub Actions tragen jetzt Commit und Branch in sich - MRadmin (Server → Plugins) erkennt daran Dev-Builds und zeigt sie mit „Dev <Commit>“ an.
 
