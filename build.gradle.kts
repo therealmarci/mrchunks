@@ -68,6 +68,15 @@ tasks.withType<JavaCompile>().configureEach {
     options.compilerArgs.addAll(listOf("-Xlint:deprecation", "-Xlint:unchecked"))
 }
 
+// Commit and branch of this build, for MRadmin's plugin page (dev channel, "Dev <commit>"): from GitHub Actions,
+// otherwise from the local git - so a local test build is recognised as a dev state and does not look like the last
+// release. Empty without git.
+fun git(vararg args: String): String = runCatching {
+    providers.exec { commandLine("git", *args); isIgnoreExitValue = true }.standardOutput.asText.get().trim()
+}.getOrDefault("")
+val gitCommit: String = System.getenv("GITHUB_SHA") ?: git("rev-parse", "HEAD")
+val gitBranch: String = System.getenv("GITHUB_REF_NAME") ?: git("rev-parse", "--abbrev-ref", "HEAD")
+
 tasks.processResources {
     val props = mapOf(
         // In der plugin.yml als SemVer mit Build-Info ("1.2.0+mc26.3"), weil Paper selbst ein "v" davorsetzt.
@@ -78,9 +87,8 @@ tasks.processResources {
         "githubRepository" to githubRepository,
         "website" to website,
         "websiteSlug" to websiteSlug,
-        // Only set in GitHub Actions: lets MRadmin tell dev builds apart (dev channel). Empty for local builds.
-        "gitCommit" to (System.getenv("GITHUB_SHA") ?: ""),
-        "gitBranch" to (System.getenv("GITHUB_REF_NAME") ?: ""),
+        "gitCommit" to gitCommit,
+        "gitBranch" to gitBranch,
     )
     inputs.properties(props)
     filteringCharset = "UTF-8"
