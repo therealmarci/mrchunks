@@ -22,7 +22,7 @@ import java.util.logging.Level;
  */
 public final class ConfigUpdater {
 
-    public static final int CURRENT_VERSION = 32;
+    public static final int CURRENT_VERSION = 33;
     public static final String BOM = "\uFEFF";
     /** Texts whose content changed with new features; the new default replaces the old value. */
     private static final Set<String> REPLACED_KEYS = Set.of();
@@ -38,7 +38,8 @@ public final class ConfigUpdater {
             Map.entry("server-language", "general.server-language"),
             Map.entry("update-checker.enabled", "updates.enabled"),
             Map.entry("update-checker.source", "updates.source"),
-            Map.entry("update-checker.include-prereleases", "updates.include-prereleases"),
+            Map.entry("update-checker.include-prereleases", "updates.beta"),
+            Map.entry("updates.include-prereleases", "updates.beta"),
             Map.entry("update-checker.interval-hours", "updates.interval-hours"),
             Map.entry("update-checker.notify-on-join", "updates.notify-on-join"));
 

@@ -22,7 +22,7 @@ mc26.3-STA-1.4.0-bu002
 - **Eine Stable schließt ihre Version ab.** Aus `BET-1.4.0-bu002` wird `STA-1.4.0-bu003`; soll danach wieder eine Beta
   kommen, ist das `BET-1.4.1-bu001` (nächster PATCH).
 - **Reihenfolge** (was ist neuer?): MAJOR, MINOR, PATCH, dann BUILD. Der Kanal entscheidet nur, wer ein Release
-  bekommt: Server bekommen nur Stables, Betas nur mit eingeschaltetem `updates.include-prereleases` (bzw. bei
+  bekommt: Server bekommen nur Stables, Betas nur mit eingeschaltetem `updates.beta` (bzw. bei
   MRadmin `versions.channel: beta` oder dem Kanal des Plugins auf Server → Plugins) - außer bei `0.x`, das es nur als Beta gibt. Wer Betas wieder ausschaltet,
   bleibt auf seiner Beta, bis eine neuere Stable kommt (es wird nie zurückgestuft).
 - **Ältere Releases** hießen `mc26.3-v1.3.1` (SemVer) und werden weiter erkannt; sie zählen als Build 0 ihrer Nummer.

@@ -14,6 +14,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 - **Team-Meldungen in MRadmin:** Schaltet die gestaffelte Abschaltung einen Chunkloader (oder alle) wegen Lags ab, landet das als Team-Meldung „Chunkloader wegen Lags abgeschaltet“ (`chunks-shed`) im Posteingang der MRadmin-Weboberfläche und auf Wunsch als Push; kommt der Loader zurück, wird sie als erledigt markiert. Die Hinweise an das Team im Spiel (Sperre, Abschaltung, Warnung) richten sich jetzt nach der Wahl „Im Spiel“ unter Konto → Benachrichtigungen und nach `/mradmin mute` - ebenso der Update-Hinweis beim Betreten (Art „Update verfügbar“). Braucht MRadmin mit Modul-API 15.
 
 ### Behoben & geändert
+- **`updates.beta` statt `updates.include-prereleases`:** Der Schalter für Beta-Versionen in der Update-Prüfung heißt jetzt `updates.beta` (passend zum Beta-Kanal); der alte Wert wird übernommen (`config-version` 33).
 - **Mehr Luft für kleine Farmen:** Die Entity-Grenzen für Loader bis 3×3 steigen von 40 / 100 auf **60 / 150** (Warnung / Sperre); ersetzt wird nur der alte Standard (`config-version` 32).
 - **Dummy-Spieler und LuckPerms:** Dummys lösten bei Chat- und Tab-Plugins (z.B. ChatEx, TAB) „Unable to get a user“ aus, weil LuckPerms Nutzer nur beim echten Einloggen lädt. MRchunks lädt den LuckPerms-Nutzer jetzt vor dem Erscheinen des Dummys.
 
