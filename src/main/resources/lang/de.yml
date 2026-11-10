@@ -608,8 +608,8 @@ web-tile-link: "Zu den Chunkloadern"
 # Art der Push-Benachrichtigung in MRadmin (Name und Erklärung)
 web-push-locked: "Gesperrte Chunkloader"
 web-push-locked-hint: "MRchunks sperrt einen Chunkloader wegen Lag."
-web-push-shed: "Chunkloader wegen Lags abgeschaltet"
-web-push-shed-hint: "Die gestaffelte Abschaltung nimmt einen Chunkloader vom Netz, bis der Server wieder flüssig läuft."
+web-push-shed: "Lag-Schutz der Chunkloader"
+web-push-shed-hint: "Abschaltung wegen Lags, Server-Pause, Lag-Warnung und Pause aller Loader."
 # Team-Meldungen in MRadmin (Posteingang, Push, Spiel) - reiner Text. <name> <player> <mspt> <load> <count> <chunks>
 notice-shed-title: "Wegen Lags abgeschaltet: <name>"
 notice-shed-body: "Chunkloader von <player> - Server bei <mspt> ms, Auslastung <load> % (<count>× in kurzer Zeit)."

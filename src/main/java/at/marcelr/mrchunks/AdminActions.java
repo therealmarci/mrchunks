@@ -711,7 +711,8 @@ public final class AdminActions {
             }
         }
         for (Player player : org.bukkit.Bukkit.getOnlinePlayers()) {
-            if (owners.contains(loaders().main(player.getUniqueId())) || player.hasPermission(PERM_GUI)) {
+            if (owners.contains(loaders().main(player.getUniqueId())) || (player.hasPermission(PERM_GUI)
+                    && plugin.mradmin().teamInGame(player, at.marcelr.mrchunks.api.MRadminLink.NOTICE_SHED))) {
                 messages().send(player, pause ? "admin-paused" : "admin-resumed", tag("admin", admin));
             }
         }
@@ -731,7 +732,7 @@ public final class AdminActions {
         plugin.getLogger().info(admin + " (web) switched the staged shutdown " + (on ? "on." : "off."));
         plugin.discord().log("admin-monitoring", "admin", admin, "state", state);
         for (Player player : org.bukkit.Bukkit.getOnlinePlayers()) {
-            if (player.hasPermission(PERM_GUI)) {
+            if (player.hasPermission(PERM_GUI) && plugin.mradmin().teamInGame(player, at.marcelr.mrchunks.api.MRadminLink.NOTICE_SHED)) {
                 messages().send(player, on ? "monitoring-on" : "monitoring-off", tag("admin", admin));
             }
         }

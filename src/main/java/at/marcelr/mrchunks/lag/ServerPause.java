@@ -147,7 +147,8 @@ public final class ServerPause {
             }
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (owners.contains(plugin.loaders().main(player.getUniqueId())) || player.hasPermission(AdminActions.PERM_MANAGE)) {
+            if (owners.contains(plugin.loaders().main(player.getUniqueId())) || (player.hasPermission(AdminActions.PERM_MANAGE)
+                    && plugin.mradmin().teamInGame(player, at.marcelr.mrchunks.api.MRadminLink.NOTICE_SHED))) {
                 plugin.messages().send(player, key, tags);
             }
         }
