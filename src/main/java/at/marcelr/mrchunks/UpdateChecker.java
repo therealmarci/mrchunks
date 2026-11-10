@@ -327,7 +327,7 @@ public final class UpdateChecker {
         if (githubRepository.isBlank()) {
             throw new ReasonException("update-reason-no-repository");
         }
-        String body = get("https://api.github.com/repos/" + githubRepository + "/releases?per_page=30");
+        String body = releasesJson(30);
         JsonArray releases = JsonParser.parseString(body).getAsJsonArray();
         Release best = null;
         for (JsonElement element : releases) {
@@ -344,6 +344,27 @@ public final class UpdateChecker {
             }
         }
         return best;
+    }
+
+    /**
+     * One file with the releases of all MRtechnology plugins, built by the website from GitHub. Asked first: GitHub
+     * allows only 60 API requests per hour and IP without login, and several servers behind one address used that
+     * up quickly.
+     */
+    private static final String RELEASE_FEED = "https://mrtechnology.marcelr.at/api/releases.json";
+
+    /** The releases as a JSON array like GitHub's API gives them: from the website, else from GitHub. */
+    private String releasesJson(int perPage) throws IOException, InterruptedException {
+        try {
+            JsonObject repos = JsonParser.parseString(get(RELEASE_FEED)).getAsJsonObject().getAsJsonObject("repos");
+            JsonElement list = repos == null ? null : repos.get(githubRepository.toLowerCase(java.util.Locale.ROOT));
+            if (list != null && list.isJsonArray()) {
+                return list.toString();
+            }
+        } catch (IOException | RuntimeException e) {
+            // the website is not reachable or does not know the repository: ask GitHub
+        }
+        return get("https://api.github.com/repos/" + githubRepository + "/releases?per_page=" + perPage);
     }
 
     private String get(String url) throws IOException, InterruptedException {
