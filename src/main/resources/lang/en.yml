@@ -608,6 +608,13 @@ web-tile-link: "Go to the chunk loaders"
 # Kind of push notification in MRadmin (name and explanation)
 web-push-locked: "Locked chunk loaders"
 web-push-locked-hint: "MRchunks locks a chunk loader because of lag."
+web-push-shed: "Chunk loaders switched off for lag"
+web-push-shed-hint: "The staged shutdown takes a chunk loader off until the server runs smoothly again."
+# Team notices in MRadmin (inbox, push, game) - plain text. <name> <player> <mspt> <load> <count> <chunks>
+notice-shed-title: "Switched off for lag: <name>"
+notice-shed-body: "Chunk loader of <player> - server at <mspt> ms, load <load> % (<count>× in a short time)."
+notice-shed-hard-title: "All <count> chunk loaders switched off for lag"
+notice-shed-hard-body: "Server at <mspt> ms - <chunks> chunks released. They come back one by one."
 # Ticket category in MRadmin for lag locks
 report-lock-category: "Chunk loader lock"
 mradmin-summary:

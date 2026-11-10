@@ -9,6 +9,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+### Neu
+- **Team-Meldungen in MRadmin:** Schaltet die gestaffelte Abschaltung einen Chunkloader (oder alle) wegen Lags ab, landet das als Team-Meldung „Chunkloader wegen Lags abgeschaltet“ (`chunks-shed`) im Posteingang der MRadmin-Weboberfläche und auf Wunsch als Push; kommt der Loader zurück, wird sie als erledigt markiert. Die Hinweise an das Team im Spiel (Sperre, Abschaltung, Warnung) richten sich jetzt nach der Wahl „Im Spiel“ unter Konto → Benachrichtigungen und nach `/mradmin mute`. Braucht MRadmin mit Modul-API 15.
+
 ## [BET-1.2.3-bu001] - 2026-11-08
 
 ### Behoben & geändert

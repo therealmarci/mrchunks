@@ -430,7 +430,8 @@ public final class LagMonitor implements Listener {
         var teleport = Messages.lazy("teleport", () -> messages.get("lag-teleport-label").clickEvent(
                 ClickEvent.runCommand("/mrchunks tp " + LoaderManager.name(loader.owner()) + " " + loader.number())));
         for (Player staff : Bukkit.getOnlinePlayers()) {
-            if (staff.hasPermission(AdminActions.PERM_MANAGE) && !staff.equals(owner)) {
+            if (staff.hasPermission(AdminActions.PERM_MANAGE) && !staff.equals(owner)
+                    && plugin.mradmin().teamInGame(staff, at.marcelr.mrchunks.api.MRadminLink.NOTICE_LOCKED)) {
                 messages.send(staff, kind + "staff", tags, teleport);
             }
         }

@@ -6,6 +6,7 @@ import at.marcelr.mrchunks.MRChunks;
 import at.marcelr.mrchunks.Messages;
 import at.marcelr.mrchunks.Settings;
 import at.marcelr.mrchunks.Texts;
+import at.marcelr.mrchunks.api.MRadminLink;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Bukkit;
@@ -208,10 +209,17 @@ public final class LoadShedder implements Listener {
         TagResolver tags = TagResolver.resolver(tags(mspt), tag("count", hit.size()), tag("chunks", chunks),
                 tag("cap", format(s.hardCapMspt())));
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.hasPermission(PERM_TEAM) && !told.contains(player.getUniqueId())) {
+            if (player.hasPermission(PERM_TEAM) && !told.contains(player.getUniqueId())
+                    && plugin.mradmin().teamInGame(player, MRadminLink.NOTICE_SHED)) {
                 plugin.messages().send(player, "shed-hard-team", tags);
             }
         }
+        int count = hit.size();
+        plugin.mradmin().teamNotice(MRadminLink.NOTICE_SHED, "hard-cap", "/admin/features/mrchunks",
+                lang -> plugin.messages().in(lang, () -> new String[]{
+                        plugin.messages().plain("notice-shed-hard-title", "count", count),
+                        plugin.messages().plain("notice-shed-hard-body", "mspt", format(mspt), "count", count,
+                                "chunks", chunks)}));
         plugin.discord().log("server-lag-hard-cap", "mspt", format(mspt), "cap", format(s.hardCapMspt()),
                 "count", hit.size(), "chunks", chunks, "warn", format(s.warnMspt()), "min", s.minMinutes());
     }
@@ -265,6 +273,12 @@ public final class LoadShedder implements Listener {
         var teleport = Messages.lazy("teleport", () -> plugin.messages().get("lag-teleport-label").clickEvent(
                 ClickEvent.runCommand("/mrchunks tp " + LoaderManager.name(loader.owner()) + " " + loader.number())));
         team("shed-team", owner, tags, teleport);
+        int shutdowns = times.size();
+        plugin.mradmin().teamNotice(MRadminLink.NOTICE_SHED, "loader:" + loader.id(),
+                "/admin/features/mrchunks/" + loader.id(), lang -> plugin.messages().in(lang, () -> new String[]{
+                        plugin.messages().plain("notice-shed-title", "name", Texts.name(plugin, loader)),
+                        plugin.messages().plain("notice-shed-body", "player", LoaderManager.name(loader.owner()),
+                                "mspt", format(mspt), "load", load, "count", shutdowns)}));
         plugin.discord().log("loader-lag-shutdown", plugin.adminActions().discordTags(loader,
                 "mspt", format(mspt), "limit", format(s.shutdownMspt()), "load", load, "count", times.size(),
                 "minutes", s.windowMinutes(), "min", s.minMinutes()));
@@ -299,6 +313,10 @@ public final class LoadShedder implements Listener {
                 plugin.messages().send(owner, "shed-back-owner", tags);
             }
             team("shed-back-team", owner, tags);
+            plugin.mradmin().teamNoticeDone("loader:" + id);
+            if (loaders().shedIds().isEmpty()) {
+                plugin.mradmin().teamNoticeDone("hard-cap");
+            }
             plugin.discord().log("loader-lag-back", plugin.adminActions().discordTags(loader,
                     "mspt", format(mspt), "time", time));
             return true;
@@ -335,10 +353,14 @@ public final class LoadShedder implements Listener {
         plugin.discord().log("server-lag-normal", "mspt", format(mspt), "time", time);
     }
 
-    /** Team members online (admin menu), except {@code except} (already told as owner). */
+    /**
+     * Team members online (admin menu), except {@code except} (already told as owner) - only those who want these
+     * messages in the game (their choice in MRadmin, /mradmin mute).
+     */
     private void team(String key, Player except, TagResolver... tags) {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.hasPermission(PERM_TEAM) && !player.equals(except)) {
+            if (player.hasPermission(PERM_TEAM) && !player.equals(except)
+                    && plugin.mradmin().teamInGame(player, MRadminLink.NOTICE_SHED)) {
                 plugin.messages().send(player, key, tags);
             }
         }
