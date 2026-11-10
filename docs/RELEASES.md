@@ -1,59 +1,115 @@
 # Versionen & Releases
 
 ## Versionsschema
-Jede veröffentlichte Version besteht aus **Minecraft-Version** und **Plugin-Version**:
+Jede veröffentlichte Version besteht aus **Minecraft-Version**, **Kanal**, **Versionsnummer** und **Build**:
 
 ```
-mc26.3-v1.2.0
-  │       └─ Plugin-Version (SemVer): MAJOR.MINOR.PATCH
-  └───────── Minecraft-Version, für die gebaut wurde
+mc26.3-STA-1.4.0-bu002
+  │     │   │      └─ Build: zählt die Releases dieser Versionsnummer (001, 002 …)
+  │     │   └──────── MAJOR.MINOR.PATCH
+  │     └──────────── Kanal: STA = stabil, BET = Beta
+  └────────────────── Minecraft-Version, für die gebaut wurde
 ```
 
-| Teil | Erhöhen, wenn … | Beispiel |
+| Teil | Bedeutung | Beispiel |
 |---|---|---|
-| **MAJOR** | große Releases, inkompatible Änderungen (Config, Befehle, Permissions) | `1.4.2` → `2.0.0` |
-| **MINOR** | neue Funktionen, kompatibel | `1.4.2` → `1.5.0` |
-| **PATCH** | Hotfixes und Fehlerbehebungen | `1.4.2` → `1.4.3` |
+| **Kanal** | `STA` = stabil, `BET` = Beta | `BET-1.4.0-bu001` → `STA-1.4.0-bu002` |
+| **MAJOR** | große Umbauten, inkompatible Änderungen (Config, Befehle, Permissions) | `1.4.2` → `2.0.0` |
+| **MINOR** | neue Funktionen | `1.4.2` → `1.5.0` |
+| **PATCH** | Hotfixes | `1.4.2` → `1.4.3` |
+| **BUILD** | zählt die Releases **einer** Version (jede Beta und die Stable), beginnt bei jeder neuen Version bei `001` | `bu001`, `bu002` … |
 
-- **Vorabversionen:** `0.x` oder ein Suffix wie `-rc.1` → `mc26.3-v1.5.0-rc.1`. Auf GitHub und Modrinth als Pre-Release/Beta markiert.
-- Dieselbe Plugin-Version kann es für mehrere Minecraft-Versionen geben: `mc26.3-v1.5.0` und `mc26.4-v1.5.0` haben denselben Funktionsumfang.
-- Das Schema gilt überall gleich: Git-Tag, JAR-Name (`MRchunks-mc26.3-v1.5.0.jar`), Modrinth-Versionsnummer und `/plugins`.
-- In `gradle.properties` stehen beide Teile getrennt: `version=1.5.0` und `mcVersion=26.3`. Der Build setzt sie zusammen.
+- **Eine Stable schließt ihre Version ab.** Aus `BET-1.4.0-bu002` wird `STA-1.4.0-bu003`; soll danach wieder eine Beta
+  kommen, ist das `BET-1.4.1-bu001` (nächster PATCH).
+- **Reihenfolge** (was ist neuer?): MAJOR, MINOR, PATCH, dann BUILD. Der Kanal entscheidet nur, wer ein Release
+  bekommt: Server bekommen nur Stables, Betas nur mit eingeschaltetem `updates.beta` (bzw. bei
+  MRadmin `versions.channel: beta` oder dem Kanal des Plugins auf Server → Plugins) - außer bei `0.x`, das es nur als Beta gibt. Wer Betas wieder ausschaltet,
+  bleibt auf seiner Beta, bis eine neuere Stable kommt (es wird nie zurückgestuft).
+- **Ältere Releases** hießen `mc26.3-v1.3.1` (SemVer) und werden weiter erkannt; sie zählen als Build 0 ihrer Nummer.
+  Erste Plugin-Version, die das neue Schema versteht: die Releases vom 2026-11-07 (z.B. MRadmin 1.4.0).
+- Dieselbe Version kann es für mehrere Minecraft-Versionen geben (`mc26.3-STA-1.5.0-bu001`, `mc26.4-STA-1.5.0-bu001`).
+- Die Klasse `util/Versions` (Vergleich, Kanal, Beta-Regel) ist in allen MRtechnology-Plugins identisch; Prüfung mit
+  `##OTHER/Scripts/check-versions.sh`.
+- Das Schema gilt überall gleich: Git-Tag, JAR-Name (`MRchunks-mc26.3-STA-1.4.0-bu002.jar`), `plugin.yml`
+  (`STA-1.4.0-bu002+mc26.3`) und `/plugins`. In `gradle.properties` stehen `version=STA-1.4.0-bu002` und
+  `mcVersion=26.3` getrennt, der Build setzt sie zusammen.
 
 ## Branches
 | Branch | Zweck | Releases |
 |---|---|---|
-| `beta` | Entwicklung für die **neueste** Minecraft-Version | Vorabversionen (`-rc.N`) |
-| `main` | stabiler Stand für die **neueste** Minecraft-Version | stabile Versionen, auf GitHub als „Latest“ |
-| `mc/<version>` | Wartung einer **älteren** Minecraft-Version, z.B. `mc/26.3` | stabile Versionen (Hotfixes, auf Wunsch Backports) |
+| `dev` | tägliche Entwicklung und Testbuilds | keine - jeder Push baut nur ein Actions-Artefakt (Prüfrunde) |
+| `beta` | nächstes Update als Beta | `BET-…` (GitHub-Vorabversion) |
+| `main` | stabiler Stand für die **neueste** Minecraft-Version, Standardzweig (Website, Wiki, Issue-Vorlagen) | `STA-…`, auf GitHub als „Latest“ |
+| `mc/<version>` | Wartung einer **älteren** Minecraft-Version, z.B. `mc/26.3` | `STA-…`/`BET-…` (Hotfixes) |
 
-Der Update-Checker meldet nur Versionen **derselben** Minecraft-Version. Ein Server mit `mc26.3-v1.5.0` bekommt
-`mc26.3-v1.5.1` angezeigt, aber nie `mc26.4-…`, denn die würde auf 26.3 nicht laufen.
+Weg eines Updates: `dev` → `beta` (Beta-Release) → `main` (Stable). Die Beta darf übersprungen werden
+(`dev` → `main`). Nach jedem Release werden die Branches wieder gleichgezogen. Die Wiki-Vorschau der Website
+(`/wiki/preview/<slug>/`) zeigt den Stand von `beta`, das Wiki selbst den von `main`.
+
+Der Update-Check meldet nur Versionen **derselben** Minecraft-Version - ein Server mit 26.3 bekommt nie `mc26.4-…`.
 
 ## Neue Minecraft-Version unterstützen (z.B. 26.4)
 1. **Alte Version sichern** (nur wenn sie weiter gepflegt werden soll): `git branch mc/26.3 main && git push -u origin mc/26.3`
-2. Auf `beta` in `gradle.properties` anpassen: `mcVersion=26.4`, `paperApi=<passende Paper-API>`, `supportedGameVersions=26.4`.
-   Meist auch `version` erhöhen (MINOR, bei Bedarf MAJOR).
-3. Code anpassen, testen, als Vorabversion taggen: `mc26.4-v1.6.0-rc.1`.
-4. Wenn stabil: `beta` nach `main` mergen und `mc26.4-v1.6.0` auf `main` taggen.
+2. Auf `dev` in `gradle.properties` anpassen: `mcVersion=26.4`, `paperApi=<passende Paper-API>`, `supportedGameVersions=26.4`.
+3. Code anpassen, testen, als Beta veröffentlichen (`mc26.4-BET-1.5.0-bu001`), danach als Stable (`mc26.4-STA-1.5.0-bu002`).
 
 ## Hotfix für eine ältere Minecraft-Version
-1. `git switch mc/26.3`, Fehler beheben (oder den Fix von `beta` mit `git cherry-pick` holen).
-2. `version` in `gradle.properties` um PATCH erhöhen, Abschnitt in `CHANGELOG.md` ergänzen.
-3. Committen, pushen und auf `mc/26.3` taggen: `git tag mc26.3-v1.5.1 && git push origin mc26.3-v1.5.1`.
+1. `git switch mc/26.3`, Fehler beheben (oder den Fix von `dev` mit `git cherry-pick` holen).
+2. `version` in `gradle.properties` setzen (nächster PATCH, Build `001`, z.B. `STA-1.4.1-bu001`), CHANGELOG-Abschnitt anlegen.
+3. Committen, pushen und auf `mc/26.3` taggen: `git tag mc26.3-STA-1.4.1-bu001 && git push origin mc26.3-STA-1.4.1-bu001`.
 
 ## Release-Ablauf (Checkliste)
-1. `version` (und ggf. `mcVersion`) in `gradle.properties` setzen.
-2. In `CHANGELOG.md` einen Abschnitt `## [<version>] - <datum>` anlegen. Der Workflow nimmt ihn als Release-Text.
-3. Committen und pushen.
-4. Tag `mc<mcVersion>-v<version>` auf dem richtigen Branch setzen und pushen.
+Versionsnummern legt der User fest. Beispiel Beta, dann Stable:
+
+**Mit dem Release-Skript** (`C:\REPO\mc\##OTHER\Scripts\release.sh`, in Git Bash) laufen die Schritte 2-5 von selbst:
+
+```bash
+bash "##OTHER/Scripts/release.sh" <repo> beta 1.4.0        # dev -> beta, Tag BET-1.4.0-bu<nächster>
+bash "##OTHER/Scripts/release.sh" <repo> stable            # beta -> main, Nummer der letzten Beta, nächster Build
+bash "##OTHER/Scripts/release.sh" <repo> stable 1.4.0 --from dev   # Beta überspringen
+#   MRtoolbar/MRwaypoints: <repo>/plugin bzw. <repo>/mod; --dry-run zeigt nur, was passieren würde
+```
+
+Es prüft vorher sauberes Arbeitsverzeichnis und gleichen Stand mit GitHub, sucht den nächsten Build aus den Tags,
+lehnt geschlossene Versionen und Stables für 0.x ab, fasst bei einer Stable die Beta-Abschnitte im CHANGELOG
+zusammen (`release-changelog.mjs`), zieht `beta`/`dev` nach (ging `dev` inzwischen weiter, bleiben dessen
+unveröffentlichte Einträge erhalten), startet den Workflow bei Bedarf von Hand und prüft das fertige Release.
+
+Von Hand:
+
+1. Auf `dev` ist alles fertig, gebaut, getestet und committet; im CHANGELOG steht alles unter `## [Unveröffentlicht]`.
+2. **Beta:** `dev` nach `beta` mergen. Auf `beta`: `version=BET-1.4.0-bu001` in `gradle.properties`,
+   im CHANGELOG `## [Unveröffentlicht]` → `## [BET-1.4.0-bu001] - <datum>` (darüber bleibt `## [Unveröffentlicht]` leer
+   stehen), Commit „Pre-Release …“, Tag `mc26.3-BET-1.4.0-bu001` auf `beta`, pushen.
+3. **Stable:** `beta` (bzw. beim Überspringen `dev`) nach `main` mergen. Auf `main`: `version=STA-1.4.0-bu002`
+   (nächster Build), im CHANGELOG **alle** Beta-Abschnitte seit der letzten Stable zu einem Abschnitt
+   `## [STA-1.4.0-bu002] - <datum>` zusammenfassen (Stable-Nutzer sehen sonst nur die letzte Beta), Commit „Release …“,
+   Tag `mc26.3-STA-1.4.0-bu002` auf `main`, pushen.
+4. Branches gleichziehen: `beta` und `dev` per Fast-Forward auf den neuen Stand bringen und pushen.
+5. Release-Workflow abwarten (`gh run watch`): Release da, JAR dran, Beta als Vorabversion, Stable als „Latest“.
 
 Der Workflow `.github/workflows/release.yml`
-- prüft, ob der Tag zu `gradle.properties` passt,
-- lässt stabile Versionen nur von `main` oder `mc/<mcVersion>` zu (Vorabversionen auch von `beta`),
-- lässt vorher die Prüfrunde laufen (siehe unten), übernimmt deren JAR, erstellt das GitHub-Release mit Herkunftsnachweis und lädt die Version auf Modrinth hoch (mit `supportedGameVersions`, derzeit nicht benutzt).
+- prüft das Format der Version und dass der Tag zur `gradle.properties` passt,
+- lässt Stables nur von `main` oder `mc/<mcVersion>` zu, Betas nur von `beta` oder `mc/<mcVersion>`,
+- lässt vorher die Prüfrunde laufen (siehe unten), übernimmt deren JAR und erstellt das GitHub-Release mit
+  Herkunftsnachweis (Beta = Vorabversion, nur eine Stable von `main` wird „Latest“).
 
-Nur Releases von `main` werden auf GitHub als „Latest“ markiert. Ein Hotfix für eine alte Minecraft-Version verdrängt also nicht das aktuelle Release.
+Das Release-Text kommt aus dem CHANGELOG-Abschnitt mit genau dieser Version (`## [STA-1.4.0-bu002]`).
+
+## Dev-Kanal (nur mit Freigabetoken)
+Nach jedem grünen Push auf `dev` legt die Prüfrunde (Job „Dev channel“) die JARs **verschlüsselt** ins rollende
+Release **`mc0-dev`** (Vorabversion, nie „Latest“): `<Name>-dev.jar.mrdev` + `dev.json` (Commit, Lauf, Datum,
+Basisversion, SHA-256 der JAR). Installer und MRadmin entschlüsseln sie nur mit dem **Freigabetoken** (Secret
+`DEV_TOKEN`, in allen Repos derselbe). Die Repos sind öffentlich - der Token hält den Code nicht geheim, er verhindert,
+dass jemand unfertige Builds ohne Freigabe installiert.
+
+- Verfahren: `.github/DevSeal.java` (PBKDF2-SHA256 → AES-256-GCM; falscher Token oder veränderte Datei
+  werden erkannt), Ablauf `.github/dev-channel.sh`. Ohne Secret wird der Schritt übersprungen.
+- Der Tag heißt absichtlich `mc0-…` (Minecraft „0“): alle Update-Checker - auch ältere Plugin-Versionen -, die Website
+  und MRadmins Plugin-Verwaltung ignorieren ihn. Nie einen Tag ohne `mc<Version>-` anlegen, alte Checker hielten ihn
+  für eine neuere Version.
+- Token tauschen: neues Secret setzen (`gh secret set DEV_TOKEN -R therealmarci/<repo>` in allen Repos), danach gilt der
+  alte nicht mehr für neue Builds. Von Hand entschlüsseln: `DEV_TOKEN=… java .github/DevSeal.java open <datei> <jar>`.
 
 ## Prüfrunde vor jedem Release (Sicherheit)
 Jeder Release-Workflow ruft zuerst `.github/workflows/checks.yml` auf. **Ist dort etwas rot, entsteht kein Release.**

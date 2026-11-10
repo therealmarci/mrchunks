@@ -22,7 +22,7 @@ import java.util.logging.Level;
  */
 public final class ConfigUpdater {
 
-    public static final int CURRENT_VERSION = 31;
+    public static final int CURRENT_VERSION = 33;
     public static final String BOM = "\uFEFF";
     /** Texts whose content changed with new features; the new default replaces the old value. */
     private static final Set<String> REPLACED_KEYS = Set.of();
@@ -38,7 +38,8 @@ public final class ConfigUpdater {
             Map.entry("server-language", "general.server-language"),
             Map.entry("update-checker.enabled", "updates.enabled"),
             Map.entry("update-checker.source", "updates.source"),
-            Map.entry("update-checker.include-prereleases", "updates.include-prereleases"),
+            Map.entry("update-checker.include-prereleases", "updates.beta"),
+            Map.entry("updates.include-prereleases", "updates.beta"),
             Map.entry("update-checker.interval-hours", "updates.interval-hours"),
             Map.entry("update-checker.notify-on-join", "updates.notify-on-join"));
 
@@ -152,6 +153,11 @@ public final class ConfigUpdater {
             if (version < 24) {
                 // Three measurements per minute (user), only where the old default is still set.
                 replaceDefault(existing, template, "lag-protection.sample-seconds", 30, 20);
+            }
+            if (version < 32) {
+                // More room for small farms (user): entities up to 3x3 from 40 / 100 to 60 / 150, only the old defaults.
+                replaceDefault(existing, template, "lag-protection.small-loaders.limits.entities.warn", 40, 60);
+                replaceDefault(existing, template, "lag-protection.small-loaders.limits.entities.lock", 100, 150);
             }
             template.set("config-version", CURRENT_VERSION);
             // Keep long messages on one line instead of folding them.

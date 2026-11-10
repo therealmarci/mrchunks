@@ -10,19 +10,23 @@ MRchunks misst alle 20 Sekunden, was im Bereich jedes **aktiven** Loaders passie
 ## Grenzen
 | Messwert | Was gezählt wird | Warnung bis 3×3 | Sperre bis 3×3 | Warnung (pro 49 Chunks) | Sperre (pro 49 Chunks) |
 |---|---|---|---|---|---|
-| `entities` | Mobs, Tiere, Loren, Items … | 40 | 100 | 100 | 250 |
+| `entities` | Mobs, Tiere, Loren, Items … | 60 | 150 | 100 | 250 |
 | `items` | Items am Boden | 60 | 200 | 150 | 500 |
 | `redstone` | Redstone-Änderungen pro Sekunde | 150 | 600 | 500 | 2000 |
 | `hoppers` | Trichter-Transfers pro Sekunde | 100 | 400 | 300 | 1200 |
 | `pistons` | Kolben-Bewegungen pro Sekunde | 15 | 50 | 40 | 150 |
 | `spawns` | neue Mobs und Items pro Sekunde | 6 | 20 | 15 | 50 |
 
-**Beispiel Entities (Sperre):** ein 3×3-Loader 100, ein 5×5-Loader 128 (250 × 25/49), ein 7×7-Loader 250, ein 9×9-Loader 413 (250 × 81/49).
+**Beispiel Entities (Sperre):** ein 3×3-Loader 150, ein 5×5-Loader ebenfalls 150 (250 × 25/49 = 128, aber nie unter dem 3×3-Wert), ein 7×7-Loader 250, ein 9×9-Loader 413 (250 × 81/49).
 
 > [!NOTE]
 > Die Grenzen für Entities, Items und Spawns sind so gerechnet, dass ein 7×7-Loader bis zur Warnung etwa **2 ms** und bis zur Sperre etwa **5 ms** Tick-Zeit kostet (gemessen auf einem kleinen Server: rund 0,085 ms pro geladenem Loader-Chunk mit Farmen). Redstone, Trichter und Kolben sind großzügiger, damit normale Farmen und Sortieranlagen laufen. Auf einem stärkeren Server kannst du alles in `lag-protection.limits` erhöhen.
 
 Alle Grenzen stehen unter `lag-protection.limits` und `lag-protection.small-loaders.limits`, für wie viele Chunks sie gelten unter `lag-protection.limits-per-chunks` (49) und bis zu welcher Größe die festen gelten unter `lag-protection.small-loaders.max-chunks` (9). `0` schaltet eine Messung ab. Alle Grenzen werden auf ganze Zahlen gerundet.
+
+### Eigene Grenzen für einen Loader
+
+Braucht eine einzelne Farm mehr Luft (oder soll ein Loader strenger sein), legt das Team in der MRadmin-Weboberfläche **dauerhaft eigene Grenzen nur für diesen Loader** fest: Funktionen → Chunkloader → Loader öffnen → **Grenzen anpassen**. Pro Messwert gibt es eine Warn- und eine Sperrgrenze; ein leeres Feld nimmt den Wert aus der Config, `0` schaltet die Messung für diesen Loader ab. Die nächste Messung nutzt die neuen Grenzen, die Kachel zeigt dann „eigene Grenzen“. **Wie in der Config** nimmt sie wieder zurück. Recht: `mrchunks.admin.limits` (in `mrchunks.groups.admin`); die Änderung steht im Protokoll und im Discord-Log (`loader-limits`).
 
 ## Was passiert
 - **Über „Warnung“:** Der Loader taucht in `/mrchunks lag` auf (und in MRadmin), dazu ein Discord-Log. Sonst passiert nichts.

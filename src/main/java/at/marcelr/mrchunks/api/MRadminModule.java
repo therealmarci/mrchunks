@@ -63,6 +63,10 @@ final class MRadminModule implements AdminModule, WebModule {
     /** Ticket category of lag locks and the web push kind about them. */
     private static final String LOCK_KIND = "chunkloader-lock";
     private static final String PUSH_LOCKED = "chunks-locked";
+    /** Team notice: a loader was switched off by the staged shutdown (MRadmin API 15). */
+    static final String PUSH_SHED = "chunks-shed";
+    /** MRadmin takes team notices since API 15. */
+    private static final int NOTICE_API = 15;
     /** MRadmin keeps the measurements for the charts since API 6. */
     private static final int HISTORY_API = 6;
     /** MRadmin draws the web map since API 7. */
@@ -310,12 +314,14 @@ final class MRadminModule implements AdminModule, WebModule {
             Map.entry("link", "mrchunks.admin.link"), Map.entry("resize", "mrchunks.admin.resize"),
             Map.entry("toggleConspicuous", "mrchunks.admin.toggle.conspicuous"), Map.entry("pause", "mrchunks.admin.pause"),
             Map.entry("monitoring", "mrchunks.admin.monitoring"), Map.entry("suspendLock", "mrchunks.admin.suspendlock"),
-            Map.entry("live", "mrchunks.admin.live"));
+            Map.entry("live", "mrchunks.admin.live"), Map.entry("limits", "mrchunks.admin.limits"));
     private static final Map<String, String> REQUESTS = Map.of("loaderLive", "live");
-    private static final Map<String, String> ACTIONS = Map.of(
-            "toggle", "toggle", "unlock", "manage", "delete", "manage", "dummy", "manage", "resize", "resize",
-            "conspicuousToggle", "toggleConspicuous", "conspicuousDummy", "toggleConspicuous",
-            "pauseAll", "pause", "monitoring", "monitoring", "suspendLock", "suspendLock");
+    private static final Map<String, String> ACTIONS = Map.ofEntries(
+            Map.entry("toggle", "toggle"), Map.entry("unlock", "manage"), Map.entry("delete", "manage"),
+            Map.entry("dummy", "manage"), Map.entry("resize", "resize"),
+            Map.entry("conspicuousToggle", "toggleConspicuous"), Map.entry("conspicuousDummy", "toggleConspicuous"),
+            Map.entry("pauseAll", "pause"), Map.entry("monitoring", "monitoring"), Map.entry("suspendLock", "suspendLock"),
+            Map.entry("limits", "limits"));
     private static final Map<String, String> PLAYER_ACTIONS = Map.of(
             "limit", "limit", "ban", "ban", "unban", "ban", "deleteAll", "manage", "unlink", "link", "link", "link");
 
@@ -420,7 +426,9 @@ final class MRadminModule implements AdminModule, WebModule {
     public List<WebPushKind> pushKinds() {
         var messages = plugin.messages();
         return List.of(messages.server(() -> new WebPushKind(PUSH_LOCKED, messages.plain("web-push-locked"),
-                messages.plain("web-push-locked-hint"), "🔒", true)));
+                messages.plain("web-push-locked-hint"), "🔒", true)),
+                messages.server(() -> new WebPushKind(PUSH_SHED, messages.plain("web-push-shed"),
+                        messages.plain("web-push-shed-hint"), "🐢", false)));
     }
 
     @Override
@@ -546,5 +554,27 @@ final class MRadminModule implements AdminModule, WebModule {
         if (service != null) {
             service.adminLog(ID, text);
         }
+    }
+
+    /** A team notice in MRadmin's inbox, push and game line (API 15). */
+    static void teamNotice(String kind, String ref, String link, java.util.function.Function<String, String[]> texts) {
+        MRadminService service = MRadminService.get();
+        if (service != null && service.apiVersion() >= NOTICE_API) {
+            service.teamNotice(ID, kind, ref, link, texts);
+        }
+    }
+
+    /** The team notices about {@code ref} are done (API 15). */
+    static void teamNoticeDone(String ref) {
+        MRadminService service = MRadminService.get();
+        if (service != null && service.apiVersion() >= NOTICE_API) {
+            service.teamNoticeDone(ID, ref);
+        }
+    }
+
+    /** Whether the member wants this kind in the game (choice in MRadmin, not muted); true before API 15. */
+    static boolean teamInGame(java.util.UUID player, String kind) {
+        MRadminService service = MRadminService.get();
+        return service == null || service.apiVersion() < NOTICE_API || service.teamNoticeInGame(player, kind);
     }
 }

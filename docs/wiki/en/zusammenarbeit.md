@@ -12,6 +12,7 @@ MRchunks runs **on its own**. Together with other MRtechnology plugins it can do
 | Chunk loaders on the map of the player page | MRadmin |
 | Dummy players do not count as players for MRsleep, MRadmin and MRpvp | nothing |
 | Events in the **log** of the MRadmin web interface, Discord log via MRadmin's webhook (`discord.use-mradmin-webhook`) | MRadmin |
+| **Team notices** on lock and lag shutdown in the inbox, as push and in the game - everyone chooses where under Account → Notifications; `/mradmin mute` mutes the messages in the game | MRadmin |
 
 ## Several worlds (Multiverse)
 Chunk loaders work in every world, also in additional Multiverse worlds. When a world is unloaded, its loaders rest and continue by themselves the next time it is loaded. A dummy player does not block unloading: with `/mv unload <world> --remove-players` it leaves the world and sits back on its loader when the world is loaded.

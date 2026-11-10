@@ -534,6 +534,7 @@ sections:
           loader-lag-warning: {de: "Loader auffällig", en: "Loader suspicious"}
           loader-lag-locked: {de: Wegen Lag gesperrt, en: Locked for lag}
           loader-lag-unlocked: {de: Lag-Sperre aufgehoben, en: Lag lock lifted}
+          loader-limits: {de: Eigene Grenzen gesetzt, en: Own limits set}
           loader-lock-suspended: {de: Sperre ausgesetzt, en: Lock suspended}
           loader-lock-suspension-ended: {de: Sperre gilt wieder, en: Lock applies again}
           server-paused: {de: Server-Pause, en: Server pause}
@@ -566,11 +567,11 @@ sections:
         options:
           - {value: github, de: GitHub, en: GitHub}
           - {value: modrinth, de: Modrinth, en: Modrinth}
-      - key: updates.include-prereleases
+      - key: updates.beta
         type: bool
         when: updates.enabled
-        name: {de: Auch Vorabversionen, en: Pre-releases too}
-        help: {de: "Läuft eine Vorabversion (0.x), werden sie immer gemeldet.", en: "When a pre-release (0.x) runs they are always reported."}
+        name: {de: Auch Betas, en: Betas too}
+        help: {de: "Meldet auch Beta-Versionen (BET-…). Läuft eine 0.x-Beta, werden sie immer gemeldet.", en: "Also reports beta versions (BET-...). While a 0.x beta runs they are always reported."}
       - key: updates.interval-hours
         type: int
         when: updates.enabled

@@ -84,6 +84,8 @@ public final class LoaderManager {
     private final Map<Integer, LagLock> lagLocks = new HashMap<>();
     /** loader id -> admins suspended its lock for exceeding the limits; saved, ends by itself */
     private final Map<Integer, LockSuspension> lockSuspensions = new HashMap<>();
+    /** loader id -> limits the team set for just this loader (metric -> {warn, lock}); replace the config's */
+    private final Map<Integer, Map<Metric, double[]>> limitOverrides = new HashMap<>();
 
     /** A switch the team flipped in the web interface: who and since when (ms). */
     public record Switch(String by, long since) {
@@ -286,6 +288,7 @@ public final class LoaderManager {
         loaderMembers.remove(loader.id());
         lagLocks.remove(loader.id());
         lockSuspensions.remove(loader.id());
+        limitOverrides.remove(loader.id());
         shed.remove(loader.id());
         plugin.border().loaderRemoved(loader);
         World world = loader.world();
@@ -465,6 +468,43 @@ public final class LoaderManager {
             save();
         }
         return removed;
+    }
+
+    // ------------------------------------------------- limits per loader
+
+    /**
+     * The lag limits of this loader: those of the config for its size (lag-protection.limits / small-loaders), with
+     * the values the team set for just this loader on top (web interface, mrchunks.admin.limits).
+     */
+    public at.marcelr.mrchunks.lag.LagLimits limitsFor(Loader loader) {
+        at.marcelr.mrchunks.lag.LagLimits base = plugin.settings().lag().limitsFor(loader.area());
+        Map<Metric, double[]> own = limitOverrides.get(loader.id());
+        if (own == null || own.isEmpty()) {
+            return base;
+        }
+        Map<Metric, Double> warn = new java.util.EnumMap<>(Metric.class);
+        Map<Metric, Double> lock = new java.util.EnumMap<>(Metric.class);
+        for (Metric metric : Metric.values()) {
+            double[] v = own.get(metric);
+            warn.put(metric, v != null ? v[0] : base.warn(metric));
+            lock.put(metric, v != null ? v[1] : base.lock(metric));
+        }
+        return new at.marcelr.mrchunks.lag.LagLimits(warn, lock);
+    }
+
+    /** The limits the team set for just this loader (metric -> {warn, lock}), empty = those of the config. */
+    public Map<Metric, double[]> limitOverrides(Loader loader) {
+        return Map.copyOf(limitOverrides.getOrDefault(loader.id(), Map.of()));
+    }
+
+    /** Sets the own limits of a loader (replaces all; empty = back to the config). */
+    public void setLimitOverrides(Loader loader, Map<Metric, double[]> own) {
+        if (own.isEmpty()) {
+            limitOverrides.remove(loader.id());
+        } else {
+            limitOverrides.put(loader.id(), new java.util.EnumMap<>(own));
+        }
+        save();
     }
 
     // ------------------------------------------------- lock suspensions
@@ -1195,6 +1235,7 @@ public final class LoaderManager {
         ownerMembers.clear();
         lagLocks.clear();
         lockSuspensions.clear();
+        limitOverrides.clear();
         adminPause = null;
         monitoringOff = null;
         nextId = 1;
@@ -1291,6 +1332,26 @@ public final class LoaderManager {
                 try {
                     lockSuspensions.put(Integer.parseInt(key), new LockSuspension(suspensionSection.getLong(key + ".until"),
                             suspensionSection.getString(key + ".by", "?")));
+                } catch (NumberFormatException ignored) {
+                    // broken entry
+                }
+            }
+        }
+        ConfigurationSection limitSection = data.getConfigurationSection("limit-overrides");
+        if (limitSection != null) {
+            for (String key : limitSection.getKeys(false)) {
+                try {
+                    Map<Metric, double[]> own = new java.util.EnumMap<>(Metric.class);
+                    ConfigurationSection s = limitSection.getConfigurationSection(key);
+                    for (String metricKey : s == null ? Set.<String>of() : s.getKeys(false)) {
+                        Metric metric = Metric.byKey(metricKey);
+                        if (metric != null) {
+                            own.put(metric, new double[]{s.getDouble(metricKey + ".warn"), s.getDouble(metricKey + ".lock")});
+                        }
+                    }
+                    if (!own.isEmpty()) {
+                        limitOverrides.put(Integer.parseInt(key), own);
+                    }
                 } catch (NumberFormatException ignored) {
                     // broken entry
                 }
@@ -1443,6 +1504,12 @@ public final class LoaderManager {
         lockSuspensions.forEach((id, suspension) -> {
             data.set("lock-suspensions." + id + ".until", suspension.until());
             data.set("lock-suspensions." + id + ".by", suspension.by());
+        });
+        limitOverrides.forEach((id, own) -> {
+            own.forEach((metric, v) -> {
+                data.set("limit-overrides." + id + "." + metric.key() + ".warn", v[0]);
+                data.set("limit-overrides." + id + "." + metric.key() + ".lock", v[1]);
+            });
         });
         bans.forEach((uuid, ban) -> {
             data.set("bans." + uuid + ".until", ban.until());

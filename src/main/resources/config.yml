@@ -16,7 +16,7 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 31
+config-version: 33
 
 
 # ------------------------------------------------------------------------------
@@ -216,7 +216,7 @@ lag-protection:
   small-loaders:
     max-chunks: 9
     limits:
-      entities: { warn: 40, lock: 100 }
+      entities: { warn: 60, lock: 150 }
       items: { warn: 60, lock: 200 }
       redstone: { warn: 150, lock: 600 }
       hoppers: { warn: 100, lock: 400 }
@@ -409,6 +409,9 @@ discord:
     loader-lag-unlocked:
       enabled: true
       color: "#27AE60"
+    loader-limits:
+      enabled: true
+      color: "#3498DB"
     loader-lock-suspended:
       enabled: true
       color: "#3498DB"
@@ -466,8 +469,8 @@ updates:
   enabled: true
   # Source: "github" (GitHub Releases, default) or "modrinth"
   source: github
-  # Also report beta/alpha versions. If a pre-release (0.x) is running, they are always reported.
-  include-prereleases: false
+  # Also report beta versions (BET-...); while a 0.x beta runs they are always reported.
+  beta: false
   interval-hours: 6
   # Notify players with "mrchunks.admin.update" when they join the server.
   notify-on-join: true

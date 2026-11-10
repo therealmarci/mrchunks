@@ -245,7 +245,7 @@ final class SelfPage {
         if (a == null || !loader.active()) {
             return List.of();
         }
-        LagLimits limits = plugin.settings().lag().limitsFor(loader.area());
+        LagLimits limits = plugin.loaders().limitsFor(loader);
         Metric worst = a.worst();
         double value = a.value(worst);
         double warn = limits.warn(worst);
@@ -271,7 +271,7 @@ final class SelfPage {
         if (a == null) {
             return new SelfBlock.Text(m.plain("self-limits-none"), "info");
         }
-        LagLimits limits = plugin.settings().lag().limitsFor(loader.area());
+        LagLimits limits = plugin.loaders().limitsFor(loader);
         List<SelfBlock.Meter> meters = new ArrayList<>();
         for (Metric metric : Metric.values()) {
             double warn = limits.warn(metric);

@@ -57,6 +57,8 @@ mrchunks.admin.monitoring:
   de: "Gestaffelte Abschaltung samt harter Grenze aus- und einschalten (MRadmin-Weboberfläche)"
 mrchunks.admin.live:
   de: "[Live-Ansicht](lag-schutz.md#live-ansicht-mradmin) eines Loaders in der MRadmin-Weboberfläche"
+mrchunks.admin.limits:
+  de: "Lag-Grenzen (Warnung und Sperre je Messwert) eines einzelnen Chunkloaders dauerhaft festlegen - statt der aus der Config (MRadmin-Weboberfläche)"
 mrchunks.admin.suspendlock:
   de: "[Limit-Sperre](lag-schutz.md#limit-sperre-aussetzen) eines einzelnen Loaders aussetzen, höchstens 24 Stunden (im Spiel und in der MRadmin-Weboberfläche)"
 mrchunks.admin.discord:

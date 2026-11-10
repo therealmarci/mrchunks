@@ -34,6 +34,7 @@ discord:
   loader-lag-warning: "⚠️ **{name}** of **{player}** is conspicuous: {metric} {value} (warn limit {limit}) - {world} {x}, {y}, {z}"
   loader-lag-locked: "🔒 **{name}** of **{player}** was locked because of lag: {metric} {value} (limit {limit}) - {world} {x}, {y}, {z}"
   loader-lag-unlocked: "🔓 **{admin}** lifted the lag lock of **{name}** ({player})."
+  loader-limits: "📏 **{admin}** changed the lag limits of **{name}** ({player}): {limits}"
   loader-lock-suspended: "⏳ **{admin}** suspended the limit lock of **{name}** ({player}) for {time}."
   loader-lock-suspension-ended: "⌛ The limit lock of **{name}** ({player}) applies again."
   server-paused: "⏸️ The server is lagging ({value} TPS) - all chunk loaders are paused ({count} chunks released)."
@@ -606,8 +607,16 @@ web-tile-chunks: "Loaded chunks"
 web-tile-headline: "<active> chunk loaders active"
 web-tile-link: "Go to the chunk loaders"
 # Kind of push notification in MRadmin (name and explanation)
+limits-config: "as in the config"
 web-push-locked: "Locked chunk loaders"
 web-push-locked-hint: "MRchunks locks a chunk loader because of lag."
+web-push-shed: "Lag protection of the chunk loaders"
+web-push-shed-hint: "Switched off for lag, server pause, lag warning and pause of all loaders."
+# Team notices in MRadmin (inbox, push, game) - plain text. <name> <player> <mspt> <load> <count> <chunks>
+notice-shed-title: "Switched off for lag: <name>"
+notice-shed-body: "Chunk loader of <player> - server at <mspt> ms, load <load> % (<count>× in a short time)."
+notice-shed-hard-title: "All <count> chunk loaders switched off for lag"
+notice-shed-hard-body: "Server at <mspt> ms - <chunks> chunks released. They come back one by one."
 # Ticket category in MRadmin for lag locks
 report-lock-category: "Chunk loader lock"
 mradmin-summary:

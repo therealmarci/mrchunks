@@ -215,7 +215,7 @@ public record Settings(
         UpdateSettings update = new UpdateSettings(
                 c.getBoolean("updates.enabled", true),
                 source,
-                c.getBoolean("updates.include-prereleases", false),
+                c.getBoolean("updates.beta", false),
                 Math.max(1, c.getInt("updates.interval-hours", 6)),
                 c.getBoolean("updates.notify-on-join", true));
 

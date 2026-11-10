@@ -121,6 +121,50 @@ public final class MRadminLink implements Listener {
         }
     }
 
+    /** Kind of the team notice "loader switched off by lag" and of the lock notice (MRadmin's choices). */
+    public static final String NOTICE_SHED = "chunks-shed";
+    public static final String NOTICE_LOCKED = "chunks-locked";
+
+    /**
+     * A team notice through MRadmin (inbox, push, game line; API 15): {@code texts} gives {title, body} for a language
+     * code. Nothing without MRadmin.
+     */
+    public void teamNotice(String kind, String ref, String link, java.util.function.Function<String, String[]> texts) {
+        if (connected) {
+            try {
+                MRadminModule.teamNotice(kind, ref, link, texts);
+            } catch (LinkageError | RuntimeException e) {
+                plugin.getLogger().warning("Could not send a team notice to MRadmin: " + e);
+            }
+        }
+    }
+
+    /** The team notices about {@code ref} are settled (e.g. the loader is back). */
+    public void teamNoticeDone(String ref) {
+        if (connected) {
+            try {
+                MRadminModule.teamNoticeDone(ref);
+            } catch (LinkageError | RuntimeException e) {
+                plugin.getLogger().warning("Could not update a team notice in MRadmin: " + e);
+            }
+        }
+    }
+
+    /**
+     * Whether this team member wants messages of this kind in the game - their choice in MRadmin and not muted with
+     * /mradmin mute. Always true without MRadmin.
+     */
+    public boolean teamInGame(org.bukkit.entity.Player player, String kind) {
+        if (connected) {
+            try {
+                return MRadminModule.teamInGame(player.getUniqueId(), kind);
+            } catch (LinkageError | RuntimeException e) {
+                return true;
+            }
+        }
+        return true;
+    }
+
     /** Into MRadmin's Discord admin log. @return false without MRadmin */
     public boolean adminLog(String text) {
         if (connected) {

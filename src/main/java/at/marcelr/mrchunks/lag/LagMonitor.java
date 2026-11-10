@@ -359,7 +359,7 @@ public final class LagMonitor implements Listener {
                 values.put(metric, c == null ? 0 : c[metric.ordinal()] / seconds);
             }
         }
-        return Activity.of(values, settings().limitsFor(loader.area()), now, loaded, loader.area());
+        return Activity.of(values, plugin.loaders().limitsFor(loader), now, loaded, loader.area());
     }
 
     /** One loader over a lock limit often enough: lock it. Over a warn limit: a note in Discord (at most hourly). */
@@ -384,7 +384,7 @@ public final class LagMonitor implements Listener {
             Metric metric = a.worst();
             plugin.discord().log("loader-lag-warning", plugin.adminActions().discordTags(loader,
                     "metric", plugin.messages().plain("lag-metric-" + metric.key()),
-                    "value", format(a.value(metric)), "limit", format(s.limitsFor(loader.area()).warn(metric))));
+                    "value", format(a.value(metric)), "limit", format(plugin.loaders().limitsFor(loader).warn(metric))));
         }
     }
 
@@ -398,13 +398,13 @@ public final class LagMonitor implements Listener {
         long now = System.currentTimeMillis();
         Activity a = activity.get(loader.id());
         if (a == null) {
-            a = Activity.of(java.util.Map.of(), settings().limitsFor(loader.area()), now, 0, loader.area());
+            a = Activity.of(java.util.Map.of(), plugin.loaders().limitsFor(loader), now, 0, loader.area());
         }
         lock(loader, a, now, shutdowns);
     }
 
     private void lock(Loader loader, Activity a, long now, int shutdowns) {
-        LagLimits limits = settings().limitsFor(loader.area());
+        LagLimits limits = plugin.loaders().limitsFor(loader);
         // The metric that is furthest over its lock limit.
         Metric metric = a.worst();
         double best = -1;
@@ -430,7 +430,8 @@ public final class LagMonitor implements Listener {
         var teleport = Messages.lazy("teleport", () -> messages.get("lag-teleport-label").clickEvent(
                 ClickEvent.runCommand("/mrchunks tp " + LoaderManager.name(loader.owner()) + " " + loader.number())));
         for (Player staff : Bukkit.getOnlinePlayers()) {
-            if (staff.hasPermission(AdminActions.PERM_MANAGE) && !staff.equals(owner)) {
+            if (staff.hasPermission(AdminActions.PERM_MANAGE) && !staff.equals(owner)
+                    && plugin.mradmin().teamInGame(staff, at.marcelr.mrchunks.api.MRadminLink.NOTICE_LOCKED)) {
                 messages.send(staff, kind + "staff", tags, teleport);
             }
         }
@@ -450,7 +451,7 @@ public final class LagMonitor implements Listener {
     /** The lock as readable plain text (several lines): loader, time, reason, all measured values, server state. */
     private String details(Loader loader, LagLock lock, Activity a) {
         Messages messages = plugin.messages();
-        LagLimits limits = settings().limitsFor(loader.area());
+        LagLimits limits = plugin.loaders().limitsFor(loader);
         List<String> lines = new ArrayList<>();
         if (lock.repeated()) {
             lines.add(PLAIN.serialize(messages.get("lock-details-repeat", tags(loader, lock))));

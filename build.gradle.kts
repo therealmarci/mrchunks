@@ -8,20 +8,24 @@ plugins {
 
 group = "at.marcelr"
 
-// Versionen kommen aus gradle.properties: "version" ist die Plugin-Version (SemVer), "mcVersion" die
-// Minecraft-Version dieses Branches. Veröffentlicht wird beides zusammen, z.B. "mc26.3-v1.2.0".
+// Versionen kommen aus gradle.properties: "version" ist die Plugin-Version (STA-1.4.0-bu001 bzw. BET-..., siehe
+// docs/RELEASES.md; ältere Versionen "1.3.1"), "mcVersion" die
+// Minecraft-Version dieses Branches. Veröffentlicht wird beides zusammen, z.B. "mc26.3-STA-1.4.0-bu001".
 val pluginVersion = project.version.toString()
 val mcVersion = providers.gradleProperty("mcVersion").get()
 val paperApi = providers.gradleProperty("paperApi").get()
 val mradminApi = providers.gradleProperty("mradminApi").get()
-version = "mc$mcVersion-v$pluginVersion"
+val newScheme = Regex("(?i)^(STA|BET)-.+").matches(pluginVersion)
+version = if (newScheme) "mc$mcVersion-$pluginVersion" else "mc$mcVersion-v$pluginVersion"
 
 val modrinthProjectId = providers.gradleProperty("modrinthProjectId").get()
 val githubRepository = providers.gradleProperty("githubRepository").get()
 val website = providers.gradleProperty("website").get()
 val websiteSlug = providers.gradleProperty("websiteSlug").get()
 val supportedGameVersions = providers.gradleProperty("supportedGameVersions").get()
-val isPrerelease = pluginVersion.let { it.startsWith("0.") || it.contains("-") }
+// BET = Beta; ältere Versionen: 0.x und Versionen mit Suffix (1.1.0-rc.1)
+val isPrerelease = if (newScheme) pluginVersion.startsWith("BET", ignoreCase = true)
+    else pluginVersion.let { it.startsWith("0.") || it.contains("-") }
 
 repositories {
     // Lokal gebaute MRadmin-API (gradlew :api:publishToMavenLocal in MRadmin) hat Vorrang vor JitPack.
@@ -41,6 +45,8 @@ dependencies {
     // Optional: MRadmin (Modul-API). Nur zum Kompilieren - zur Laufzeit kommen die Klassen aus MRadmin, und nur wenn es
     // installiert ist (siehe api/MRadminLink).
     compileOnly("com.github.therealmarci:mradmin:$mradminApi")
+    // Optional: loads the LuckPerms user of a dummy before it joins (chat and tab plugins ask for it).
+    compileOnly("net.luckperms:api:5.5")
 
     // Für den Test des Web-Formulars der config.yml (YamlConfiguration).
     testImplementation("io.papermc.paper:paper-api:$paperApi")
@@ -64,6 +70,15 @@ tasks.withType<JavaCompile>().configureEach {
     options.compilerArgs.addAll(listOf("-Xlint:deprecation", "-Xlint:unchecked"))
 }
 
+// Commit and branch of this build, for MRadmin's plugin page (dev channel, "Dev <commit>"): from GitHub Actions,
+// otherwise from the local git - so a local test build is recognised as a dev state and does not look like the last
+// release. Empty without git.
+fun git(vararg args: String): String = runCatching {
+    providers.exec { commandLine("git", *args); isIgnoreExitValue = true }.standardOutput.asText.get().trim()
+}.getOrDefault("")
+val gitCommit: String = System.getenv("GITHUB_SHA") ?: git("rev-parse", "HEAD")
+val gitBranch: String = System.getenv("GITHUB_REF_NAME") ?: git("rev-parse", "--abbrev-ref", "HEAD")
+
 tasks.processResources {
     val props = mapOf(
         // In der plugin.yml als SemVer mit Build-Info ("1.2.0+mc26.3"), weil Paper selbst ein "v" davorsetzt.
@@ -74,6 +89,8 @@ tasks.processResources {
         "githubRepository" to githubRepository,
         "website" to website,
         "websiteSlug" to websiteSlug,
+        "gitCommit" to gitCommit,
+        "gitBranch" to gitBranch,
     )
     inputs.properties(props)
     filteringCharset = "UTF-8"

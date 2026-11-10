@@ -55,7 +55,7 @@ public record LagLimits(Map<Metric, Double> warn, Map<Metric, Double> lock) {
     public static LagLimits smallDefaults() {
         Map<Metric, Double> warn = new EnumMap<>(Metric.class);
         Map<Metric, Double> lock = new EnumMap<>(Metric.class);
-        put(warn, lock, Metric.ENTITIES, 40, 100);
+        put(warn, lock, Metric.ENTITIES, 60, 150);
         put(warn, lock, Metric.ITEMS, 60, 200);
         put(warn, lock, Metric.REDSTONE, 150, 600);
         put(warn, lock, Metric.HOPPERS, 100, 400);

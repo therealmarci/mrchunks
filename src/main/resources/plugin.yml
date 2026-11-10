@@ -2,7 +2,7 @@ name: MRchunks
 version: '${version}'
 main: at.marcelr.mrchunks.MRChunks
 api-version: '${mcVersion}'
-softdepend: [MRadmin]
+softdepend: [MRadmin, LuckPerms]
 author: _therealmarci
 website: ${website}/docs/${websiteSlug}/
 description: Chunk loader blocks with a chunk budget and free sizes, menus, admin GUI, Discord logs and a layer on the web map (via MRadmin).
@@ -65,6 +65,7 @@ permissions:
       mrchunks.admin.pause: true
       mrchunks.admin.monitoring: true
       mrchunks.admin.suspendlock: true
+      mrchunks.admin.limits: true
 
   # ------------------------------------------------------------------ Single permissions
   mrchunks.version:
@@ -148,6 +149,9 @@ permissions:
     default: op
   mrchunks.admin.suspendlock:
     description: "Suspend the lock for exceeding the limits for a single chunk loader, at most 24 hours (loader menu, MRadmin web interface, /mrchunks suspendlock)."
+    default: op
+  mrchunks.admin.limits:
+    description: "Set the lag limits (warn and lock per metric) of a single chunk loader for good - instead of those of the config (MRadmin web interface)."
     default: op
   mrchunks.admin.discord:
     description: /mrchunks discord [test]

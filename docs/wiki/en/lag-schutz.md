@@ -10,19 +10,23 @@ Every 20 seconds MRchunks measures what happens in the area of every **active** 
 ## Limits
 | Measurement | What is counted | Warn up to 3×3 | Lock up to 3×3 | Warn (per 49 chunks) | Lock (per 49 chunks) |
 |---|---|---|---|---|---|
-| `entities` | Mobs, animals, minecarts, items … | 40 | 100 | 100 | 250 |
+| `entities` | Mobs, animals, minecarts, items … | 60 | 150 | 100 | 250 |
 | `items` | Items on the ground | 60 | 200 | 150 | 500 |
 | `redstone` | Redstone changes per second | 150 | 600 | 500 | 2000 |
 | `hoppers` | Hopper transfers per second | 100 | 400 | 300 | 1200 |
 | `pistons` | Piston moves per second | 15 | 50 | 40 | 150 |
 | `spawns` | New mobs and items per second | 6 | 20 | 15 | 50 |
 
-**Example entities (lock):** a 3×3 loader 100, a 5×5 loader 128 (250 × 25/49), a 7×7 loader 250, a 9×9 loader 413 (250 × 81/49).
+**Example entities (lock):** a 3×3 loader 150, a 5×5 loader also 150 (250 × 25/49 = 128, but never below the 3×3 value), a 7×7 loader 250, a 9×9 loader 413 (250 × 81/49).
 
 > [!NOTE]
 > The limits for entities, items and spawns are calculated so that a 7×7 loader costs about **2 ms** of tick time up to the warning and about **5 ms** up to the lock (measured on a small server: roughly 0.085 ms per loaded loader chunk with farms). Redstone, hoppers and pistons are more generous so that normal farms and sorting systems run. On a stronger server you can raise everything in `lag-protection.limits`.
 
 All limits are under `lag-protection.limits` and `lag-protection.small-loaders.limits`, how many chunks they apply to under `lag-protection.limits-per-chunks` (49) and up to which size the fixed ones apply under `lag-protection.small-loaders.max-chunks` (9). `0` turns a measurement off. All limits are rounded to whole numbers.
+
+### Own limits for one loader
+
+If a single farm needs more room (or a loader should be stricter), the team sets **own limits for just this loader, for good** in the MRadmin web interface: Features → Chunk loaders → open the loader → **Adjust limits**. There is a warn and a lock limit per metric; an empty field takes the value of the config, `0` switches the metric off for this loader. The next measurement uses the new limits, the tile then shows "own limits". **As in the config** takes them back. Permission: `mrchunks.admin.limits` (in `mrchunks.groups.admin`); the change is in the log and the Discord log (`loader-limits`).
 
 ## What happens
 - **Above "warn":** the loader shows up in `/mrchunks lag` (and in MRadmin), plus a Discord log. Nothing else happens.
