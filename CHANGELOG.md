@@ -10,7 +10,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 ## [Unveröffentlicht]
 
 ### Neu
+- **Eigene Grenzen pro Chunkloader:** Das Team legt in der MRadmin-Weboberfläche (Loader öffnen → **Grenzen anpassen**) für einen einzelnen Loader dauerhaft eigene Warn- und Sperrgrenzen pro Messwert fest - leeres Feld = Wert aus der Config, `0` = nicht prüfen, **Wie in der Config** nimmt sie zurück. Gilt ab der nächsten Messung, auch im Spiel-Menü und auf der Spielerseite. Neue Permission `mrchunks.admin.limits` (in `mrchunks.groups.admin`), Discord-/Protokoll-Ereignis `loader-limits`.
 - **Team-Meldungen in MRadmin:** Schaltet die gestaffelte Abschaltung einen Chunkloader (oder alle) wegen Lags ab, landet das als Team-Meldung „Chunkloader wegen Lags abgeschaltet“ (`chunks-shed`) im Posteingang der MRadmin-Weboberfläche und auf Wunsch als Push; kommt der Loader zurück, wird sie als erledigt markiert. Die Hinweise an das Team im Spiel (Sperre, Abschaltung, Warnung) richten sich jetzt nach der Wahl „Im Spiel“ unter Konto → Benachrichtigungen und nach `/mradmin mute` - ebenso der Update-Hinweis beim Betreten (Art „Update verfügbar“). Braucht MRadmin mit Modul-API 15.
+
+### Behoben & geändert
+- **Mehr Luft für kleine Farmen:** Die Entity-Grenzen für Loader bis 3×3 steigen von 40 / 100 auf **60 / 150** (Warnung / Sperre); ersetzt wird nur der alte Standard (`config-version` 32).
+- **Dummy-Spieler und LuckPerms:** Dummys lösten bei Chat- und Tab-Plugins (z.B. ChatEx, TAB) „Unable to get a user“ aus, weil LuckPerms Nutzer nur beim echten Einloggen lädt. MRchunks lädt den LuckPerms-Nutzer jetzt vor dem Erscheinen des Dummys.
 
 ## [BET-1.2.3-bu001] - 2026-11-08
 

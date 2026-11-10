@@ -50,7 +50,7 @@ public final class LoaderIcons {
                 item.lore(messages.lore("gui-loader-warn",
                         tag("metric", messages.plain("lag-metric-" + a.worst().key())),
                         tag("value", LagMonitor.format(a.value(a.worst()))),
-                        tag("limit", LagMonitor.format(plugin.settings().lag().limitsFor(loader.area()).warn(a.worst())))));
+                        tag("limit", LagMonitor.format(plugin.loaders().limitsFor(loader).warn(a.worst())))));
             }
             default -> {
             }
@@ -80,7 +80,7 @@ public final class LoaderIcons {
             return List.of(messages.item(loader.active() ? "gui-activity-unknown"
                     : plugin.loaders().lagLocked(loader) ? "gui-activity-locked-unknown" : "gui-activity-off"));
         }
-        LagLimits limits = plugin.settings().lag().limitsFor(loader.area());
+        LagLimits limits = plugin.loaders().limitsFor(loader);
         boolean locked = plugin.loaders().lagLocked(loader);
         List<Component> lines = new ArrayList<>();
         boolean high = a.lockRatio() >= 1;

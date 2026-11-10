@@ -264,7 +264,7 @@ public final class MRChunksCommand implements TabExecutor {
                 messages().send(sender, "lag-list-entry", Texts.loader(plugin, loader),
                         tag("metric", messages().plain("lag-metric-" + metric.key())),
                         tag("value", at.marcelr.mrchunks.lag.LagMonitor.format(activity.value(metric))),
-                        tag("limit", at.marcelr.mrchunks.lag.LagMonitor.format(plugin.settings().lag().limitsFor(loader.area()).warn(metric))));
+                        tag("limit", at.marcelr.mrchunks.lag.LagMonitor.format(plugin.loaders().limitsFor(loader).warn(metric))));
             }
         }
     }

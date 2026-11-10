@@ -654,6 +654,26 @@ public final class AdminActions {
         return null;
     }
 
+    /**
+     * Sets the own lag limits of a loader for good (web interface, mrchunks.admin.limits); empty = back to the
+     * config. The next measurement already uses them.
+     */
+    public String webLimits(String admin, Loader loader, java.util.Map<at.marcelr.mrchunks.lag.Metric, double[]> own) {
+        if (own.isEmpty() && loaders().limitOverrides(loader).isEmpty()) {
+            return "limits-unchanged";
+        }
+        loaders().setLimitOverrides(loader, own);
+        String text = own.isEmpty() ? messages().server(() -> messages().plain("limits-config"))
+                : own.entrySet().stream().map(e -> messages().server(() -> messages().plain("lag-metric-" + e.getKey().key()))
+                        + " " + at.marcelr.mrchunks.lag.LagMonitor.format(e.getValue()[0]) + "/"
+                        + at.marcelr.mrchunks.lag.LagMonitor.format(e.getValue()[1])).collect(java.util.stream.Collectors.joining(", "));
+        plugin.getLogger().info(admin + " (web) set the lag limits of " + Texts.consoleName(plugin, loader) + ": "
+                + (own.isEmpty() ? "those of the config again" : own.entrySet().stream().map(e -> e.getKey().key() + " "
+                        + e.getValue()[0] + "/" + e.getValue()[1]).collect(java.util.stream.Collectors.joining(", "))) + ".");
+        plugin.discord().log("loader-limits", discordTags(loader, "admin", admin, "limits", text));
+        return null;
+    }
+
     /** Support (mrchunks.admin.toggle.conspicuous): only while the loader is conspicuous. */
     public String webConspicuousToggle(String admin, Loader loader) {
         return conspicuous(loader) ? webToggle(admin, loader) : "loader-not-conspicuous";

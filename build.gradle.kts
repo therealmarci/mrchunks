@@ -45,6 +45,8 @@ dependencies {
     // Optional: MRadmin (Modul-API). Nur zum Kompilieren - zur Laufzeit kommen die Klassen aus MRadmin, und nur wenn es
     // installiert ist (siehe api/MRadminLink).
     compileOnly("com.github.therealmarci:mradmin:$mradminApi")
+    // Optional: loads the LuckPerms user of a dummy before it joins (chat and tab plugins ask for it).
+    compileOnly("net.luckperms:api:5.5")
 
     // Für den Test des Web-Formulars der config.yml (YamlConfiguration).
     testImplementation("io.papermc.paper:paper-api:$paperApi")

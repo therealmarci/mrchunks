@@ -314,12 +314,14 @@ final class MRadminModule implements AdminModule, WebModule {
             Map.entry("link", "mrchunks.admin.link"), Map.entry("resize", "mrchunks.admin.resize"),
             Map.entry("toggleConspicuous", "mrchunks.admin.toggle.conspicuous"), Map.entry("pause", "mrchunks.admin.pause"),
             Map.entry("monitoring", "mrchunks.admin.monitoring"), Map.entry("suspendLock", "mrchunks.admin.suspendlock"),
-            Map.entry("live", "mrchunks.admin.live"));
+            Map.entry("live", "mrchunks.admin.live"), Map.entry("limits", "mrchunks.admin.limits"));
     private static final Map<String, String> REQUESTS = Map.of("loaderLive", "live");
-    private static final Map<String, String> ACTIONS = Map.of(
-            "toggle", "toggle", "unlock", "manage", "delete", "manage", "dummy", "manage", "resize", "resize",
-            "conspicuousToggle", "toggleConspicuous", "conspicuousDummy", "toggleConspicuous",
-            "pauseAll", "pause", "monitoring", "monitoring", "suspendLock", "suspendLock");
+    private static final Map<String, String> ACTIONS = Map.ofEntries(
+            Map.entry("toggle", "toggle"), Map.entry("unlock", "manage"), Map.entry("delete", "manage"),
+            Map.entry("dummy", "manage"), Map.entry("resize", "resize"),
+            Map.entry("conspicuousToggle", "toggleConspicuous"), Map.entry("conspicuousDummy", "toggleConspicuous"),
+            Map.entry("pauseAll", "pause"), Map.entry("monitoring", "monitoring"), Map.entry("suspendLock", "suspendLock"),
+            Map.entry("limits", "limits"));
     private static final Map<String, String> PLAYER_ACTIONS = Map.of(
             "limit", "limit", "ban", "ban", "unban", "ban", "deleteAll", "manage", "unlink", "link", "link", "link");
 

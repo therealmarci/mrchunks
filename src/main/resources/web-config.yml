@@ -534,6 +534,7 @@ sections:
           loader-lag-warning: {de: "Loader auffällig", en: "Loader suspicious"}
           loader-lag-locked: {de: Wegen Lag gesperrt, en: Locked for lag}
           loader-lag-unlocked: {de: Lag-Sperre aufgehoben, en: Lag lock lifted}
+          loader-limits: {de: Eigene Grenzen gesetzt, en: Own limits set}
           loader-lock-suspended: {de: Sperre ausgesetzt, en: Lock suspended}
           loader-lock-suspension-ended: {de: Sperre gilt wieder, en: Lock applies again}
           server-paused: {de: Server-Pause, en: Server pause}

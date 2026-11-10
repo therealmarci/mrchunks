@@ -36,6 +36,7 @@ import java.util.UUID;
  *  loaderLive {id}                  the live view of a loader; asking keeps it measured (see LagMonitor#live)
  *  action  {id, action, admin}      toggle | unlock | delete | dummy | resize {direction, delta}
  *                                   | suspendLock {duration in ms, 0 = end}  -> null or an error key
+ *                                   | limits {w_<metric>, l_<metric> (empty = config), reset}  -> null or an error key
  *  player  {uuid}                   one player: loaders, budget and dummy limit (with source), ban, invites, loaders shared with them,
  *                                   linked accounts (main, secondAccounts), dummies
  *  flags                            uuid -> marks for MRadmin's player list (chunks-locked, chunks-warn, chunks-banned)
@@ -369,7 +370,7 @@ final class WebData {
         if (a != null) {
             Metric worst = a.worst();
             m.put("worst", Map.of("metric", messages.plain("lag-metric-" + worst.key()), "value", a.value(worst),
-                    "warn", plugin.settings().lag().limitsFor(loader.area()).warn(worst)));
+                    "warn", plugin.loaders().limitsFor(loader).warn(worst)));
             // Load = share of the lock limit of the worst metric; the staged shutdown takes the highest first.
             m.put("load", Math.round(a.lockRatio() * 1000) / 1000.0);
             m.put("loadWarn", a.warnRatio() >= 1);
@@ -393,7 +394,7 @@ final class WebData {
             // A loader that is off has no current measurement: its tiles show the last one from the history.
             Activity a = plugin.lag().activity(loader);
             ActivityHistory.Point last = a == null ? plugin.lag().history().last(loader.id()) : null;
-            LagLimits limits = plugin.settings().lag().limitsFor(loader.area());
+            LagLimits limits = plugin.loaders().limitsFor(loader);
             List<Map<String, Object>> metrics = new ArrayList<>();
             for (Metric metric : Metric.values()) {
                 if (limits.warn(metric) > 0 || limits.lock(metric) > 0) {
@@ -403,6 +404,24 @@ final class WebData {
                 }
             }
             m.put("metrics", metrics);
+            // All metrics with the limits of the config and the own ones of this loader (editor of mrchunks.admin.limits).
+            LagLimits base = plugin.settings().lag().limitsFor(loader.area());
+            var own = plugin.loaders().limitOverrides(loader);
+            List<Map<String, Object>> all = new ArrayList<>();
+            for (Metric metric : Metric.values()) {
+                Map<String, Object> l = new LinkedHashMap<>();
+                l.put("key", metric.key());
+                l.put("label", messages.plain("lag-metric-" + metric.key()));
+                l.put("rate", metric.rate());
+                l.put("configWarn", base.warn(metric));
+                l.put("configLock", base.lock(metric));
+                l.put("warn", limits.warn(metric));
+                l.put("lock", limits.lock(metric));
+                l.put("own", own.containsKey(metric));
+                all.add(l);
+            }
+            m.put("limits", all);
+            m.put("ownLimits", !own.isEmpty());
             if (a != null) {
                 m.put("measured", a.time());
                 m.put("loadedChunks", a.loadedChunks());
@@ -497,6 +516,21 @@ final class WebData {
                 "until", until == Long.MAX_VALUE ? 0L : until, "scope", scope)));
     }
 
+    /** A number from the web form; empty or missing = null (the config's value), otherwise rounded to whole numbers
+     *  (rates with one decimal). Not a number = -1 (refused). */
+    private static Double number(Object raw) {
+        String text = raw == null ? "" : String.valueOf(raw).trim().replace(',', '.');
+        if (text.isEmpty() || text.equals("null")) {
+            return null;
+        }
+        try {
+            double value = Double.parseDouble(text);
+            return Double.isFinite(value) ? Math.round(value * 10) / 10.0 : -1.0;
+        } catch (NumberFormatException e) {
+            return -1.0;
+        }
+    }
+
     private static String action(MRChunks plugin, Map<?, ?> args) {
         // Server-wide switches (no loader): pause all loaders, staged shutdown on/off.
         boolean on = Boolean.parseBoolean(String.valueOf(args.get("on")));
@@ -534,6 +568,35 @@ final class WebData {
                     yield "invalid-duration";
                 }
                 yield plugin.adminActions().webSuspendLock(admin, loader, duration);
+            }
+            case "limits" -> {
+                if (Boolean.parseBoolean(String.valueOf(args.get("reset")))) {
+                    yield plugin.adminActions().webLimits(admin, loader, Map.of());
+                }
+                LagLimits base = plugin.settings().lag().limitsFor(loader.area());
+                Map<Metric, double[]> own = new java.util.EnumMap<>(Metric.class);
+                String problem = null;
+                for (Metric metric : Metric.values()) {
+                    Double warn = number(args.get("w_" + metric.key()));
+                    Double lock = number(args.get("l_" + metric.key()));
+                    if (warn == null && lock == null) {
+                        continue;
+                    }
+                    if ((warn != null && (warn < 0 || warn > 1_000_000)) || (lock != null && (lock < 0 || lock > 1_000_000))) {
+                        problem = "limits-invalid";
+                        break;
+                    }
+                    double w = warn != null ? warn : base.warn(metric);
+                    double l = lock != null ? lock : base.lock(metric);
+                    if (w > 0 && l > 0 && w > l) {
+                        problem = "limits-warn-above-lock";
+                        break;
+                    }
+                    if (w != base.warn(metric) || l != base.lock(metric)) {
+                        own.put(metric, new double[]{w, l});
+                    }
+                }
+                yield problem != null ? problem : plugin.adminActions().webLimits(admin, loader, own);
             }
             case "resize" -> {
                 // direction north|south|west|east or all, delta +1 / -1
