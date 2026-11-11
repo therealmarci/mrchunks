@@ -15,8 +15,11 @@ final class LuckPermsUsers {
     private LuckPermsUsers() {
     }
 
-    /** Loads (or creates) the user; waits at most two seconds. */
-    static void load(UUID id, String name) throws Exception {
-        LuckPermsProvider.get().getUserManager().loadUser(id, name).get(2, TimeUnit.SECONDS);
+    /**
+     * Loads (or creates) the user; waits at most two seconds. Without the name: LuckPerms only accepts real Minecraft
+     * names (letters, digits, _) and refused dummy names like "[D1]Name" with "Invalid username entry".
+     */
+    static void load(UUID id) throws Exception {
+        LuckPermsProvider.get().getUserManager().loadUser(id).get(2, TimeUnit.SECONDS);
     }
 }
