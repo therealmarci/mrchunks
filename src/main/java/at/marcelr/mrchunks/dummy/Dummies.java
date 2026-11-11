@@ -264,7 +264,7 @@ public final class Dummies implements Listener {
         // LuckPerms loads users only for a real login - load the dummy's user first, so chat and tab plugins find it.
         if (Bukkit.getPluginManager().isPluginEnabled("LuckPerms")) {
             try {
-                LuckPermsUsers.load(id, name);
+                LuckPermsUsers.load(id);
             } catch (Throwable t) {
                 plugin.getLogger().warning("Could not load the LuckPerms user of dummy " + name + ": " + t);
             }
