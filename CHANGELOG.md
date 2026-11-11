@@ -9,6 +9,8 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+## [STA-1.3.2-bu001] - 2026-11-11
+
 ### Behoben & geändert
 - **Dummy-Spieler und LuckPerms:** Beim Laden des LuckPerms-Benutzers eines Dummys lehnte LuckPerms den Namen ab („Invalid username entry“, Dummy-Namen wie `[D1]Name` sind keine gültigen Minecraft-Namen) - Chat- und Tab-Plugins fanden den Dummy dann wieder nicht („Unable to get a user“). Jetzt lädt MRchunks den Benutzer nur über die UUID.
 
