@@ -50,6 +50,25 @@ public final class AdminActions {
     public static final String PERM_BLOCK = "mrchunks.block";
     /** Linking another account with the own one (both share loaders and limits). */
     public static final String PERM_LINK = "mrchunks.link";
+    /**
+     * Second accounts (group bots): the player permissions only while the account is linked with a main account - it
+     * then acts for that account (its loaders and the loaders it is invited to). Unlinked it may do nothing.
+     */
+    public static final String PERM_LINKED = "mrchunks.linked";
+    private static final java.util.Set<String> LINKED_GRANTS = java.util.Set.of("mrchunks.use", "mrchunks.view",
+            "mrchunks.resize", "mrchunks.invite", "mrchunks.block", "mrchunks.map");
+
+    /**
+     * A player permission of MRchunks: the permission itself, or - for a linked second account with
+     * {@link #PERM_LINKED} - granted through the link.
+     */
+    public static boolean has(CommandSender sender, String permission) {
+        if (sender.hasPermission(permission)) {
+            return true;
+        }
+        return LINKED_GRANTS.contains(permission) && sender instanceof Player player && player.hasPermission(PERM_LINKED)
+                && org.bukkit.plugin.java.JavaPlugin.getPlugin(MRChunks.class).loaders().isLinked(player.getUniqueId());
+    }
     /** Excludes a player from chunk loaders completely (e.g. second accounts). Strict: also for admins. */
     public static final String PERM_EXEMPT = "mrchunks.exempt";
 
@@ -89,12 +108,12 @@ public final class AdminActions {
 
     /** Owner (with mrchunks.use) or admin with mrchunks.admin.manage. */
     public static boolean canManage(CommandSender sender, Loader loader) {
-        return (isOwner(sender, loader) && sender.hasPermission(PERM_USE)) || sender.hasPermission(PERM_MANAGE);
+        return (isOwner(sender, loader) && has(sender, PERM_USE)) || sender.hasPermission(PERM_MANAGE);
     }
 
     /** Owner, invited players, admins and everyone with mrchunks.view may open a loader's menu. */
     public boolean canView(CommandSender sender, Loader loader) {
-        return isOwner(sender, loader) || isMember(sender, loader) || sender.hasPermission(PERM_VIEW)
+        return isOwner(sender, loader) || isMember(sender, loader) || has(sender, PERM_VIEW)
                 || sender.hasPermission(PERM_TOGGLE) || sender.hasPermission(PERM_MANAGE);
     }
 
@@ -146,7 +165,7 @@ public final class AdminActions {
     /** Managing the invites of a loader / of all loaders of {@code owner}: the owner (mrchunks.invite) or admins. */
     public static boolean canManageInvites(CommandSender sender, UUID owner) {
         boolean isOwner = sender instanceof Player player && accountOf(player).equals(owner);
-        return (isOwner && sender.hasPermission(PERM_INVITE) && !isExempt(sender)) || sender.hasPermission(PERM_INVITES)
+        return (isOwner && has(sender, PERM_INVITE) && !isExempt(sender)) || sender.hasPermission(PERM_INVITES)
                 || sender.hasPermission(PERM_MANAGE);
     }
 
@@ -317,7 +336,7 @@ public final class AdminActions {
 
     /** Changing the size: the owner with mrchunks.resize, or an admin with mrchunks.admin.resize. */
     public static boolean canResize(CommandSender sender, Loader loader) {
-        return (isOwner(sender, loader) && sender.hasPermission(PERM_USE) && sender.hasPermission(PERM_RESIZE))
+        return (isOwner(sender, loader) && has(sender, PERM_USE) && has(sender, PERM_RESIZE))
                 || sender.hasPermission(PERM_RESIZE_OTHERS);
     }
 
@@ -437,7 +456,7 @@ public final class AdminActions {
     /** Choosing the block in the world: the owner with mrchunks.block, or an admin with mrchunks.admin.manage. */
     public boolean canChangeBlock(CommandSender sender, Loader loader) {
         return !plugin.settings().item().blockChoices().isEmpty() && canManage(sender, loader)
-                && (sender.hasPermission(PERM_BLOCK) || sender.hasPermission(PERM_MANAGE));
+                && (has(sender, PERM_BLOCK) || sender.hasPermission(PERM_MANAGE));
     }
 
     /** Sets the block the loader stands as in the world (item.material or one of item.block-choices). */
@@ -897,7 +916,7 @@ public final class AdminActions {
 
     /** Puts up to {@code wanted} loader items into the player's inventory, within their limit (minus placed and held). */
     public void give(Player player, int wanted) {
-        if (!player.hasPermission(PERM_USE)) {
+        if (!has(player, PERM_USE)) {
             messages().send(player, "no-permission");
             return;
         }
@@ -943,7 +962,7 @@ public final class AdminActions {
 
     /** Clickable link to the web map (only with MRadmin, squaremap and a known address). */
     public void sendMapLink(Player player) {
-        if (!player.hasPermission(PERM_MAP)) {
+        if (!has(player, PERM_MAP)) {
             messages().send(player, "no-permission");
             return;
         }

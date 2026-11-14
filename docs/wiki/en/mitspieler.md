@@ -12,6 +12,8 @@ Invite farm partners so they can **switch your loaders on and off**, even when y
 If you have an alt account (e.g. for AFK farming), link it to your main account. After that both behave like one player:
 - Both see and manage **the same loaders**. What the alt account places belongs to the main account.
 - There is **one shared budget** - the one of the main account.
+- The alt account may also switch on and off the loaders the main account is **invited** to.
+- **Bots:** if the alt account has the group bots (`mrchunks.groups.bots`, see [Group bots](https://mrtechnology.marcelr.at/wiki/mradmin/alle-permissions/#group-bots-second-accounts)), it may only do something while linked - then everything as above, unlinked nothing at all.
 - **Link:** `/chunkloader` → **Linked accounts** → **Link an account**. The other account has to be online and agree.
 - Either of the two can **unlink** any time in the same menu. The loaders stay with the main account.
 - By default one alt account is allowed. A ban applies to all linked accounts.

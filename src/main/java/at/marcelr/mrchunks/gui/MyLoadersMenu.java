@@ -84,7 +84,7 @@ public final class MyLoadersMenu extends Menu {
                 new SharedLoadersMenu(plugin, viewer, this).open();
             });
         }
-        if (viewer.hasPermission(AdminActions.PERM_MAP) && !plugin.mradmin().mapUrl().isEmpty()) {
+        if (AdminActions.has(viewer, AdminActions.PERM_MAP) && !plugin.mradmin().mapUrl().isEmpty()) {
             set(MAP, Items.of(Material.FILLED_MAP).name(messages.item("gui-map-name"))
                     .lore(messages.lore("gui-map-lore")).build(), click -> {
                 clickSound();
@@ -102,7 +102,7 @@ public final class MyLoadersMenu extends Menu {
             });
         }
         set(CLOSE, Items.of(Material.BARRIER).name(messages.item("gui-close")).build(), click -> viewer.closeInventory());
-        if (viewer.hasPermission(AdminActions.PERM_USE) && !AdminActions.isExempt(viewer)) {
+        if (AdminActions.has(viewer, AdminActions.PERM_USE) && !AdminActions.isExempt(viewer)) {
             items();
         }
         fillRow(5);

@@ -67,3 +67,7 @@ mrchunks.admin.reload:
   de: "`/mrchunks reload`"
 mrchunks.admin.update:
   de: "Update-Hinweis beim Betreten des Servers"
+mrchunks.groups.bots:
+  de: "Gruppe Bots (Zweitaccounts): nur solange mit einem Hauptaccount verknüpft, verwaltet er Chunkloader wie dieser (dessen Loader und die, zu denen er eingeladen ist, `mrchunks.linked`) - ohne Verknüpfung nichts."
+mrchunks.linked:
+  de: "Zweitaccounts (Gruppe Bots): die Spieler-Rechte von MRchunks nur, solange mit einem Hauptaccount verknüpft - handelt dann für ihn (dessen Loader und die, zu denen er eingeladen ist). Ohne Verknüpfung nichts."
