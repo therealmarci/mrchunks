@@ -26,7 +26,7 @@ All limits are under `lag-protection.limits` and `lag-protection.small-loaders.l
 
 ### Own limits for one loader
 
-If a single farm needs more room (or a loader should be stricter), the team sets **own limits for just this loader, for good** in the MRadmin web interface: Features → Chunk loaders → open the loader → **Adjust limits**. There is a warn and a lock limit per metric; an empty field takes the value of the config, `0` switches the metric off for this loader. The next measurement uses the new limits, the tile then shows "own limits". **As in the config** takes them back. Permission: `mrchunks.admin.limits` (in `mrchunks.groups.admin`); the change is in the log and the Discord log (`loader-limits`).
+If a single farm needs more room (or a loader should be stricter), the team sets **own limits for just this loader, for good** in the MRadmin web interface: Plugins → Chunk loaders → open the loader → **Adjust limits**. There is a warn and a lock limit per metric; an empty field takes the value of the config, `0` switches the metric off for this loader. The next measurement uses the new limits, the tile then shows "own limits". **As in the config** takes them back. Permission: `mrchunks.admin.limits` (in `mrchunks.groups.admin`); the change is in the log and the Discord log (`loader-limits`).
 
 ## What happens
 - **Above "warn":** the loader shows up in `/mrchunks lag` (and in MRadmin), plus a Discord log. Nothing else happens.

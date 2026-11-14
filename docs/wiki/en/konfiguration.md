@@ -1,6 +1,6 @@
 # Configuration
 
-Easiest in the browser: with **MRadmin** under **Plugins → MRchunks → Configuration** - every setting with an explanation, saving reloads MRchunks right away (permission `mradmin.config`). Everything is also commented in `plugins/MRchunks/config.yml`; you apply changes by hand with `/mrchunks reload`.
+Easiest in the browser: with **MRadmin** under **Settings → Configuration → MRchunks** - every setting with an explanation, saving reloads MRchunks right away (permission `mradmin.config`). Everything is also commented in `plugins/MRchunks/config.yml`; you apply changes by hand with `/mrchunks reload`.
 
 | Section | The most important settings | More |
 |---|---|---|

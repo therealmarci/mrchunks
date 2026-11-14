@@ -26,7 +26,7 @@ Alle Grenzen stehen unter `lag-protection.limits` und `lag-protection.small-load
 
 ### Eigene Grenzen für einen Loader
 
-Braucht eine einzelne Farm mehr Luft (oder soll ein Loader strenger sein), legt das Team in der MRadmin-Weboberfläche **dauerhaft eigene Grenzen nur für diesen Loader** fest: Funktionen → Chunkloader → Loader öffnen → **Grenzen anpassen**. Pro Messwert gibt es eine Warn- und eine Sperrgrenze; ein leeres Feld nimmt den Wert aus der Config, `0` schaltet die Messung für diesen Loader ab. Die nächste Messung nutzt die neuen Grenzen, die Kachel zeigt dann „eigene Grenzen“. **Wie in der Config** nimmt sie wieder zurück. Recht: `mrchunks.admin.limits` (in `mrchunks.groups.admin`); die Änderung steht im Protokoll und im Discord-Log (`loader-limits`).
+Braucht eine einzelne Farm mehr Luft (oder soll ein Loader strenger sein), legt das Team in der MRadmin-Weboberfläche **dauerhaft eigene Grenzen nur für diesen Loader** fest: Plugins → Chunkloader → Loader öffnen → **Grenzen anpassen**. Pro Messwert gibt es eine Warn- und eine Sperrgrenze; ein leeres Feld nimmt den Wert aus der Config, `0` schaltet die Messung für diesen Loader ab. Die nächste Messung nutzt die neuen Grenzen, die Kachel zeigt dann „eigene Grenzen“. **Wie in der Config** nimmt sie wieder zurück. Recht: `mrchunks.admin.limits` (in `mrchunks.groups.admin`); die Änderung steht im Protokoll und im Discord-Log (`loader-limits`).
 
 ## Was passiert
 - **Über „Warnung“:** Der Loader taucht in `/mrchunks lag` auf (und in MRadmin), dazu ein Discord-Log. Sonst passiert nichts.
