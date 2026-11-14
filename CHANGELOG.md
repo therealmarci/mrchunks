@@ -9,6 +9,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+### Neu
+- **Gruppe Bots für Zweitaccounts:** `mrchunks.groups.bots` (nicht für OPs, in keiner Team-Gruppe) - nur solange mit einem Hauptaccount verknüpft, verwaltet der Account Chunkloader wie dieser (neues Recht `mrchunks.linked`), ohne Verknüpfung nichts. Fertige LuckPerms-Gruppe „bots“ im MRadmin-Wiki unter Permissions.
+
+### Behoben & geändert
+- **Verknüpfte Accounts und Einladungen:** Ein Zweit-Account darf jetzt auch die Loader an- und ausschalten, zu denen sein Haupt-Account eingeladen ist.
+
 ## [STA-1.3.2-bu001] - 2026-11-11
 
 ### Behoben & geändert

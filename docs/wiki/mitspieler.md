@@ -12,6 +12,8 @@ Lade Farm-Partner ein, damit sie deine Loader **an- und ausschalten** können, a
 Hast du einen Zweit-Account (z.B. zum AFK-Farmen), verknüpf ihn mit deinem Haupt-Account. Danach verhalten sich beide wie ein Spieler:
 - Beide sehen und verwalten **dieselben Loader**. Was der Zweit-Account setzt, gehört dem Haupt-Account.
 - Es gilt **ein gemeinsames Budget** - das des Haupt-Accounts.
+- Der Zweit-Account darf auch die Loader, zu denen der Haupt-Account **eingeladen** ist, an- und ausschalten.
+- **Bots:** Hat der Zweit-Account die Gruppe Bots (`mrchunks.groups.bots`, siehe [Gruppe Bots](https://mrtechnology.marcelr.at/wiki/mradmin/alle-permissions/#gruppe-bots-zweitaccounts)), darf er nur verknüpft etwas - dann alles wie oben, ohne Verknüpfung gar nichts.
 - **Verknüpfen:** `/chunkloader` → **Verknüpfte Accounts** → **Account verknüpfen**. Der andere Account muss online sein und zustimmen.
 - **Lösen** kann jeder der beiden jederzeit im selben Menü. Die Loader bleiben beim Haupt-Account.
 - Erlaubt ist standardmäßig ein Zweit-Account. Eine Sperre gilt für alle verknüpften Accounts.

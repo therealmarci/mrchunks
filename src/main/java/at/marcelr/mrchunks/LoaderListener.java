@@ -61,7 +61,7 @@ public final class LoaderListener implements Listener {
         Player player = event.getPlayer();
         Messages messages = plugin.messages();
         String denial = null;
-        if (!player.hasPermission(AdminActions.PERM_USE)) {
+        if (!AdminActions.has(player, AdminActions.PERM_USE)) {
             denial = "no-permission";
         } else if (AdminActions.isExempt(player)) {
             denial = "exempt";

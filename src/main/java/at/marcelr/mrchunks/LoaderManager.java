@@ -1202,6 +1202,12 @@ public final class LoaderManager {
 
     /** Whether {@code player} is invited to this loader (directly or for all loaders of its owner). */
     public boolean isMember(UUID player, Loader loader) {
+        UUID main = main(player);
+        return invited(player, loader) || (!main.equals(player) && invited(main, loader));
+    }
+
+    /** Invited directly (this loader or all loaders of its owner) - a linked account also counts with its main's invites. */
+    private boolean invited(UUID player, Loader loader) {
         long now = System.currentTimeMillis();
         Map<UUID, Long> direct = loaderMembers.get(loader.id());
         Map<UUID, Long> owner = ownerMembers.get(loader.owner());

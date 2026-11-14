@@ -33,6 +33,11 @@ permissions:
       mrchunks.invite: true
       mrchunks.link: true
       mrchunks.block: true
+  mrchunks.groups.bots:
+    description: "Group bots (second accounts): only while linked with a main account it manages chunk loaders like that account (its loaders and those it is invited to, mrchunks.linked) - unlinked nothing."
+    default: false
+    children:
+      mrchunks.linked: true
   mrchunks.groups.support:
     description: "Group support: player + admin menu (see all loaders and their status), teleport to loaders, switch conspicuous loaders (over a warn limit) and their dummy off and on, live view in the web interface."
     default: op
@@ -86,6 +91,9 @@ permissions:
   mrchunks.link:
     description: Link another account (e.g. a second account) with your own - both share chunk loaders and budget.
     default: op
+  mrchunks.linked:
+    description: "Second accounts (group bots): the player permissions of MRchunks only while linked with a main account - acts for it (its loaders and those it is invited to). Unlinked nothing."
+    default: false
   mrchunks.resize:
     description: Change the size of your own chunk loaders (loader menu -> Size), within your chunk budget.
     default: op
