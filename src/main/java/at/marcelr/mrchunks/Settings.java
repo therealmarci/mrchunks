@@ -119,10 +119,11 @@ public record Settings(
      * @param defaultReach  reach of a new loader in every direction (3 = 7x7)
      * @param maxReach      highest reach per direction a loader can be enlarged to
      * @param maxLoaders    loaders a player may place (the same for everyone)
+     * @param itemsAlwaysActive items in running loaders are ticked fully even far from players (lag/ItemActivation)
      */
     public record LoaderSettings(int defaultBudget, int defaultReach, int maxReach, int maxLoaders,
                                  Set<String> disabledWorlds, LoadMethod loadMethod, OverlapMode overlap,
-                                 boolean restoreMissingBlocks, int checkIntervalSeconds) {
+                                 boolean restoreMissingBlocks, int checkIntervalSeconds, boolean itemsAlwaysActive) {
 
         /** Edge length of a new loader's square in chunks, e.g. 7 for reach 3. */
         public int defaultSize() {
@@ -171,7 +172,8 @@ public record Settings(
                 parseEnum(c.getString("loaders.load-method"), LoadMethod.TICKET, "loaders.load-method", log),
                 parseEnum(c.getString("loaders.overlap"), OverlapMode.WARN, "loaders.overlap", log),
                 c.getBoolean("loaders.restore-missing-blocks", true),
-                Math.max(5, c.getInt("loaders.check-interval-seconds", 60)));
+                Math.max(5, c.getInt("loaders.check-interval-seconds", 60)),
+                c.getBoolean("loaders.items-always-active", true));
 
         Material material = Material.matchMaterial(c.getString("item.material", "EMERALD_BLOCK"));
         if (material == null || !material.isBlock() || !material.isSolid()) {
