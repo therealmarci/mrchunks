@@ -90,6 +90,10 @@ sections:
         max: 3600
         unit: {de: Sekunden, en: seconds}
         name: {de: Blöcke prüfen alle, en: Check blocks every}
+      - key: loaders.items-always-active
+        type: bool
+        name: {de: Items in Chunkloadern immer aktiv, en: Items in chunk loaders always active}
+        help: {de: "Items in laufenden Loadern bewegen sich immer mit voller Geschwindigkeit, auch weit weg von Spielern und Dummys (sonst rechnet Paper sie außerhalb der Aktivierungsreichweite gedrosselt - Itemstraßen ruckeln). Kostet etwas Tick-Zeit.", en: "Items in running loaders always move at full speed, even far from players and dummies (otherwise Paper throttles them outside the activation range - item streams stutter). Costs a little tick time."}
 
   - id: invites
     name: {de: Einladungen & verknüpfte Accounts, en: Invites & linked accounts}

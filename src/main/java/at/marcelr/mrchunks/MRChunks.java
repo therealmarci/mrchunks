@@ -5,6 +5,7 @@ import at.marcelr.mrchunks.command.ChunkloaderCommand;
 import at.marcelr.mrchunks.command.MRChunksCommand;
 import at.marcelr.mrchunks.dummy.Dummies;
 import at.marcelr.mrchunks.gui.MenuListener;
+import at.marcelr.mrchunks.lag.ItemActivation;
 import at.marcelr.mrchunks.lag.LagMonitor;
 import at.marcelr.mrchunks.lag.LoadShedder;
 import at.marcelr.mrchunks.lag.ServerPause;
@@ -104,6 +105,7 @@ public final class MRChunks extends JavaPlugin {
     private LoadShedder shedder;
     private MRadminLink mradmin;
     private Dummies dummies;
+    private ItemActivation itemActivation;
     private LinkRequests linkRequests;
     private BukkitTask validationTask;
 
@@ -125,6 +127,8 @@ public final class MRChunks extends JavaPlugin {
         dummies.start();
         // Dummies log in like players - not while the plugin is still enabling.
         Bukkit.getScheduler().runTask(this, dummies::syncAll);
+        itemActivation = new ItemActivation(this);
+        itemActivation.apply();
         linkRequests = new LinkRequests(this);
         lag = new LagMonitor(this);
         pause = new ServerPause(this);
@@ -174,6 +178,9 @@ public final class MRChunks extends JavaPlugin {
         if (dummies != null) {
             dummies.shutdown();
         }
+        if (itemActivation != null) {
+            itemActivation.stop();
+        }
         if (loaders != null) {
             loaders.releaseAll();
             loaders.save();
@@ -197,6 +204,7 @@ public final class MRChunks extends JavaPlugin {
         loadConfiguration();
         dummies.checkAvailability();
         loaders.applyAll();
+        itemActivation.apply();
         startValidation();
         lag.start();
         pause.start();

@@ -16,7 +16,7 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 33
+config-version: 34
 
 
 # ------------------------------------------------------------------------------
@@ -87,6 +87,13 @@ loaders:
   restore-missing-blocks: true
   # How often this is checked (in seconds).
   check-interval-seconds: 60
+
+  # Items in running chunk loaders always at full speed. Paper ticks items that are farther from every player (and
+  # dummy) than entity-activation-range.misc (spigot.yml, usually 16 blocks) only every 4th tick until it notices the
+  # movement - item streams on water or ice in a big loader then stutter and crawl. With true, items inside the area of
+  # a running loader are always ticked as if a player stood next to them (costs a little tick time per loader, the lag
+  # protection measures it); the activation range of the rest of the world stays as it is.
+  items-always-active: true
 
 
 # Invites: owners can invite other players to switch their chunk loaders on and off - for one loader

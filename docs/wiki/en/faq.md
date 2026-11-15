@@ -21,6 +21,9 @@ The server was under load, and your loader was the most expensive one right then
 ### What happens if a chunk loader item gets lost?
 Nothing bad - only **placed** loaders are counted. You get a new item in the menu under **Get chunk loaders**. By the way, normal emerald blocks are not chunk loaders, only items from the menu.
 
+### Item streams in a loader stutter or are too slow.
+Paper only throttles items that are farther than `entity-activation-range.misc` (`spigot.yml`, usually 16 blocks) from every player and dummy - item streams on water or ice stutter and slow down, they only run smoothly near players or a loader's [dummy](dummy.md). With `loaders.items-always-active: true` (default) items in the whole area of a **running** loader move at full speed; the rest of the world stays as it is. You do not need to raise `misc` for this.
+
 ### Does it work in the Nether and the End?
 Yes. If you enabled `disable-world-ticking-when-empty` in Paper, set `loaders.load-method: forceload`.
 

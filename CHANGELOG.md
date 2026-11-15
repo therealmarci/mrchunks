@@ -9,6 +9,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+### Neu
+- **Items in Chunkloadern immer aktiv:** Items im ganzen Gebiet eines laufenden Chunkloaders bewegen sich jetzt immer mit voller Geschwindigkeit. Bisher rechnete Paper sie gedrosselt, sobald kein Spieler und kein Dummy näher als die Aktivierungsreichweite war (`spigot.yml` → `entity-activation-range.misc`, meist 16 Blöcke) - Itemstraßen auf Wasser oder Eis ruckelten und wurden langsamer, flüssig war es nur rund um den Dummy. Einstellung `loaders.items-always-active` (Standard an), die Aktivierungsreichweite der übrigen Welt bleibt unverändert. Kostet etwas Tick-Zeit, die der Lag-Schutz pro Loader mitmisst.
+
 ## [STA-1.4.0-bu001] - 2026-11-15
 
 ### Neu

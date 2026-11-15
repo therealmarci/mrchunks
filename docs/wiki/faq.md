@@ -21,6 +21,9 @@ Der Server war ausgelastet, und dein Loader war gerade der aufwendigste. Er blei
 ### Was passiert, wenn ein Chunkloader-Item verloren geht?
 Nichts Schlimmes - gezählt werden nur **gesetzte** Loader. Ein neues Item holst du dir im Menü unter **Chunkloader holen**. Normale Smaragdblöcke sind übrigens keine Chunkloader, nur Items aus dem Menü.
 
+### Itemstraßen im Loader ruckeln oder sind zu langsam.
+Paper rechnet Items, die weiter als `entity-activation-range.misc` (`spigot.yml`, meist 16 Blöcke) von jedem Spieler und Dummy entfernt sind, nur gedrosselt - Itemstraßen auf Wasser oder Eis ruckeln und werden langsamer, flüssig ist es nur in der Nähe von Spielern oder vom [Dummy](dummy.md) eines Loaders. Mit `loaders.items-always-active: true` (Standard) laufen Items im ganzen Gebiet eines **laufenden** Loaders mit voller Geschwindigkeit, der Rest der Welt bleibt wie er ist. `misc` musst du dafür nicht erhöhen.
+
 ### Funktioniert das im Nether und im End?
 Ja. Hast du in Paper `disable-world-ticking-when-empty` aktiviert, stell `loaders.load-method: forceload` ein.
 
