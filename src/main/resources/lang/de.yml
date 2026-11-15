@@ -587,6 +587,16 @@ gui-player-lore:
 # Ticket in MRadmin, wenn ein Chunkloader wegen Lag gesperrt wird (Betreff) bzw. die Sperre aufgehoben wird (Notiz).
 report-lock-subject: "<name> gesperrt"
 report-lock-lifted: "Die Sperre wurde von <admin> aufgehoben. Der Chunkloader ist noch aus und kann wieder eingeschaltet werden."
+report-log-title: "Chunkloader <name>"
+report-log-status: "gesperrt"
+report-log-owner: "Besitzer"
+report-log-size: "Größe"
+report-log-size-value: "<width> × <length> Chunks"
+report-log-place: "Ort"
+report-log-dummy: "Dummy-Spieler"
+report-log-yes: "ja"
+report-log-no: "nein"
+report-log-loaded: "Geladene Chunks"
 # Hinweise auf der Startseite der MRadmin-Weboberfläche (reiner Text). Platzhalter: <tps>, <count>
 web-alert-paused: "Chunkloader pausiert - die Server-TPS liegt bei <tps>"
 web-alert-shed: "<count> Chunkloader durch Lags deaktiviert - der Server liegt bei <mspt> ms pro Tick"

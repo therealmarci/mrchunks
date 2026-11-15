@@ -8,6 +8,7 @@ MRchunks läuft **allein**. Zusammen mit anderen MRtechnology-Plugins kann es me
 | Eigene Chunkloader im Browser verwalten (`/web`, Spielerseite) | MRadmin |
 | MRchunks im Browser einstellen (Plugins → MRchunks → Konfiguration) | MRadmin |
 | Automatisches Ticket für den Owner bei einer Lag-Sperre | MRadmin |
+| Loader-Daten (Messwerte gegen Grenzen, Sperrgrund, Fläche auf der Karte) im Log dieses Tickets | MRadmin mit Ticket-Log |
 | In der Arena-Welt von MRpvp lassen sich keine Loader setzen | MRadmin + MRpvp |
 | Chunkloader auf der Karte der Spielerseite | MRadmin |
 | Dummy-Spieler zählen bei MRsleep, MRadmin und MRpvp nicht als Spieler | nichts |

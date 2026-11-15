@@ -587,6 +587,16 @@ gui-player-lore:
 # Ticket in MRadmin when a chunk loader is locked because of lag (subject) or the lock is lifted (note).
 report-lock-subject: "<name> locked"
 report-lock-lifted: "The lock was lifted by <admin>. The chunk loader is still off and can be switched on again."
+report-log-title: "Chunk loader <name>"
+report-log-status: "locked"
+report-log-owner: "Owner"
+report-log-size: "Size"
+report-log-size-value: "<width> × <length> chunks"
+report-log-place: "Place"
+report-log-dummy: "Dummy player"
+report-log-yes: "yes"
+report-log-no: "no"
+report-log-loaded: "Loaded chunks"
 # Hints on the start page of MRadmin's web interface (plain text). Placeholders: <tps>, <count>
 web-alert-paused: "Chunk loaders paused - the server TPS is at <tps>"
 web-alert-shed: "<count> chunk loaders disabled by lag - the server is at <mspt> ms per tick"

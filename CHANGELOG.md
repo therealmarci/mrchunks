@@ -9,6 +9,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+### Neu
+- **Loader-Daten im Ticket-Log:** Sperrt der Lag-Schutz einen Chunkloader, bekommt das automatische Ticket in MRadmin (ab MRadmin mit Modul-API 16) einen eigenen Abschnitt im Ticket-Log: Besitzer, Größe, Ort, Dummy, geladene Chunks, der Sperrgrund und die Messwerte der letzten 30 Minuten gegen Warn- und Sperrgrenze, dazu die Fläche des Loaders auf der Karte. Nur in der Weboberfläche des eigenen Servers sichtbar (Permission `mradmin.tickets.log`), nie an MRtechnology.
+
 ## [STA-1.4.1-bu001] - 2026-11-15
 
 ### Neu
