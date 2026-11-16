@@ -71,6 +71,8 @@ final class MRadminModule implements AdminModule, WebModule {
     private static final int HISTORY_API = 6;
     /** MRadmin draws the web map since API 7. */
     private static final int MAP_API = 7;
+    /** {@link MRadminService#nextRestart()} for the restart signal of loaders. */
+    private static final int RESTART_API = 14;
 
     private final MRChunks plugin;
 
@@ -129,6 +131,20 @@ final class MRadminModule implements AdminModule, WebModule {
         if (service != null && service.apiVersion() >= HISTORY_API) {
             service.moduleHistoryAdd(ID, time, data, ActivityHistory.MAX_AGE);
         }
+    }
+
+    static boolean restartsKnown() {
+        MRadminService service = MRadminService.get();
+        return service != null && service.apiVersion() >= RESTART_API;
+    }
+
+    static long restartMillisLeft() {
+        MRadminService service = MRadminService.get();
+        if (service == null || service.apiVersion() < RESTART_API) {
+            return -1;
+        }
+        at.marcelr.mradmin.api.RestartInfo next = service.nextRestart();
+        return next == null ? -1 : next.millisLeft();
     }
 
     static String mapUrl() {

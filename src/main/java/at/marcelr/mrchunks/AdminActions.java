@@ -48,6 +48,7 @@ public final class AdminActions {
     public static final String PERM_BAN = "mrchunks.admin.ban";
     public static final String PERM_INVITE = "mrchunks.invite";
     public static final String PERM_BLOCK = "mrchunks.block";
+    public static final String PERM_SIGNAL = "mrchunks.restartsignal";
     /** Linking another account with the own one (both share loaders and limits). */
     public static final String PERM_LINK = "mrchunks.link";
     /**
@@ -457,6 +458,22 @@ public final class AdminActions {
     public boolean canChangeBlock(CommandSender sender, Loader loader) {
         return !plugin.settings().item().blockChoices().isEmpty() && canManage(sender, loader)
                 && (has(sender, PERM_BLOCK) || sender.hasPermission(PERM_MANAGE));
+    }
+
+    /** Whether the sender may set the loader's redstone signal before restarts (owner with the permission, or admins). */
+    public boolean canRestartSignal(CommandSender sender, Loader loader) {
+        return canManage(sender, loader) && (has(sender, PERM_SIGNAL) || sender.hasPermission(PERM_MANAGE));
+    }
+
+    /** Sets how the loader signals before restarts (mode and minutes before); the next second applies it. */
+    public void setRestartSignal(CommandSender sender, Loader loader, RestartSignal.Mode mode, int minutes) {
+        if (!canRestartSignal(sender, loader)) {
+            messages().send(sender, "no-permission");
+            return;
+        }
+        loader.setSignalMode(mode);
+        loader.setSignalMinutes(minutes);
+        loaders().save();
     }
 
     /** Sets the block the loader stands as in the world (item.material or one of item.block-choices). */

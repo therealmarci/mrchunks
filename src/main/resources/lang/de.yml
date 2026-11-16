@@ -428,6 +428,24 @@ gui-rename-lore:
 gui-block-name: "<aqua>Block ändern"
 gui-block-lore:
   - "<gray>Aktuell: <white><block>"
+gui-signal-name: "<red>Redstone vor Neustarts"
+gui-signal-off-lore:
+  - "<gray>Aus - der Loader gibt kein Signal."
+  - "<yellow>» Klick: Modus · Rechtsklick: Minuten"
+gui-signal-lore:
+  - "<gray><mode> · <white><minutes> min</white> vorher"
+  - "<gray>Signal <state><gray> · <next>"
+  - "<yellow>» Klick: Modus · Rechtsklick: Minuten"
+gui-signal-unavailable-lore:
+  - "<gray>Braucht MRadmin für die Neustartzeiten."
+signal-mode-none: "<gray>Aus"
+signal-mode-on: "<green>An vor Neustarts"
+signal-mode-off: "<gold>Aus vor Neustarts"
+signal-next-none: "<gray>kein Neustart geplant"
+signal-next: "<gray>Neustart in <white><time>"
+signal-state-on: "<green>an"
+signal-state-off: "<gray>aus"
+signal-unavailable: "<hover:show_text:'<gray>MRadmin meldet, wann der nächste Neustart kommt - ohne MRadmin gibt es kein Signal.'><red>Redstone-Signal gerade nicht verfügbar.</hover>"
 gui-title-block: "<dark_gray>Block wählen"
 gui-block-choice-name: "<white><block>"
 gui-block-choice-lore:

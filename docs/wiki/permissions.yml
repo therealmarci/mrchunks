@@ -25,6 +25,8 @@ mrchunks.resize:
   de: "Größe der eigenen Loader ändern (im Rahmen des Budgets)"
 mrchunks.block:
   de: "Block der eigenen Loader in der Welt ändern (Auswahl aus `item.block-choices`)"
+mrchunks.restartsignal:
+  de: "Eigene Loader vor Neustarts ein Redstone-Signal geben lassen (Loader-Einstellungen, `loaders.restart-signal`, braucht MRadmin)"
 mrchunks.exempt:
   de: "**Komplett ausgeschlossen:** keine Loader, keine Einladungen - vorhandene Loader werden beim Betreten **gelöscht**"
 mrchunks.budget.unlimited:

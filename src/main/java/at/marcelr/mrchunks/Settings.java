@@ -120,10 +120,13 @@ public record Settings(
      * @param maxReach      highest reach per direction a loader can be enlarged to
      * @param maxLoaders    loaders a player may place (the same for everyone)
      * @param itemsAlwaysActive items in running loaders are ticked fully even far from players (lag/ItemActivation)
+     * @param restartSignal     loaders may give a redstone signal before restarts ({@link RestartSignal})
+     * @param restartSignalMinutes the lead times (minutes before the restart) to choose from, ascending
      */
     public record LoaderSettings(int defaultBudget, int defaultReach, int maxReach, int maxLoaders,
                                  Set<String> disabledWorlds, LoadMethod loadMethod, OverlapMode overlap,
-                                 boolean restoreMissingBlocks, int checkIntervalSeconds, boolean itemsAlwaysActive) {
+                                 boolean restoreMissingBlocks, int checkIntervalSeconds, boolean itemsAlwaysActive,
+                                 boolean restartSignal, List<Integer> restartSignalMinutes) {
 
         /** Edge length of a new loader's square in chunks, e.g. 7 for reach 3. */
         public int defaultSize() {
@@ -173,7 +176,9 @@ public record Settings(
                 parseEnum(c.getString("loaders.overlap"), OverlapMode.WARN, "loaders.overlap", log),
                 c.getBoolean("loaders.restore-missing-blocks", true),
                 Math.max(5, c.getInt("loaders.check-interval-seconds", 60)),
-                c.getBoolean("loaders.items-always-active", true));
+                c.getBoolean("loaders.items-always-active", true),
+                c.getBoolean("loaders.restart-signal.enabled", true),
+                signalMinutes(c.getIntegerList("loaders.restart-signal.minutes")));
 
         Material material = Material.matchMaterial(c.getString("item.material", "EMERALD_BLOCK"));
         if (material == null || !material.isBlock() || !material.isSolid()) {
@@ -315,6 +320,12 @@ public record Settings(
         org.bukkit.block.data.BlockData data = material.createBlockData();
         return data.isFaceSturdy(org.bukkit.block.BlockFace.UP, org.bukkit.block.BlockSupport.FULL)
                 && data.isFaceSturdy(org.bukkit.block.BlockFace.DOWN, org.bukkit.block.BlockSupport.FULL);
+    }
+
+    /** The lead times of the restart signal: 0-1440 minutes, sorted, without doubles; nothing valid = 5, 10, 15. */
+    private static List<Integer> signalMinutes(List<Integer> raw) {
+        List<Integer> list = raw.stream().filter(m -> m != null && m >= 0 && m <= 1440).distinct().sorted().toList();
+        return list.isEmpty() ? List.of(5, 10, 15) : list;
     }
 
     private static Material blockMaterial(String raw, Material fallback, String path, Logger log) {
