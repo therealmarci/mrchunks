@@ -32,6 +32,9 @@ public final class Loader {
     private boolean dummy;
     /** Block in the world chosen by the owner, null = item.material (see {@link LoaderManager#blockOf}). */
     private Material block;
+    /** Redstone signal before restarts (see {@link RestartSignal}) and how many minutes before. */
+    private RestartSignal.Mode signalMode = RestartSignal.Mode.NONE;
+    private int signalMinutes = 5;
     /** Chunks loaded beyond the loader's own chunk, indexed by {@link Direction#ordinal()}. */
     private final int[] reach = new int[4];
 
@@ -134,6 +137,22 @@ public final class Loader {
     /** The block chosen for the world, null = item.material. */
     public Material block() {
         return block;
+    }
+
+    public RestartSignal.Mode signalMode() {
+        return signalMode;
+    }
+
+    public void setSignalMode(RestartSignal.Mode mode) {
+        this.signalMode = mode == null ? RestartSignal.Mode.NONE : mode;
+    }
+
+    public int signalMinutes() {
+        return signalMinutes;
+    }
+
+    public void setSignalMinutes(int minutes) {
+        this.signalMinutes = Math.max(0, minutes);
     }
 
     void setBlock(Material block) {

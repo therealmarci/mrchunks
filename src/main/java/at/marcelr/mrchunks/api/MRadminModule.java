@@ -71,6 +71,8 @@ final class MRadminModule implements AdminModule, WebModule {
     private static final int HISTORY_API = 6;
     /** MRadmin draws the web map since API 7. */
     private static final int MAP_API = 7;
+    /** {@link MRadminService#nextRestart()} for the restart signal of loaders. */
+    private static final int RESTART_API = 14;
 
     private final MRChunks plugin;
 
@@ -129,6 +131,20 @@ final class MRadminModule implements AdminModule, WebModule {
         if (service != null && service.apiVersion() >= HISTORY_API) {
             service.moduleHistoryAdd(ID, time, data, ActivityHistory.MAX_AGE);
         }
+    }
+
+    static boolean restartsKnown() {
+        MRadminService service = MRadminService.get();
+        return service != null && service.apiVersion() >= RESTART_API;
+    }
+
+    static long restartMillisLeft() {
+        MRadminService service = MRadminService.get();
+        if (service == null || service.apiVersion() < RESTART_API) {
+            return -1;
+        }
+        at.marcelr.mradmin.api.RestartInfo next = service.nextRestart();
+        return next == null ? -1 : next.millisLeft();
     }
 
     static String mapUrl() {
@@ -387,6 +403,76 @@ final class MRadminModule implements AdminModule, WebModule {
     @Override
     public int loadedChunks() {
         return plugin.loaders().loadedChunkCount();
+    }
+
+    // ------------------------------------------- since MRadmin API 16 (1.7)
+
+    /**
+     * The chunk loader part of the ticket log of a lock: the loader's facts, why it was locked and its measurements of
+     * the last 30 minutes against its warn and lock limits. MRadmin keeps it on this server only.
+     */
+    @Override
+    public @Nullable Map<String, Object> reportLog(Report report) {
+        if (!LOCK_KIND.equals(report.kind())) {
+            return null;
+        }
+        Loader loader;
+        try {
+            loader = plugin.loaders().byId(Integer.parseInt(report.key()));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+        if (loader == null) {
+            return null;
+        }
+        var m = plugin.messages();
+        return m.server(() -> {
+            Map<String, Object> part = new LinkedHashMap<>();
+            part.put("title", m.plain("report-log-title", "name", Texts.name(plugin, loader)));
+            part.put("status", Map.of("tone", "bad", "text", m.plain("report-log-status")));
+            part.put("reason", report.text());
+            List<List<Object>> facts = new ArrayList<>();
+            facts.add(List.of(m.plain("report-log-owner"), LoaderManager.name(loader.owner())));
+            facts.add(List.of(m.plain("report-log-size"), m.plain("report-log-size-value", "width", loader.width(), "length", loader.length())));
+            facts.add(List.of(m.plain("report-log-place"), loader.worldName() + " " + loader.x() + " " + loader.y() + " " + loader.z()));
+            facts.add(List.of(m.plain("report-log-dummy"), m.plain(loader.dummy() ? "report-log-yes" : "report-log-no")));
+            var activity = plugin.lag().activity(loader);
+            if (activity != null) {
+                facts.add(List.of(m.plain("report-log-loaded"), activity.loadedChunks() + " / " + activity.totalChunks()));
+            }
+            part.put("facts", facts);
+            // The measurements of the last 30 minutes, one chart per measured value that has limits.
+            long now = System.currentTimeMillis();
+            var limits = plugin.loaders().limitsFor(loader);
+            List<ActivityHistory.Point> points = plugin.lag().history().points(loader.id(), now - 30 * 60_000L, now, 600);
+            List<Map<String, Object>> charts = new ArrayList<>();
+            for (var metric : at.marcelr.mrchunks.lag.Metric.values()) {
+                double warn = limits.warn(metric);
+                double lock = limits.lock(metric);
+                if (warn <= 0 && lock <= 0) {
+                    continue;
+                }
+                List<List<Object>> values = new ArrayList<>();
+                for (ActivityHistory.Point p : points) {
+                    values.add(List.of(p.time(), Math.round(p.value(metric) * 100) / 100.0));
+                }
+                Map<String, Object> chart = new LinkedHashMap<>();
+                chart.put("title", m.plain("lag-metric-" + metric.key()));
+                chart.put("unit", "");
+                if (warn > 0) {
+                    chart.put("warn", warn);
+                }
+                if (lock > 0) {
+                    chart.put("limit", lock);
+                }
+                chart.put("points", values);
+                charts.add(chart);
+            }
+            part.put("charts", charts);
+            part.put("area", Map.of("x0", loader.minChunkX() << 4, "z0", loader.minChunkZ() << 4,
+                    "x1", (loader.maxChunkX() << 4) + 15, "z1", (loader.maxChunkZ() << 4) + 15));
+            return part;
+        });
     }
 
     /** Start page tile: active loaders, server pause, locks, conspicuous loaders, loaded chunks. */

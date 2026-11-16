@@ -90,6 +90,18 @@ sections:
         max: 3600
         unit: {de: Sekunden, en: seconds}
         name: {de: Blöcke prüfen alle, en: Check blocks every}
+      - key: loaders.restart-signal.enabled
+        type: bool
+        name: {de: Redstone-Signal vor Neustarts, en: Redstone signal before restarts}
+        help: {de: "Besitzer stellen in den Loader-Einstellungen ein, ob ihr Loader vor Neustarts und Stopps ein Redstone-Signal gibt (oder es dann abschaltet). Braucht MRadmin. Spieler sehen weiter ihren Block, nur die Webkarte zeigt solange einen Redstoneblock.", en: "Owners choose in the loader settings whether their loader gives a redstone signal before restarts and stops (or stops giving it then). Needs MRadmin. Players keep seeing their block, only the web map shows a redstone block meanwhile."}
+      - key: loaders.restart-signal.minutes
+        type: ints
+        when: loaders.restart-signal.enabled
+        min: 0
+        max: 1440
+        unit: {de: Minuten, en: minutes}
+        name: {de: Minuten vorher zur Auswahl, en: Minutes before to choose from}
+        help: {de: "Die Vorlaufzeiten, zwischen denen Besitzer mit Rechtsklick wechseln.", en: "The lead times owners switch between with a right click."}
       - key: loaders.items-always-active
         type: bool
         name: {de: Items in Chunkloadern immer aktiv, en: Items in chunk loaders always active}

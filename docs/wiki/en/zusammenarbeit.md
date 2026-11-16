@@ -8,6 +8,7 @@ MRchunks runs **on its own**. Together with other MRtechnology plugins it can do
 | Manage your own chunk loaders in the browser (`/web`, player page) | MRadmin |
 | Configure MRchunks in the browser (Plugins → MRchunks → Configuration) | MRadmin |
 | Automatic ticket for the owner on a lag lock | MRadmin |
+| Loader data (measurements against limits, lock reason, area on the map) in the log of that ticket | MRadmin with ticket log |
 | No loaders can be placed in MRpvp's arena world | MRadmin + MRpvp |
 | Chunk loaders on the map of the player page | MRadmin |
 | Dummy players do not count as players for MRsleep, MRadmin and MRpvp | nothing |

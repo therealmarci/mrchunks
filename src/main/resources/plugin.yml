@@ -22,7 +22,7 @@ permissions:
   # the team - each group contains the one below. The single permissions further down stay usable on their own;
   # exempt and the limits (budget.*, dummies.*) are in no group on purpose.
   mrchunks.player:
-    description: "Player: get, place and manage your own chunk loaders, change their size, web map, view other loaders, invite, link accounts, choose the block; /mrchunks version."
+    description: "Player: get, place and manage your own chunk loaders, change their size, web map, view other loaders, invite, link accounts, choose the block, redstone signal before restarts; /mrchunks version."
     default: op
     children:
       mrchunks.version: true
@@ -33,6 +33,7 @@ permissions:
       mrchunks.invite: true
       mrchunks.link: true
       mrchunks.block: true
+      mrchunks.restartsignal: true
   mrchunks.groups.bots:
     description: "Group bots (second accounts): only while linked with a main account it manages chunk loaders like that account (its loaders and those it is invited to, mrchunks.linked) - unlinked nothing."
     default: false
@@ -99,6 +100,9 @@ permissions:
     default: op
   mrchunks.block:
     description: Choose the block your chunk loaders stand as in the world (loader menu, item.block-choices).
+    default: op
+  mrchunks.restartsignal:
+    description: "Let your chunk loaders give a redstone signal before restarts (loader settings, loaders.restart-signal; needs MRadmin)."
     default: op
   mrchunks.exempt:
     description: Completely excludes from chunk loading (e.g. second accounts) - no loaders, no invites. Existing loaders are deleted. Warning, "*" in LuckPerms includes this too!

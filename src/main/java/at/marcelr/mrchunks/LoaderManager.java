@@ -294,10 +294,11 @@ public final class LoaderManager {
         World world = loader.world();
         if (world != null) {
             Block block = world.getBlockAt(loader.x(), loader.y(), loader.z());
-            if (block.getType() == blockOf(loader) || loaderBlock(block.getType())) {
+            if (block.getType() == blockOf(loader) || loaderBlock(block.getType()) || block.getType() == Material.REDSTONE_BLOCK) {
                 block.setType(Material.AIR, false);
             }
         }
+        plugin.restartSignal().forget(loader);
         save();
     }
 
@@ -367,7 +368,8 @@ public final class LoaderManager {
         loader.setBlock(material == plugin.settings().item().material() ? null : material);
         World world = loader.world();
         if (world != null) {
-            world.getBlockAt(loader.x(), loader.y(), loader.z()).setType(blockOf(loader), false);
+            world.getBlockAt(loader.x(), loader.y(), loader.z()).setType(plugin.restartSignal().blockFor(loader), false);
+            plugin.restartSignal().disguise(loader);
         }
         save();
     }
@@ -805,11 +807,12 @@ public final class LoaderManager {
                 continue;
             }
             Block block = world.getBlockAt(loader.x(), loader.y(), loader.z());
-            Material material = blockOf(loader);
+            Material material = plugin.restartSignal().blockFor(loader);
             if (block.getType() == material) {
                 continue;
             }
-            if (loaderBlock(block.getType())) {
+            // a redstone block is the loader giving its restart signal (or one left over by a crash while it did)
+            if (loaderBlock(block.getType()) || block.getType() == Material.REDSTONE_BLOCK) {
                 // Still a loader block, just not the chosen one (choice made while the world was not loaded,
                 // item.material changed ...): swap it quietly.
                 block.setType(material, false);
@@ -1280,6 +1283,17 @@ public final class LoaderManager {
                 loader.setDummy(s.getBoolean("dummy", false));
                 String block = s.getString("block");
                 loader.setBlock(block == null ? null : Material.matchMaterial(block));
+                // YAML 1.1 reads a hand-written on/off without quotes as true/false
+                Object rawSignal = s.get("restart-signal.mode");
+                String signal = rawSignal instanceof Boolean b ? (b ? "on" : "off") : rawSignal == null ? null : rawSignal.toString();
+                if (signal != null) {
+                    try {
+                        loader.setSignalMode(RestartSignal.Mode.valueOf(signal.toUpperCase(Locale.ROOT)));
+                    } catch (IllegalArgumentException e) {
+                        plugin.getLogger().warning("Chunk loader " + id + ": unknown restart-signal.mode '" + signal + "', ignoring it.");
+                    }
+                    loader.setSignalMinutes(s.getInt("restart-signal.minutes", 5));
+                }
                 if (!s.contains("reach")) {
                     migrated = true;
                 }
@@ -1482,6 +1496,10 @@ public final class LoaderManager {
             }
             if (loader.block() != null) {
                 data.set(p + "block", loader.block().name());
+            }
+            if (loader.signalMode() != RestartSignal.Mode.NONE) {
+                data.set(p + "restart-signal.mode", loader.signalMode().name().toLowerCase(Locale.ROOT));
+                data.set(p + "restart-signal.minutes", loader.signalMinutes());
             }
             for (Loader.Direction direction : Loader.Direction.values()) {
                 data.set(p + "reach." + direction.name().toLowerCase(Locale.ROOT), loader.reach(direction));

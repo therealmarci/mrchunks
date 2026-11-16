@@ -3,7 +3,7 @@
 ## So funktioniert's
 1. **`/chunkloader`** (oder `/cl`) öffnet dein Menü. Unten rechts holt **Chunkloader holen** einen Loader ins Inventar (Linksklick 1, Shift bis zu 64 - höchstens 30 Loader insgesamt). Dort siehst du auch dein **Budget**. **Chunkloader zurückgeben** daneben nimmt Items wieder zurück.
 2. **Block platzieren** - ab sofort bleiben die `7×7` Chunks rundherum geladen. Reicht dein freies Budget nicht mehr für 7×7, wird der Loader so groß, wie es noch geht.
-3. **Rechtsklick** auf den Block öffnet sein Menü: oben die Infos, darunter **Mitglieder**, **an/aus**, **Grenze anzeigen** (Enderperle), **Dummy** und **Einstellungen**. In den Einstellungen liegen **Größe**, **Block ändern**, **Umbenennen** und **Löschen**. **Sneak + Rechtsklick** verhält sich normal, du kannst also weiter Blöcke daran bauen.
+3. **Rechtsklick** auf den Block öffnet sein Menü: oben die Infos, darunter **Mitglieder**, **an/aus**, **Grenze anzeigen** (Enderperle), **Dummy** und **Einstellungen**. In den Einstellungen liegen **Größe**, **Block ändern**, **Redstone vor Neustarts**, **Umbenennen** und **Löschen**. **Sneak + Rechtsklick** verhält sich normal, du kannst also weiter Blöcke daran bauen.
 4. **Löschen** geht nur über das Menü (zweimal klicken). Gelöscht ist endgültig.
 
 Der Block ist unzerstörbar: kein Abbauen, keine Explosionen, Kolben, Wither oder Endermen.
@@ -40,4 +40,9 @@ Das Menü jedes aktiven Loaders zeigt seine letzte Messung gegen seine Grenzen -
 ## Namen, Block und Grenze
 - Jeder Loader bekommt die **kleinste freie Nummer** („Chunkloader 4“). Über **Umbenennen** gibst du ihm einen eigenen Namen - er erscheint im Chat, in Menüs, auf der Karte und in Discord.
 - **Block ändern** wählt, als welcher Block dein Loader in der Welt steht (z.B. Diamant-, Gold- oder Netheritblock). Nur der Block in der Welt ändert sich - in Menüs und als Item bleibt es der Smaragdblock. Welche Blöcke es gibt, legt der Server fest.
+- **Redstone vor Neustarts** lässt den Loader vor Neustarts und Stopps des Servers ein Redstone-Signal geben - z.B. um Farmen rechtzeitig abzuschalten. **Klick** wechselt den Modus: *Aus*, *An vor Neustarts* (Signal ab der gewählten Zeit bis der Server herunterfährt) oder *Aus vor Neustarts* (Signal die ganze Zeit, vor dem Neustart aus). **Rechtsklick** wählt, wie viele Minuten vorher (z.B. 1, 5, 10, 15, 30, 60). Das Signal hat volle Stärke (15) in alle Richtungen, wie ein Redstoneblock - du siehst trotzdem weiter deinen gewählten Block. Gilt für jeden Neustart und Stopp, den der Server kennt (geplant oder vom Team gestartet).
+
+> [!NOTE]
+> Das Redstone-Signal braucht MRadmin auf dem Server (es meldet, wann der nächste Neustart kommt). Ohne MRadmin gibt es den Knopf, aber kein Signal. Auf der Webkarte erscheint ein Loader mit Signal als Redstoneblock.
+
 - **Grenze anzeigen** zeichnet einen leuchtenden Zaun an die Außenkante des Bereichs, sichtbar auch durch Blöcke und nur für dich. Er verschwindet nach einer Weile von selbst.

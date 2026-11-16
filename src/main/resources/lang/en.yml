@@ -428,6 +428,24 @@ gui-rename-lore:
 gui-block-name: "<aqua>Change block"
 gui-block-lore:
   - "<gray>Current: <white><block>"
+gui-signal-name: "<red>Redstone before restarts"
+gui-signal-off-lore:
+  - "<gray>Off - the loader gives no signal."
+  - "<yellow>» Click: mode · right click: minutes"
+gui-signal-lore:
+  - "<gray><mode> · <white><minutes> min</white> before"
+  - "<gray>Signal <state><gray> · <next>"
+  - "<yellow>» Click: mode · right click: minutes"
+gui-signal-unavailable-lore:
+  - "<gray>Needs MRadmin for the restart times."
+signal-mode-none: "<gray>Off"
+signal-mode-on: "<green>On before restarts"
+signal-mode-off: "<gold>Off before restarts"
+signal-next-none: "<gray>no restart planned"
+signal-next: "<gray>restart in <white><time>"
+signal-state-on: "<green>on"
+signal-state-off: "<gray>off"
+signal-unavailable: "<hover:show_text:'<gray>MRadmin tells when the next restart comes - without MRadmin there is no signal.'><red>Redstone signal not available right now.</hover>"
 gui-title-block: "<dark_gray>Choose a block"
 gui-block-choice-name: "<white><block>"
 gui-block-choice-lore:
@@ -587,6 +605,16 @@ gui-player-lore:
 # Ticket in MRadmin when a chunk loader is locked because of lag (subject) or the lock is lifted (note).
 report-lock-subject: "<name> locked"
 report-lock-lifted: "The lock was lifted by <admin>. The chunk loader is still off and can be switched on again."
+report-log-title: "Chunk loader <name>"
+report-log-status: "locked"
+report-log-owner: "Owner"
+report-log-size: "Size"
+report-log-size-value: "<width> × <length> chunks"
+report-log-place: "Place"
+report-log-dummy: "Dummy player"
+report-log-yes: "yes"
+report-log-no: "no"
+report-log-loaded: "Loaded chunks"
 # Hints on the start page of MRadmin's web interface (plain text). Placeholders: <tps>, <count>
 web-alert-paused: "Chunk loaders paused - the server TPS is at <tps>"
 web-alert-shed: "<count> chunk loaders disabled by lag - the server is at <mspt> ms per tick"

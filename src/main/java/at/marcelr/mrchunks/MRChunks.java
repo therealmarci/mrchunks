@@ -104,6 +104,7 @@ public final class MRChunks extends JavaPlugin {
     private ServerPause pause;
     private LoadShedder shedder;
     private MRadminLink mradmin;
+    private RestartSignal restartSignal;
     private Dummies dummies;
     private ItemActivation itemActivation;
     private LinkRequests linkRequests;
@@ -118,10 +119,12 @@ public final class MRChunks extends JavaPlugin {
         // Created first (loaders report map changes through it), connected at the end of enabling.
         mradmin = new MRadminLink(this);
         border = new BorderDisplay(this);
+        restartSignal = new RestartSignal(this);
         loaders = new LoaderManager(this);
         loaders.load();
         loaders.applyAll();
         startValidation();
+        restartSignal.start();
         dummies = new Dummies(this);
         dummies.checkAvailability();
         dummies.start();
@@ -151,6 +154,7 @@ public final class MRChunks extends JavaPlugin {
         getServer().getPluginManager().registerEvents(border, this);
         getServer().getPluginManager().registerEvents(menuListener, this);
         getServer().getPluginManager().registerEvents(dummies, this);
+        getServer().getPluginManager().registerEvents(restartSignal, this);
         register("chunkloader", new ChunkloaderCommand(this));
         register("mrchunks", new MRChunksCommand(this));
         // Optional: MRadmin (module API) - dashboard, player menu, server health, tickets, web interface.
@@ -162,6 +166,10 @@ public final class MRChunks extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (restartSignal != null) {
+            // every loader gets its own block back (the server goes down or MRchunks is removed)
+            restartSignal.stop();
+        }
         if (menuListener != null) {
             menuListener.stop();
             menuListener.closeAll();
@@ -340,6 +348,10 @@ public final class MRChunks extends JavaPlugin {
     }
 
     /** The optional connection to MRadmin. */
+    public RestartSignal restartSignal() {
+        return restartSignal;
+    }
+
     public MRadminLink mradmin() {
         return mradmin;
     }

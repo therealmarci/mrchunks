@@ -16,7 +16,7 @@
 # ==============================================================================
 
 # Do not change - used for automatic config updates.
-config-version: 34
+config-version: 35
 
 
 # ------------------------------------------------------------------------------
@@ -94,6 +94,16 @@ loaders:
   # a running loader are always ticked as if a player stood next to them (costs a little tick time per loader, the lag
   # protection measures it); the activation range of the rest of the world stays as it is.
   items-always-active: true
+
+  # Redstone signal before restarts. In the settings of a loader its owner chooses: off, "on before restarts" (the
+  # loader gives a signal from the chosen minutes before every restart or stop until the server goes down) or "off
+  # before restarts" (it gives a signal all the time and stops it then) - e.g. to switch farms off in time. Needs
+  # MRadmin (it tells when the next restart comes). On the server the loader becomes a redstone block meanwhile;
+  # players keep seeing the chosen block (only the web map shows the redstone block).
+  restart-signal:
+    enabled: true
+    # The minutes before a restart the owner can choose from (right click in the loader settings).
+    minutes: [1, 5, 10, 15, 30, 60]
 
 
 # Invites: owners can invite other players to switch their chunk loaders on and off - for one loader

@@ -80,6 +80,24 @@ public final class MRadminLink implements Listener {
         }
     }
 
+    /** Whether MRadmin tells when the next restart comes (MRadmin with module API 14 or newer). */
+    public boolean restartsKnown() {
+        try {
+            return connected && MRadminModule.restartsKnown();
+        } catch (LinkageError | RuntimeException e) {
+            return false;
+        }
+    }
+
+    /** Milliseconds until the next restart or stop MRadmin knows of (planned or started by someone), -1 if none. */
+    public long restartMillisLeft() {
+        try {
+            return connected ? MRadminModule.restartMillisLeft() : -1;
+        } catch (LinkageError | RuntimeException e) {
+            return -1;
+        }
+    }
+
     /** Link to the map of the player page in MRadmin, or "" if there is none (no MRadmin, squaremap or address). */
     public String mapUrl() {
         try {

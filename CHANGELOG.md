@@ -9,6 +9,10 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+### Neu
+- **Redstone-Signal vor Neustarts:** In den Einstellungen eines Loaders gibt es **Redstone vor Neustarts**. Klick wechselt den Modus (*Aus*, *An vor Neustarts*, *Aus vor Neustarts*), Rechtsklick die Minuten vorher. Der Loader gibt dann vor jedem Neustart und Stopp, den MRadmin kennt (geplant oder vom Team gestartet), ein volles Redstone-Signal in alle Richtungen bzw. schaltet es ab - z.B. um Farmen rechtzeitig auszuschalten. Spieler sehen weiter den gewählten Block, nur die Webkarte zeigt solange einen Redstoneblock. Braucht MRadmin (ab Modul-API 14). Neue Permission `mrchunks.restartsignal` (in `mrchunks.player`), Einstellungen `loaders.restart-signal.enabled` und `loaders.restart-signal.minutes`.
+- **Loader-Daten im Ticket-Log:** Sperrt der Lag-Schutz einen Chunkloader, bekommt das automatische Ticket in MRadmin (ab MRadmin mit Modul-API 16) einen eigenen Abschnitt im Ticket-Log: Besitzer, Größe, Ort, Dummy, geladene Chunks, der Sperrgrund und die Messwerte der letzten 30 Minuten gegen Warn- und Sperrgrenze, dazu die Fläche des Loaders auf der Karte. Nur in der Weboberfläche des eigenen Servers sichtbar (Permission `mradmin.tickets.log`), nie an MRtechnology.
+
 ## [STA-1.4.1-bu001] - 2026-11-15
 
 ### Neu

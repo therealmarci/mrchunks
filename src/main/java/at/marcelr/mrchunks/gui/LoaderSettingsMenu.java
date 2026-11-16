@@ -18,14 +18,17 @@ import static at.marcelr.mrchunks.Messages.tag;
  * Settings of one loader, opened from {@link LoaderMenu}. Layout (3 rows), the buttons centred in the middle row:
  * <pre>
  *  . . . . [info] . . . .
- *  . [size] . [block] . [rename] . [delete] .     (without item.block-choices: . . [size] . [rename] . [delete] . .)
+ *  [size] . [block] . [signal] . [rename] . [delete]   (without block choices or the signal: four or three, centred)
  *  [back] . . . [close] . . . .
  * </pre>
- * Everyone who can open the loader's menu sees the size; block, rename and delete only with ownership or the admin
- * permission. Deleting needs a second click to confirm.
+ * Everyone who can open the loader's menu sees the size; block, signal, rename and delete only with ownership or the
+ * admin permission. The redstone signal before restarts (loaders.restart-signal, needs MRadmin): left click switches
+ * the mode (off / on before restarts / off before restarts), right click the minutes before. Deleting needs a second
+ * click to confirm.
  */
 public final class LoaderSettingsMenu extends Menu {
 
+    private static final int[] FIVE = {9, 11, 13, 15, 17};
     private static final int[] FOUR = {10, 12, 14, 16};
     private static final int[] THREE = {11, 13, 15};
 
@@ -61,7 +64,9 @@ public final class LoaderSettingsMenu extends Menu {
         TagResolver tags = Texts.loader(plugin, loader);
         boolean manage = AdminActions.canManage(viewer, loader);
         boolean blocks = manage && !plugin.settings().item().blockChoices().isEmpty();
-        int[] slots = blocks ? FOUR : THREE;
+        boolean signal = manage && plugin.settings().loaders().restartSignal();
+        int count = 3 + (blocks ? 1 : 0) + (signal ? 1 : 0);
+        int[] slots = count == 5 ? FIVE : count == 4 ? FOUR : THREE;
         int next = 0;
 
         set(4, LoaderIcons.loader(plugin, loader, false));
@@ -78,6 +83,10 @@ public final class LoaderSettingsMenu extends Menu {
             button(slots[next++], current, "gui-block-name", "gui-block-lore", actions.canChangeBlock(viewer, loader),
                     () -> new BlockMenu(plugin, viewer, loader.id(), this).open(),
                     TagResolver.resolver(tags, tag("block", Component.translatable(current))));
+        }
+
+        if (signal) {
+            signalButton(slots[next++], loader, tags);
         }
 
         button(slots[next++], Material.NAME_TAG, "gui-rename-name", "gui-rename-lore", manage,
@@ -106,6 +115,51 @@ public final class LoaderSettingsMenu extends Menu {
         for (int row = 0; row < 3; row++) {
             fillRow(row);
         }
+    }
+
+    /** The redstone signal before restarts: left click = mode, right click = minutes before. */
+    private void signalButton(int slot, Loader loader, TagResolver tags) {
+        Messages messages = plugin.messages();
+        at.marcelr.mrchunks.RestartSignal signal = plugin.restartSignal();
+        boolean available = signal.available();
+        boolean permitted = plugin.adminActions().canRestartSignal(viewer, loader);
+        at.marcelr.mrchunks.RestartSignal.Mode mode = loader.signalMode();
+        java.util.List<Integer> choices = plugin.settings().loaders().restartSignalMinutes();
+        long left = available ? signal.restartIn() : -1;
+        TagResolver all = TagResolver.resolver(tags,
+                tag("mode", messages.item("signal-mode-" + mode.name().toLowerCase(java.util.Locale.ROOT))),
+                tag("minutes", loader.signalMinutes()),
+                tag("next", left < 0 ? messages.item("signal-next-none")
+                        : messages.item("signal-next", tag("time", Texts.duration(plugin, left)))),
+                tag("state", messages.item(signal.powered(loader) ? "signal-state-on" : "signal-state-off")));
+        Items item = Items.of(signal.powered(loader) ? Material.REDSTONE_BLOCK : Material.REDSTONE)
+                .name(messages.item("gui-signal-name", all));
+        if (!available) {
+            item.lore(messages.lore("gui-signal-unavailable-lore", all));
+        } else {
+            item.lore(messages.lore(mode == at.marcelr.mrchunks.RestartSignal.Mode.NONE ? "gui-signal-off-lore" : "gui-signal-lore", all));
+        }
+        if (!permitted) {
+            item.lore(messages.item("gui-no-permission"));
+        }
+        set(slot, item.build(), click -> {
+            if (!permitted || !available) {
+                messages.send(viewer, permitted ? "signal-unavailable" : "no-permission");
+                sound(Sound.ENTITY_VILLAGER_NO);
+                return;
+            }
+            clickSound();
+            if (click.isRightClick()) {
+                int index = choices.indexOf(loader.signalMinutes());
+                int minutes = choices.get((index + 1) % choices.size());
+                plugin.adminActions().setRestartSignal(viewer, loader, mode, minutes);
+            } else {
+                at.marcelr.mrchunks.RestartSignal.Mode[] modes = at.marcelr.mrchunks.RestartSignal.Mode.values();
+                int minutes = choices.contains(loader.signalMinutes()) ? loader.signalMinutes() : choices.getFirst();
+                plugin.adminActions().setRestartSignal(viewer, loader, modes[(mode.ordinal() + 1) % modes.length], minutes);
+            }
+            render();
+        });
     }
 
     /** A button that is either usable or shows "no permission" and refuses the click. */

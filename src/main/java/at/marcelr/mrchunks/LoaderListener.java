@@ -194,6 +194,11 @@ public final class LoaderListener implements Listener {
         if (loaders().isLoaderBlock(event.getBlock())) {
             event.setCancelled(true);
             plugin.messages().send(event.getPlayer(), "break-denied");
+            // the server now sends the real block (a redstone block while the restart signal is on) - show the chosen one
+            Loader loader = loaders().at(event.getBlock());
+            if (loader != null) {
+                plugin.restartSignal().disguise(event.getPlayer(), loader);
+            }
         }
     }
 
