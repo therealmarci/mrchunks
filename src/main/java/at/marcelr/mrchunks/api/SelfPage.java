@@ -586,7 +586,7 @@ final class SelfPage {
                         : warn > 0 ? m.plain("deck-warn-warn", "count", warn)
                         : paused ? m.plain("deck-warn-paused") : m.plain("deck-warn-ok");
                 String tone = locked > 0 ? "bad" : shed > 0 || warn > 0 ? "warn" : paused ? "info" : "good";
-                tiles.add(at.marcelr.mradmin.api.DeckTile.show("warnings", "chunk-warnings", m.plain("deck-warn-title"),
+                tiles.add(at.marcelr.mradmin.api.DeckTile.team("warnings", "chunk-warnings", m.plain("deck-warn-title"),
                         String.valueOf(locked + shed + warn), detail, tone, "/admin/plugins/mrchunks"));
             }
             return tiles;
