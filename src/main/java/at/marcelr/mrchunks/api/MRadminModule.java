@@ -528,7 +528,22 @@ final class MRadminModule implements AdminModule, WebModule {
     /** The player's own page (/web): permissions MRadmin checks beforehand, also while the player is offline. */
     @Override
     public Set<String> selfPermissions() {
-        return SelfPage.PERMISSIONS;
+        // plus the admin menu permission for the team keys of the Stream Deck (API 17)
+        Set<String> all = new java.util.HashSet<>(SelfPage.PERMISSIONS);
+        all.add(SelfPage.DECK_TEAM);
+        return Set.copyOf(all);
+    }
+
+    // ------------------------------------------- since MRadmin API 17 (1.16.0)
+
+    @Override
+    public List<at.marcelr.mradmin.api.DeckTile> deckTiles(at.marcelr.mradmin.api.SelfViewer viewer) {
+        return SelfPage.deckTiles(plugin, viewer);
+    }
+
+    @Override
+    public @Nullable String deckPress(at.marcelr.mradmin.api.SelfViewer viewer, String tile) {
+        return SelfPage.deckPress(plugin, viewer, tile);
     }
 
     @Override

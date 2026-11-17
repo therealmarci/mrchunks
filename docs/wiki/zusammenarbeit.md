@@ -6,6 +6,7 @@ MRchunks läuft **allein**. Zusammen mit anderen MRtechnology-Plugins kann es me
 |---|---|
 | MRchunks im Dashboard, Spieler-Menü und Serverzustand von MRadmin, Seite **Chunkloader** in der Weboberfläche | MRadmin |
 | Eigene Chunkloader im Browser verwalten (`/web`, Spielerseite) | MRadmin |
+| Stream-Deck-Tasten: eigene Chunkloader an/aus, fürs Team die Chunkloader-Warnungen | MRadmin + MRstreamdeck |
 | MRchunks im Browser einstellen (Plugins → MRchunks → Konfiguration) | MRadmin |
 | Automatisches Ticket für den Owner bei einer Lag-Sperre | MRadmin |
 | Loader-Daten (Messwerte gegen Grenzen, Sperrgrund, Fläche auf der Karte) im Log dieses Tickets | MRadmin mit Ticket-Log |

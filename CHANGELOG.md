@@ -9,6 +9,9 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/), veröffen
 
 ## [Unveröffentlicht]
 
+### Neu
+- **Stream Deck:** Mit MRadmin und dem Stream-Deck-Plugin MRstreamdeck gibt es eine Taste pro eigenem (und geteiltem) Chunkloader - sie zeigt den Zustand und schaltet ihn per Druck an oder aus (gleiche Regeln wie auf der Spielerseite). Fürs Team (`mrchunks.admin.gui`) eine Taste mit den Chunkloader-Warnungen (gesperrt, durch Lags aus, auffällig). Braucht MRadmin mit Modul-API 17.
+
 ## [STA-1.4.2-bu001] - 2026-11-16
 
 ### Neu

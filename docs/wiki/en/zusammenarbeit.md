@@ -6,6 +6,7 @@ MRchunks runs **on its own**. Together with other MRtechnology plugins it can do
 |---|---|
 | MRchunks in MRadmin's dashboard, player menu and server status, page **Chunk loaders** in the web interface | MRadmin |
 | Manage your own chunk loaders in the browser (`/web`, player page) | MRadmin |
+| Stream Deck keys: own chunk loaders on/off, for the team the chunk loader warnings | MRadmin + MRstreamdeck |
 | Configure MRchunks in the browser (Plugins → MRchunks → Configuration) | MRadmin |
 | Automatic ticket for the owner on a lag lock | MRadmin |
 | Loader data (measurements against limits, lock reason, area on the map) in the log of that ticket | MRadmin with ticket log |

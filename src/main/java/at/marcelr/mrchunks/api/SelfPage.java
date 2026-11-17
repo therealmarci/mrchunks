@@ -547,6 +547,82 @@ final class SelfPage {
         };
     }
 
+
+    // ------------------------------------------------ Stream Deck (MRadmin API 17)
+
+    /** Team keys (warnings of the chunk loaders) need the admin menu permission, like the module's pages. */
+    static final String DECK_TEAM = at.marcelr.mrchunks.AdminActions.PERM_GUI;
+
+    /**
+     * Keys for the Stream Deck: one per loader of the player (own and shared - press switches it on or off, the same
+     * checks as on the page) and for the team the warnings of all loaders (locked, disabled by lag, conspicuous,
+     * paused).
+     */
+    static List<at.marcelr.mradmin.api.DeckTile> deckTiles(MRChunks plugin, SelfViewer viewer) {
+        return plugin.messages().in(viewer.lang(), () -> {
+            Messages m = plugin.messages();
+            LoaderManager loaders = plugin.loaders();
+            List<at.marcelr.mradmin.api.DeckTile> tiles = new ArrayList<>();
+            if (allowed(viewer)) {
+                UUID owner = loaders.main(viewer.player());
+                List<Loader> mine = new ArrayList<>(loaders.byOwner(owner));
+                mine.addAll(loaders.sharedWith(viewer.player()));
+                for (Loader loader : mine) {
+                    LoaderStatus status = LoaderStatus.of(plugin, loader);
+                    int width = loader.maxChunkX() - loader.minChunkX() + 1;
+                    int length = loader.maxChunkZ() - loader.minChunkZ() + 1;
+                    tiles.add(new at.marcelr.mradmin.api.DeckTile("loader:" + loader.id(), "chunkloader",
+                            Texts.name(plugin, loader), m.plain("deck-state-" + status.name().toLowerCase(java.util.Locale.ROOT)),
+                            width + "×" + length, deckTone(status), "/game/mrchunks/" + AREA, true, false));
+                }
+            }
+            if (viewer.has(DECK_TEAM)) {
+                int locked = loaders.lagLocks().size();
+                int shed = loaders.shedIds().size();
+                long warn = loaders.all().stream().filter(l -> LoaderStatus.of(plugin, l) == LoaderStatus.WARN).count();
+                boolean paused = loaders.serverPaused() || loaders.adminPause() != null;
+                String detail = locked > 0 ? m.plain("deck-warn-locked", "count", locked)
+                        : shed > 0 ? m.plain("deck-warn-shed", "count", shed)
+                        : warn > 0 ? m.plain("deck-warn-warn", "count", warn)
+                        : paused ? m.plain("deck-warn-paused") : m.plain("deck-warn-ok");
+                String tone = locked > 0 ? "bad" : shed > 0 || warn > 0 ? "warn" : paused ? "info" : "good";
+                tiles.add(at.marcelr.mradmin.api.DeckTile.show("warnings", "chunk-warnings", m.plain("deck-warn-title"),
+                        String.valueOf(locked + shed + warn), detail, tone, "/admin/plugins/mrchunks"));
+            }
+            return tiles;
+        });
+    }
+
+    private static String deckTone(LoaderStatus status) {
+        return switch (status) {
+            case LOCKED -> "bad";
+            case WARN, PAUSED, SHED -> "warn";
+            case INACTIVE -> "off";
+            case OK -> "good";
+        };
+    }
+
+    /** A loader key was pressed: switch it on or off (own or shared loader, the same checks as on the page). */
+    static @Nullable String deckPress(MRChunks plugin, SelfViewer viewer, String tile) {
+        if (!tile.startsWith("loader:")) {
+            return "?";
+        }
+        if (!allowed(viewer)) {
+            return plugin.messages().in(viewer.lang(), () -> plugin.messages().plain("self-err-no-permission"));
+        }
+        return plugin.messages().in(viewer.lang(), () -> {
+            LoaderManager loaders = plugin.loaders();
+            if (loaders.groupBan(viewer.player()) != null) {
+                return plugin.messages().plain("self-err-banned");
+            }
+            Loader loader = loader(loaders, tile.substring(7));
+            UUID owner = loaders.main(viewer.player());
+            if (loader == null || !(loader.owner().equals(owner) || loaders.isMember(viewer.player(), loader))) {
+                return plugin.messages().plain("self-err-not-found");
+            }
+            return toggle(plugin, loader, viewer.name() + " (Stream Deck)");
+        });
+    }
     private static Loader loader(LoaderManager loaders, String id) {
         try {
             return id == null ? null : loaders.byId(Integer.parseInt(id));
